@@ -1044,7 +1044,10 @@ async function generateComponentFromBlueprint(blueprint) {
   var requiredVars = [
     { name: 'button/icon wrapper padding L', defaultVal: 8 },
     { name: 'button/icon wrapper padding R', defaultVal: 8 },
-    { name: 'button/icon pad', defaultVal: 8 }
+    { name: 'button/icon pad', defaultVal: 8 },
+    /* Rounded (pill) corner radius — bound on Rounded=True variants instead
+       of button/default/radius. Mirrors --btn-radius-rounded in CSS. */
+    { name: 'button/radius-rounded', defaultVal: 9999 }
   ];
 
   var allCols = await figma.variables.getLocalVariableCollectionsAsync();
@@ -1054,15 +1057,32 @@ async function generateComponentFromBlueprint(blueprint) {
     var csModeId = csCol.modes[0].modeId;
     for (var rvi = 0; rvi < requiredVars.length; rvi++) {
       var reqName = requiredVars[rvi].name;
-      /* Check both short and long forms */
-      if (!compSizeVars[reqName] && !compSizeVars[reqName.replace('button/', 'button/default/')]) {
+      var reqVal  = requiredVars[rvi].defaultVal;
+      var longName = reqName.replace('button/', 'button/default/');
+      var existing = compSizeVars[reqName] || compSizeVars[longName];
+      if (existing) {
+        /* Variable already exists — enforce canonical value so stale
+           values from earlier file states (e.g. icon pad = 6) are
+           upgraded to the current source of truth. Update-in-place
+           preserves the variable ID and all bindings. */
+        try {
+          var curVal = existing.valuesByMode && existing.valuesByMode[csModeId];
+          if (curVal !== reqVal) {
+            existing.setValueForMode(csModeId, reqVal);
+            log('Updated ' + reqName + ': ' + curVal + ' → ' + reqVal);
+            stats.bindings++;
+          }
+        } catch (uve) {
+          log('Failed to update variable ' + reqName + ': ' + uve.message);
+        }
+      } else {
         try {
           var newVar = figma.variables.createVariable(reqName, csCol, 'FLOAT');
-          newVar.setValueForMode(csModeId, requiredVars[rvi].defaultVal);
+          newVar.setValueForMode(csModeId, reqVal);
           compSizeVars[reqName] = newVar;
           /* Also create alias */
-          compSizeVars[reqName.replace('button/', 'button/default/')] = newVar;
-          log('Created missing variable: ' + reqName + ' = ' + requiredVars[rvi].defaultVal);
+          compSizeVars[longName] = newVar;
+          log('Created missing variable: ' + reqName + ' = ' + reqVal);
           stats.bindings++;
         } catch (cve) {
           log('Failed to create variable ' + reqName + ': ' + cve.message);
@@ -1158,6 +1178,38 @@ async function generateComponentFromBlueprint(blueprint) {
     }
     if (pcol.name === 'T3 Status Context Tokens') {
       t3Col = pcol;
+      /* ── Migration: rename legacy 'primary' mode → 'brand' ──
+         The system was unified around 'brand' as the canonical role.
+         If a file still has a 'primary' mode (or both 'primary' and
+         'brand'), normalize to 'brand' in-place to preserve all
+         existing component bindings (variable mode IDs survive).      */
+      try {
+        var hasPrimary = pcol.modes.some(function(m) { return m.name === 'primary'; });
+        var hasBrand   = pcol.modes.some(function(m) { return m.name === 'brand'; });
+        if (hasPrimary && !hasBrand) {
+          /* Simple rename: 'primary' → 'brand' (mode ID preserved) */
+          for (var rmi = 0; rmi < pcol.modes.length; rmi++) {
+            if (pcol.modes[rmi].name === 'primary') {
+              pcol.renameMode(pcol.modes[rmi].modeId, 'brand');
+              log("T3 mode migration: renamed 'primary' → 'brand'");
+              break;
+            }
+          }
+        } else if (hasPrimary && hasBrand) {
+          /* Both exist — keep 'primary' (it's the live one with bindings)
+             rename it to 'brand-new' temporarily, drop the stale 'brand'
+             mode, then rename 'brand-new' → 'brand'. This preserves IDs. */
+          var primaryMode = pcol.modes.find(function(m) { return m.name === 'primary'; });
+          var brandMode   = pcol.modes.find(function(m) { return m.name === 'brand'; });
+          pcol.renameMode(primaryMode.modeId, '__brand_tmp__');
+          try { pcol.removeMode(brandMode.modeId); } catch (_e) {}
+          pcol.renameMode(primaryMode.modeId, 'brand');
+          log("T3 mode migration: dropped stale 'brand', promoted 'primary' → 'brand'");
+        }
+      } catch (mige) {
+        log('T3 mode migration warning: ' + mige.message);
+      }
+      /* Re-read modes after potential rename */
       for (var pmi2 = 0; pmi2 < pcol.modes.length; pmi2++) {
         t3Modes[pcol.modes[pmi2].name] = pcol.modes[pmi2].modeId;
       }
@@ -1169,7 +1221,7 @@ async function generateComponentFromBlueprint(blueprint) {
   /* Resolve presentation colors from system tokens */
   var brightModeId  = t2Modes['surface-bright'] || t2Modes['surface-base'] || null;
   var inverseModeId = t2Modes['surface-inverse'] || null;
-  var primaryModeId = t3Modes['primary'] || null;
+  var brandModeId = t3Modes['brand'] || null;
 
   /* Surface-bright resolved values (for cards, labels, dividers) */
   var COLOR_SURFACE_BG = (await resolveVarColor(t2Vars['default/surfaces/bg'], brightModeId))    || { r: 1, g: 1, b: 1 };
@@ -1184,10 +1236,10 @@ async function generateComponentFromBlueprint(blueprint) {
   var COLOR_CM_BG    = (await resolveVarColor(t2Vars['default/component/bg'], brightModeId))      || { r: 0.96, g: 0.97, b: 0.98 };
 
   /* Accent from T3 primary */
-  var COLOR_ACCENT   = (await resolveVarColor(t3Vars['component/bg-default'], primaryModeId))     || { r: 0.22, g: 0.42, b: 0.95 };
-  var COLOR_PRIMARY_CT = (await resolveVarColor(t3Vars['content/default'], primaryModeId))        || { r: 0.17, g: 0.36, b: 0.89 };
-  var COLOR_ON_COMP  = (await resolveVarColor(t3Vars['oncomponent-content/default'], primaryModeId)) || { r: 1, g: 1, b: 1 };
-  var COLOR_PRIMARY_CONTAINER = (await resolveVarColor(t3Vars['container/bg'], primaryModeId))    || { r: 0.92, g: 0.95, b: 1 };
+  var COLOR_ACCENT   = (await resolveVarColor(t3Vars['component/bg-default'], brandModeId))     || { r: 0.22, g: 0.42, b: 0.95 };
+  var COLOR_PRIMARY_CT = (await resolveVarColor(t3Vars['content/default'], brandModeId))        || { r: 0.17, g: 0.36, b: 0.89 };
+  var COLOR_ON_COMP  = (await resolveVarColor(t3Vars['oncomponent-content/default'], brandModeId)) || { r: 1, g: 1, b: 1 };
+  var COLOR_PRIMARY_CONTAINER = (await resolveVarColor(t3Vars['container/bg'], brandModeId))    || { r: 0.92, g: 0.95, b: 1 };
 
   /* Surface-inverse resolved values (for hero dark background) */
   var COLOR_HERO_BG  = (await resolveVarColor(t2Vars['default/surfaces/bg'], inverseModeId))       || { r: 0.09, g: 0.09, b: 0.12 };
@@ -1532,9 +1584,9 @@ async function generateComponentFromBlueprint(blueprint) {
     }
   }
   /* Bind T3 accent elements on hero (these need T3 collection mode set) */
-  if (t3Col && primaryModeId) {
+  if (t3Col && brandModeId) {
     try {
-      heroBg.setExplicitVariableModeForCollection(t3Col, primaryModeId);
+      heroBg.setExplicitVariableModeForCollection(t3Col, brandModeId);
       tryBindFill(t1l1, t3Vars['content/default']); /* "TIER 1 — MASTERS" label */
       tryBindFill(versionBadge, t3Vars['component/bg-default']); /* version badge bg */
     } catch (e) {}
@@ -1662,9 +1714,9 @@ async function generateComponentFromBlueprint(blueprint) {
     }
   }
   /* Bind tier-1 badge to primary container tokens */
-  if (t3Col && primaryModeId) {
+  if (t3Col && brandModeId) {
     try {
-      mhBadge.setExplicitVariableModeForCollection(t3Col, primaryModeId);
+      mhBadge.setExplicitVariableModeForCollection(t3Col, brandModeId);
       tryBindFill(mhBadge, t3Vars['container/bg']);
       /* Bind badge label text */
       if (mhBadge.children.length > 0) tryBindFill(mhBadge.children[0], t3Vars['content/default']);
@@ -1986,8 +2038,18 @@ async function generateComponentFromBlueprint(blueprint) {
 
       var setDisplayName = BP.name + ' / ' + familyName + ' / ' + mName;
 
-      var components = []; /* { component, type, state } */
+      var components = []; /* { component, type, state, rounded } */
 
+      /* Rounded axis — boolean variant property mirroring CSS [data-rounded].
+         False = bound to button/default/radius (default). True = bound to
+         button/radius-rounded (pill, 9999). Lookup tolerates both naming
+         conventions used across files. */
+      var radiusRoundedVar = compSizeVars['button/radius-rounded']
+                          || compSizeVars['button/default/radius-rounded'];
+      var roundedValues = [false, true];
+
+      for (var ri2 = 0; ri2 < roundedValues.length; ri2++) {
+        var isRounded = roundedValues[ri2];
       for (var ti = 0; ti < famTypes.length; ti++) {
         var typeName = famTypes[ti];
         for (var sti = 0; sti < famStates.length; sti++) {
@@ -1998,7 +2060,7 @@ async function generateComponentFromBlueprint(blueprint) {
           /* Create variant component — thin wrapper, NO padding or layout of its own.
              All structure comes from the master instance inside it. */
           var varComp = figma.createComponent();
-          varComp.name = 'Type=' + typeName + ', State=' + stateName;
+          varComp.name = 'Type=' + typeName + ', State=' + stateName + ', Rounded=' + (isRounded ? 'True' : 'False');
           varComp.resize(120, 36);
           varComp.layoutMode = 'HORIZONTAL';
           varComp.counterAxisAlignItems = 'CENTER';
@@ -2030,6 +2092,21 @@ async function generateComponentFromBlueprint(blueprint) {
           varComp.appendChild(instance);
           instance.layoutSizingHorizontal = 'HUG';
           instance.layoutSizingVertical = 'FIXED';
+
+          /* Rounded override — rebind all four corner radii on the instance
+             to button/radius-rounded. Master remains bound to button/default/radius;
+             instance bindings override the master per Figma's variable inheritance. */
+          if (isRounded && radiusRoundedVar) {
+            try {
+              await tryBindVar(instance, 'topLeftRadius',     radiusRoundedVar);
+              await tryBindVar(instance, 'topRightRadius',    radiusRoundedVar);
+              await tryBindVar(instance, 'bottomLeftRadius',  radiusRoundedVar);
+              await tryBindVar(instance, 'bottomRightRadius', radiusRoundedVar);
+              stats.bindings += 4;
+            } catch (rre) {
+              log('Rounded radius bind failed (' + familyName + '/' + typeName + '/' + stateName + '): ' + rre.message);
+            }
+          }
 
           /* ── Apply color overrides on the INSTANCE ── */
 
@@ -2080,10 +2157,11 @@ async function generateComponentFromBlueprint(blueprint) {
             }
           }
 
-          components.push({ component: varComp, type: typeName, state: stateName });
+          components.push({ component: varComp, type: typeName, state: stateName, rounded: isRounded });
           stats.components++;
         }
       }
+      } /* end rounded loop */
 
       /* ── Combine into ComponentSet ── */
       figma.ui.postMessage({ type: 'gen-progress', text: 'Combining ' + setDisplayName + '…' });
@@ -2096,21 +2174,28 @@ async function generateComponentFromBlueprint(blueprint) {
       componentSet.name = setDisplayName;
       componentSet.description = (BP.description || '') + ' Family: ' + familyName + '.';
 
-      /* Grid layout: types as rows, states as columns. */
+      /* Grid layout: types as rows, states as columns. Rounded=False set
+         occupies the top half; Rounded=True set is stacked below with a
+         small gap so the variant set is browsable at a glance. */
       var colCount = famStates.length;
       var rowCount = famTypes.length;
       var padX = 20;
       var padY = 27;
       var colSpacing = 155;
       var rowSpacing = 70;
+      var roundedBlockGap = 30; /* extra gap between False-block and True-block */
+      var blockHeight = rowCount * rowSpacing;
       for (var gi = 0; gi < components.length; gi++) {
-        var row = Math.floor(gi / colCount);
-        var col = gi % colCount;
-        components[gi].component.x = padX + col * colSpacing;
-        components[gi].component.y = padY + row * rowSpacing;
+        var entry = components[gi];
+        var typeIdx = famTypes.indexOf(entry.type);
+        var stateIdx = famStates.indexOf(entry.state);
+        var roundedOffset = entry.rounded ? (blockHeight + roundedBlockGap) : 0;
+        entry.component.x = padX + stateIdx * colSpacing;
+        entry.component.y = padY + typeIdx * rowSpacing + roundedOffset;
       }
       var totalW = padX * 2 + (colCount - 1) * colSpacing + 120;
-      var totalH = padY + (rowCount - 1) * rowSpacing + 32 + padY;
+      /* Doubled height to fit Rounded=False block + Rounded=True block + gap. */
+      var totalH = padY + (rowCount - 1) * rowSpacing + 32 + (blockHeight + roundedBlockGap) + padY;
       try { componentSet.resize(totalW, totalH); } catch (e) { /* auto-size */ }
 
       /* ── Row/column label constants ── */
@@ -2125,47 +2210,51 @@ async function generateComponentFromBlueprint(blueprint) {
 
       for (var ri = 0; ri < famTypes.length; ri++) {
         var rType = famTypes[ri];
-        var defaultComp = null, hoverComp = null, pressedComp = null;
+        for (var rri = 0; rri < roundedValues.length; rri++) {
+          var rRounded = roundedValues[rri];
+          var defaultComp = null, hoverComp = null, pressedComp = null;
 
-        for (var rj = 0; rj < components.length; rj++) {
-          if (components[rj].type !== rType) continue;
-          if (components[rj].state === 'Default') defaultComp = components[rj].component;
-          if (components[rj].state === 'Hover')   hoverComp = components[rj].component;
-          if (components[rj].state === 'Pressed') pressedComp = components[rj].component;
-        }
+          for (var rj = 0; rj < components.length; rj++) {
+            if (components[rj].type !== rType) continue;
+            if (components[rj].rounded !== rRounded) continue;
+            if (components[rj].state === 'Default') defaultComp = components[rj].component;
+            if (components[rj].state === 'Hover')   hoverComp = components[rj].component;
+            if (components[rj].state === 'Pressed') pressedComp = components[rj].component;
+          }
 
-        if (defaultComp) {
-          var reactions = [];
-          if (hoverComp) {
-            reactions.push({
-              trigger: { type: 'ON_HOVER' },
-              actions: [{
-                type: 'NODE',
-                destinationId: hoverComp.id,
-                navigation: 'CHANGE_TO',
-                transition: { type: 'DISSOLVE', duration: 0.15, easing: { type: 'EASE_IN_AND_OUT' } }
-              }]
-            });
-            stats.reactions++;
-          }
-          if (pressedComp) {
-            reactions.push({
-              trigger: { type: 'ON_PRESS' },
-              actions: [{
-                type: 'NODE',
-                destinationId: pressedComp.id,
-                navigation: 'CHANGE_TO',
-                transition: { type: 'DISSOLVE', duration: 0.05, easing: { type: 'EASE_IN_AND_OUT' } }
-              }]
-            });
-            stats.reactions++;
-          }
-          if (reactions.length > 0) {
-            try {
-              await defaultComp.setReactionsAsync(reactions);
-            } catch (re) {
-              log('Reaction wiring failed for ' + familyName + '/' + rType + ': ' + re.message);
-              stats.errors.push('Reactions ' + familyName + '/' + rType + ': ' + re.message);
+          if (defaultComp) {
+            var reactions = [];
+            if (hoverComp) {
+              reactions.push({
+                trigger: { type: 'ON_HOVER' },
+                actions: [{
+                  type: 'NODE',
+                  destinationId: hoverComp.id,
+                  navigation: 'CHANGE_TO',
+                  transition: { type: 'DISSOLVE', duration: 0.15, easing: { type: 'EASE_IN_AND_OUT' } }
+                }]
+              });
+              stats.reactions++;
+            }
+            if (pressedComp) {
+              reactions.push({
+                trigger: { type: 'ON_PRESS' },
+                actions: [{
+                  type: 'NODE',
+                  destinationId: pressedComp.id,
+                  navigation: 'CHANGE_TO',
+                  transition: { type: 'DISSOLVE', duration: 0.05, easing: { type: 'EASE_IN_AND_OUT' } }
+                }]
+              });
+              stats.reactions++;
+            }
+            if (reactions.length > 0) {
+              try {
+                await defaultComp.setReactionsAsync(reactions);
+              } catch (re) {
+                log('Reaction wiring failed for ' + familyName + '/' + rType + '/Rounded=' + rRounded + ': ' + re.message);
+                stats.errors.push('Reactions ' + familyName + '/' + rType + ': ' + re.message);
+              }
             }
           }
         }
@@ -2230,13 +2319,40 @@ async function generateComponentFromBlueprint(blueprint) {
       colHeaderBar.y = varSecContentY;
       tryBindFill(colHeaderBar, t2Vars['default/surfaces/strong']);
 
-      /* Row labels */
+      /* Row labels — printed twice: once for the Rounded=False block (top
+         half) and again for the Rounded=True block (bottom half). A small
+         section sub-header marks each block so the static layout reads
+         clearly even though the variant property panel already exposes
+         a "Rounded" toggle. */
+      var halfBlockOffset = blockHeight + roundedBlockGap;
+
+      /* Sub-header above each block */
+      var squareHdr = createLabel('Square (Default)', 10, true, COLOR_DIMMED);
+      variantSec.section.appendChild(squareHdr);
+      squareHdr.x = variantSec.innerX + 4;
+      squareHdr.y = csY + 6;
+      tryBindFill(squareHdr, t2Vars['default/content/subtle']);
+
+      var pillHdr = createLabel('Pill (Rounded=True)', 10, true, COLOR_DIMMED);
+      variantSec.section.appendChild(pillHdr);
+      pillHdr.x = variantSec.innerX + 4;
+      pillHdr.y = csY + halfBlockOffset + 6;
+      tryBindFill(pillHdr, t2Vars['default/content/subtle']);
+
       for (var rhi = 0; rhi < famTypes.length; rhi++) {
+        /* Square block label */
         var rowLabel = createLabel(famTypes[rhi], 11, false, COLOR_BODY);
         variantSec.section.appendChild(rowLabel);
         rowLabel.x = variantSec.innerX + 4;
         rowLabel.y = csY + padY + rhi * rowSpacing + 8;
         tryBindFill(rowLabel, t2Vars['default/content/default']);
+
+        /* Pill block label (same type name, offset down by one block) */
+        var rowLabelPill = createLabel(famTypes[rhi], 11, false, COLOR_BODY);
+        variantSec.section.appendChild(rowLabelPill);
+        rowLabelPill.x = variantSec.innerX + 4;
+        rowLabelPill.y = csY + padY + rhi * rowSpacing + 8 + halfBlockOffset;
+        tryBindFill(rowLabelPill, t2Vars['default/content/default']);
       }
 
       /* Place the component set */
