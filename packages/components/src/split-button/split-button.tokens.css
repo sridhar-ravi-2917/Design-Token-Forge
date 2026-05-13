@@ -358,6 +358,8 @@
   --split-btn-focus-outline-width:  var(--btn-focus-outline-width);
   --split-btn-focus-outline-color:  var(--btn-focus-outline-color);
   --split-btn-focus-outline-offset: var(--btn-focus-outline-offset);
-  --split-btn-min-tap-target: 44px;
+  /* Match button: sizes are intentional, no clamp.
+     Consumers can opt into a tap-target floor by overriding this token. */
+  --split-btn-min-tap-target: var(--btn-min-tap-target);
   --split-btn-radius-rounded: var(--btn-radius-rounded);
 }
