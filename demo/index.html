@@ -308,21 +308,21 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
 </head>
 <body class="auth-locked">
 
-<!-- ── Admin Auth Gate ── -->
+<!-- ── PAT Auth Gate ── -->
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-card">
     <div class="auth-icon">🔒</div>
-    <h2>Admin Access Required</h2>
-    <p class="auth-sub">Enter the admin passphrase to edit the Color System.</p>
+    <h2>Sign in with GitHub PAT</h2>
+    <p class="auth-sub">A GitHub Personal Access Token is required to view your projects and edit the Color System.</p>
     <form id="authForm" autocomplete="off">
       <div class="auth-input-wrap">
-        <input type="password" class="auth-input" id="authInput" placeholder="Passphrase or GitHub PAT" autofocus spellcheck="false">
+        <input type="password" class="auth-input" id="authInput" placeholder="ghp_… or github_pat_…" autofocus spellcheck="false">
         <button type="button" class="auth-toggle-vis" id="authToggleVis" title="Show / hide">👁</button>
       </div>
       <button type="submit" class="auth-submit">Unlock</button>
       <div class="auth-err-msg" id="authErr"></div>
     </form>
-    <p class="auth-hint">Enter <code>DTF-Admin</code> or your <strong>GitHub PAT</strong> (auto-connects deploy)</p>
+    <p class="auth-hint">Need a token? <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=DTF+Color+Editor" target="_blank" rel="noopener">Create one with <code>repo</code> + <code>workflow</code> scope &rarr;</a></p>
   </div>
 </div>
 
@@ -742,50 +742,44 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
 
   form.addEventListener('submit', function(e) {
     e.preventDefault();
-    var phrase = input.value;
-    if (!phrase) { showErr('Please enter the passphrase'); return; }
+    var phrase = input.value.trim();
+    if (!phrase) { showErr('Please enter your GitHub PAT'); return; }
 
-    /* 1. Try static passphrase first */
-    sha256(phrase).then(function(hash) {
-      if (hash === AUTH_HASH) {
-        sessionStorage.setItem(SESSION_KEY, AUTH_HASH);
-        unlock();
-        return;
-      }
-
-      /* 2. Looks like a GitHub PAT? Verify against API */
-      if (phrase.startsWith('ghp_') || phrase.startsWith('github_pat_')) {
-        errEl.textContent = '';
-        var btn = form.querySelector('.auth-submit');
-        btn.textContent = 'Verifying PAT\u2026';
-        btn.disabled = true;
-        fetch('https://api.github.com/user', {
-          headers: { 'Authorization': 'Bearer ' + phrase, 'Accept': 'application/vnd.github+json' }
-        }).then(function(r) {
-          if (!r.ok) throw new Error('Invalid token');
-          return r.json();
-        }).then(function(user) {
-          /* PAT valid — store credentials and unlock */
-          localStorage.setItem('dtf-gh-pat', phrase);
-          localStorage.setItem('dtf-gh-user', user.login);
-          localStorage.setItem('dtf-gh-owner', user.login);
-          sessionStorage.setItem(SESSION_KEY, AUTH_HASH);
-          unlock();
-        }).catch(function() {
-          showErr('Invalid PAT — check scopes (needs repo + workflow)');
-          input.classList.add('auth-error');
-          setTimeout(function(){ input.classList.remove('auth-error'); }, 500);
-        }).finally(function() {
-          btn.textContent = 'Unlock';
-          btn.disabled = false;
-        });
-        return;
-      }
-
-      /* 3. Neither matched */
-      showErr('Incorrect passphrase');
+    /* PAT-only auth — the legacy DTF-Admin passphrase shortcut has been
+       removed because it allowed anyone who guessed the phrase to unlock
+       the page and enumerate the project list. The only path now is a
+       valid GitHub PAT, and the user identity from /user is what drives
+       the project filter (getVisibleProjects). */
+    if (!(phrase.startsWith('ghp_') || phrase.startsWith('github_pat_'))) {
+      showErr('Token must start with ghp_ or github_pat_');
       input.classList.add('auth-error');
       setTimeout(function(){ input.classList.remove('auth-error'); }, 500);
+      return;
+    }
+
+    errEl.textContent = '';
+    var btn = form.querySelector('.auth-submit');
+    btn.textContent = 'Verifying PAT\u2026';
+    btn.disabled = true;
+    fetch('https://api.github.com/user', {
+      headers: { 'Authorization': 'Bearer ' + phrase, 'Accept': 'application/vnd.github+json' }
+    }).then(function(r) {
+      if (!r.ok) throw new Error('Invalid token');
+      return r.json();
+    }).then(function(user) {
+      /* PAT valid — store credentials and unlock */
+      localStorage.setItem('dtf-gh-pat', phrase);
+      localStorage.setItem('dtf-gh-user', user.login);
+      localStorage.setItem('dtf-gh-owner', user.login);
+      sessionStorage.setItem(SESSION_KEY, AUTH_HASH);
+      unlock();
+    }).catch(function() {
+      showErr('Invalid PAT — check scopes (needs repo + workflow)');
+      input.classList.add('auth-error');
+      setTimeout(function(){ input.classList.remove('auth-error'); }, 500);
+    }).finally(function() {
+      btn.textContent = 'Unlock';
+      btn.disabled = false;
     });
   });
 

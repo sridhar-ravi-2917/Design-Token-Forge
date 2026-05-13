@@ -668,11 +668,21 @@ async function main() {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
       projectList.push({ id: cfg.id, name: cfg.name, owner: cfg.owner || '', description: cfg.description || '' });
     }
-    const manifestPath = path.join(BASE_OUT_DIR, 'projects.json');
-    fs.writeFileSync(manifestPath, JSON.stringify(projectList, null, 2));
-    // Also update root projects.json (used by local dev)
+    // Local dev manifest only — used by `pnpm dev` server. NOT published to
+    // dist/ because GitHub Pages serves all files publicly and we don't want
+    // to leak the project list / owner usernames to anonymous visitors.
+    // The launchpad fetches projects via authenticated GitHub API instead
+    // (fetchUserProjectsLive in dist/index.html).
     fs.writeFileSync(path.join(ROOT, 'projects.json'), JSON.stringify(projectList, null, 2));
-    console.log(`  ✓ projects.json → ${projectList.length} project(s)`);
+    console.log(`  ✓ projects.json (local only) → ${projectList.length} project(s)`);
+
+    // Remove any previously-deployed projects.json from dist/ so old caches
+    // get a 404 instead of stale data.
+    const stalePublic = path.join(BASE_OUT_DIR, 'projects.json');
+    if (fs.existsSync(stalePublic)) {
+      fs.unlinkSync(stalePublic);
+      console.log('  ✓ Removed dist/projects.json (kept private)');
+    }
 
     // ── Clean up stale project directories from dist/ ───────────
     const validIds = new Set(projectList.map(p => p.id));
