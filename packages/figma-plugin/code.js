@@ -715,6 +715,7 @@ var BUTTON_BLUEPRINT = {
     },
     iconWrapperPadL:      'button/default/icon wrapper padding L',
     iconWrapperPadR:      'button/default/icon wrapper padding R',
+    iconPad:              'button/default/icon pad',
     textWrapperPadL:      'button/default/text wrapper padding L',
     textWrapperPadR:      'button/default/text wrapper padding R',
     icon: {
@@ -970,7 +971,8 @@ async function generateComponentFromBlueprint(blueprint) {
      Create them in the comp size collection with sensible defaults. */
   var requiredVars = [
     { name: 'button/icon wrapper padding L', defaultVal: 8 },
-    { name: 'button/icon wrapper padding R', defaultVal: 8 }
+    { name: 'button/icon wrapper padding R', defaultVal: 8 },
+    { name: 'button/icon pad', defaultVal: 6 }
   ];
 
   var allCols = await figma.variables.getLocalVariableCollectionsAsync();
@@ -1651,12 +1653,12 @@ async function generateComponentFromBlueprint(blueprint) {
         iconWrapper.itemSpacing = 0;
 
         /* Icon wrapper: ALWAYS bind padL.
-           padR depends on whether this is the only slot (icon-only → symmetric edge padding)
+           padR depends on whether this is the only slot (icon-only → symmetric icon pad)
            or there's a text slot after it (icon+text → padR is icon-to-text gap). */
-        var iwPadLVar = compSizeVars[BP.sizeBindings.iconWrapperPadL];
-        if (iwPadLVar) { await tryBindVar(iconWrapper, 'paddingLeft', iwPadLVar); stats.bindings++; }
         var isOnlySlot = (slots.length === 1);
-        var iwPadRVar = compSizeVars[isOnlySlot ? BP.sizeBindings.iconWrapperPadL : BP.sizeBindings.iconWrapperPadR];
+        var iwPadLVar = compSizeVars[isOnlySlot ? BP.sizeBindings.iconPad : BP.sizeBindings.iconWrapperPadL];
+        if (iwPadLVar) { await tryBindVar(iconWrapper, 'paddingLeft', iwPadLVar); stats.bindings++; }
+        var iwPadRVar = compSizeVars[isOnlySlot ? BP.sizeBindings.iconPad : BP.sizeBindings.iconWrapperPadR];
         if (iwPadRVar) { await tryBindVar(iconWrapper, 'paddingRight', iwPadRVar); stats.bindings++; }
 
         /* ── Icon Instance (INSTANCE of placeholder component) ──

@@ -639,6 +639,7 @@ function buildCompSize(extrasCollection) {
       { propCSS: 'height',         propFigma: 'height' },
       { propCSS: 'padding-x-icon', propFigma: 'icon wrapper padding L' },
       { propCSS: 'icon-gap',       propFigma: 'icon wrapper padding R' },
+      { propCSS: 'icon-pad',       propFigma: 'icon pad' },
       { propCSS: 'radius',         propFigma: 'radius' },
       { propCSS: 'icon-size',      propFigma: 'icon container' },
       { propCSS: 'font-size',      propFigma: 'font-size' },
