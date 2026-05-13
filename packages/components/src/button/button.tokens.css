@@ -125,8 +125,8 @@
   /* Icon-side padding per density mode (edge → icon spacing) */
   --btn-padding-x-icon-micro: var(--spacing-3);
   --btn-padding-x-icon-tiny: var(--spacing-4);
-  --btn-padding-x-icon-small: var(--spacing-5);
-  --btn-padding-x-icon-base: var(--spacing-6);
+  --btn-padding-x-icon-small: var(--spacing-6);
+  --btn-padding-x-icon-base: var(--spacing-8);
   --btn-padding-x-icon-medium: var(--spacing-8);
   --btn-padding-x-icon-large: var(--spacing-8);
   --btn-padding-x-icon-big: var(--spacing-10);
