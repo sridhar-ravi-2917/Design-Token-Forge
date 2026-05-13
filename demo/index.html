@@ -33,7 +33,7 @@
 .pick-native::-webkit-color-swatch-wrapper{padding:0}
 .pick-native::-webkit-color-swatch{border:none;border-radius:2px}
 .pick-hex{width:80px;padding:4px 8px;border:1px solid var(--demo-border);border-radius:var(--radius-sm,4px);font-family:var(--font-family-mono,monospace);font-size:var(--font-size-12,12px);font-weight:600;color:var(--demo-fg-strong);background:var(--demo-surface);text-transform:uppercase}
-.pick-hex:focus{outline:2px solid var(--primary-component-bg-default);outline-offset:-1px}
+.pick-hex:focus{outline:2px solid var(--brand-component-bg-default);outline-offset:-1px}
 .role-auto-tag{font-size:var(--font-size-10,10px);color:var(--demo-fg-faint);font-style:italic}
 .role-del{width:22px;height:22px;border:1px solid var(--demo-border);border-radius:var(--radius-sm,4px);background:transparent;color:var(--demo-fg-faint);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:auto;transition:all 120ms;line-height:1}
 .role-del:hover{color:#DC2626;border-color:#DC2626;background:#FEE2E2}
@@ -64,7 +64,7 @@ html[data-theme="dark"] .cert-mini[data-status="FAILED"]{background:#7F1D1D;colo
 
 .add-role-wrap{padding:12px 24px}
 .add-role-btn{width:100%;padding:10px 16px;border:2px dashed var(--demo-border);border-radius:var(--radius-md,6px);background:transparent;color:var(--demo-fg-subtle);font-size:var(--font-size-12,12px);font-weight:600;cursor:pointer;transition:all 120ms;font-family:inherit;text-align:center}
-.add-role-btn:hover{border-color:var(--primary-component-bg-default);color:var(--primary-content-default);background:var(--primary-container-bg)}
+.add-role-btn:hover{border-color:var(--brand-component-bg-default);color:var(--brand-content-default);background:var(--brand-container-bg)}
 
 /* ── Global Sticky Save Bar ────────────────────────────────── */
 .global-save-bar{position:sticky;bottom:0;z-index:50;display:flex;align-items:center;gap:12px;padding:10px 24px;background:var(--demo-surface);border-top:2px solid var(--demo-border);box-shadow:0 -4px 16px rgba(0,0,0,.08)}
@@ -101,16 +101,16 @@ html[data-theme="dark"] .global-save-bar{box-shadow:0 -4px 16px rgba(0,0,0,.3)}
 .map-hex{color:var(--demo-fg-faint);min-width:60px;text-align:right}
 .map-pane--dark .map-hex{color:#888}
 .map-edit-toggle{margin-left:auto;padding:5px 14px;border:1px solid var(--demo-border);border-radius:var(--radius-sm,4px);background:transparent;color:var(--demo-fg-subtle);font-size:var(--font-size-11,11px);font-weight:600;cursor:pointer;font-family:inherit;transition:all 120ms;white-space:nowrap;align-self:center}
-.map-edit-toggle:hover{border-color:var(--primary-component-bg-default);color:var(--primary-content-default)}
-.map-edit-toggle[aria-pressed="true"]{background:var(--primary-component-bg-default);color:#fff;border-color:var(--primary-component-bg-default)}
+.map-edit-toggle:hover{border-color:var(--brand-component-bg-default);color:var(--brand-content-default)}
+.map-edit-toggle[aria-pressed="true"]{background:var(--brand-component-bg-default);color:#fff;border-color:var(--brand-component-bg-default)}
 .map-cancel-btn{padding:5px 14px;border:1px solid var(--demo-border);border-radius:var(--radius-sm,4px);background:transparent;color:var(--demo-fg-subtle);font-size:var(--font-size-11,11px);font-weight:600;cursor:pointer;font-family:inherit;transition:all 120ms;white-space:nowrap;align-self:center}
 .map-cancel-btn:hover{border-color:#991B1B;color:#991B1B;background:#FEF2F2}
 .map-revert-btn{align-self:center}
 
 /* ── Step Picker Button (replaces bare <select>) ──────────── */
 .step-pick{display:inline-flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border:1px solid var(--demo-border);border-radius:4px;background:var(--demo-surface);cursor:pointer;font-size:9px;font-family:var(--font-family-mono,monospace);color:var(--demo-fg);min-width:100px;position:relative;transition:border-color 120ms}
-.step-pick:hover{border-color:var(--primary-component-bg-default)}
-.step-pick:focus-within{outline:2px solid var(--primary-component-bg-default);outline-offset:-1px}
+.step-pick:hover{border-color:var(--brand-component-bg-default)}
+.step-pick:focus-within{outline:2px solid var(--brand-component-bg-default);outline-offset:-1px}
 .step-pick__swatch{width:18px;height:14px;border-radius:3px;border:1px solid rgba(128,128,128,.2);flex-shrink:0}
 .step-pick__label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .step-pick__hex{color:var(--demo-fg-faint);font-size:8px}
@@ -126,7 +126,7 @@ html[data-theme="dark"] .global-save-bar{box-shadow:0 -4px 16px rgba(0,0,0,.3)}
 .step-opt{display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;transition:background 80ms;font-size:10px;font-family:var(--font-family-mono,monospace)}
 .step-opt:hover{background:var(--demo-surface-alt)}
 .map-pane--dark .step-opt:hover{background:#333}
-.step-opt[data-active]{background:var(--primary-container-bg);font-weight:700}
+.step-opt[data-active]{background:var(--brand-container-bg);font-weight:700}
 .map-pane--dark .step-opt[data-active]{background:#1a3a5c}
 .step-opt__sw{width:22px;height:16px;border-radius:3px;border:1px solid rgba(128,128,128,.2);flex-shrink:0}
 .step-opt__name{flex-shrink:0;min-width:40px;font-weight:600;color:var(--demo-fg-strong)}
@@ -139,8 +139,8 @@ html[data-theme="dark"] .global-save-bar{box-shadow:0 -4px 16px rgba(0,0,0,.3)}
 /* ── T2 Surface Tab Bar ──────────────────────────────────── */
 .surf-tabs{display:flex;gap:2px;flex-wrap:wrap;padding:8px 0 0 0}
 .surf-tab{padding:4px 12px;border:1px solid var(--demo-border);border-radius:var(--radius-sm,4px);background:transparent;color:var(--demo-fg-subtle);font-size:var(--font-size-10,10px);font-weight:600;cursor:pointer;font-family:inherit;transition:all 120ms;text-transform:capitalize}
-.surf-tab:hover{border-color:var(--primary-component-bg-default);color:var(--primary-content-default)}
-.surf-tab[aria-pressed="true"]{background:var(--primary-component-bg-default);color:#fff;border-color:var(--primary-component-bg-default)}
+.surf-tab:hover{border-color:var(--brand-component-bg-default);color:var(--brand-content-default)}
+.surf-tab[aria-pressed="true"]{background:var(--brand-component-bg-default);color:#fff;border-color:var(--brand-component-bg-default)}
 .surf-table{width:100%;border-collapse:collapse;font-size:var(--font-size-10,10px);font-family:var(--font-family-mono,monospace)}
 .surf-table th{text-align:left;padding:6px 8px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--demo-fg-faint);border-bottom:1px solid var(--demo-border);position:sticky;top:0;background:var(--demo-surface-alt)}
 .surf-table td{padding:4px 8px;border-bottom:1px solid var(--demo-border);vertical-align:middle}
@@ -180,7 +180,7 @@ html[data-theme="dark"] .global-save-bar{box-shadow:0 -4px 16px rgba(0,0,0,.3)}
 .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;padding:16px 20px;border-bottom:1px solid var(--demo-border)}
 .cert-card{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-sm,4px);border:1px solid var(--demo-border);cursor:pointer;transition:all 120ms}
 .cert-card:hover{background:var(--demo-surface-alt)}
-.cert-card[data-active]{border-color:var(--primary-component-bg-default);background:var(--demo-surface-alt)}
+.cert-card[data-active]{border-color:var(--brand-component-bg-default);background:var(--demo-surface-alt)}
 .cert-card-swatch{width:16px;height:16px;border-radius:4px;border:1px solid rgba(128,128,128,.15);flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .cert-card-name{font-size:var(--font-size-11,11px);font-weight:600;color:var(--demo-fg-strong);flex:1}
 .cert-card-badge{font-size:10px}
@@ -267,13 +267,13 @@ html[data-theme="dark"] .cert-badge[data-status="FAILED"]{background:#7F1D1D;col
 .proj-dialog .field input,.proj-dialog .field textarea{width:100%;box-sizing:border-box;background:var(--demo-cm-bg);color:var(--demo-fg);border:1px solid var(--demo-border);border-radius:var(--radius-sm,4px);padding:8px 10px;font-size:13px;font-family:inherit}
 .proj-dialog .field textarea{resize:vertical;min-height:48px}
 .slug-preview{font-size:11px;color:var(--demo-fg-faint);padding:4px 0;font-family:var(--font-family-mono,monospace)}
-.slug-preview span{color:var(--primary-content-default);font-weight:600}
+.slug-preview span{color:var(--brand-content-default);font-weight:600}
 .field-error{font-size:11px;color:#ef4444;display:none;margin-top:2px}
 .field-hint{font-size:11px;color:var(--demo-fg-faint,#888);margin-top:2px;display:block}
 .proj-dialog-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
 .proj-cancel{background:transparent;color:var(--demo-fg-subtle);border:1px solid var(--demo-border);border-radius:var(--radius-sm,4px);padding:6px 16px;font-size:13px;cursor:pointer;font-family:inherit;transition:all 150ms ease}
 .proj-cancel:hover{background:var(--demo-surface-alt);color:var(--demo-fg-strong)}
-.proj-create{background:var(--primary-component-bg-default);color:var(--primary-on-component);border:none;border-radius:var(--radius-sm,4px);padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:filter 150ms ease}
+.proj-create{background:var(--brand-component-bg-default);color:var(--brand-on-component);border:none;border-radius:var(--radius-sm,4px);padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:filter 150ms ease}
 .proj-create:hover{filter:brightness(1.1)}
 .proj-create:disabled{opacity:.4;cursor:not-allowed}
 .proj-gh-warn{background:var(--warning-component-bg-default,#78350f);color:var(--warning-on-component,#fbbf24);padding:8px 12px;border-radius:var(--radius-sm,4px);font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
@@ -288,11 +288,11 @@ html[data-theme="dark"] .cert-badge[data-status="FAILED"]{background:#7F1D1D;col
 .auth-card .auth-sub{font-size:13px;color:var(--demo-fg-subtle);margin:0 0 20px}
 .auth-input-wrap{position:relative;margin-bottom:16px}
 .auth-input{width:100%;padding:10px 14px;padding-right:42px;border:2px solid var(--demo-border);border-radius:var(--radius-md,6px);font-size:14px;font-family:var(--font-family-mono,monospace);background:var(--demo-surface);color:var(--demo-fg-strong);letter-spacing:.08em;box-sizing:border-box;transition:border-color .15s}
-.auth-input:focus{outline:none;border-color:var(--primary-component-bg-default,#286CE5)}
+.auth-input:focus{outline:none;border-color:var(--brand-component-bg-default,#286CE5)}
 .auth-input.auth-error{border-color:#DC2626;animation:authShake .4s ease}
 .auth-toggle-vis{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--demo-fg-subtle);padding:4px;line-height:1}
 @keyframes authShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-.auth-submit{width:100%;padding:10px;border:none;border-radius:var(--radius-md,6px);background:var(--primary-component-bg-default,#286CE5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:filter .15s}
+.auth-submit{width:100%;padding:10px;border:none;border-radius:var(--radius-md,6px);background:var(--brand-component-bg-default,#286CE5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:filter .15s}
 .auth-submit:hover{filter:brightness(1.1)}
 .auth-submit:active{filter:brightness(.95)}
 .auth-err-msg{font-size:12px;color:#DC2626;margin-top:8px;min-height:16px}
@@ -438,7 +438,7 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
         <div class="live-pane-title">Light Mode</div>
         <div class="live-row-label">Primary Variants</div>
         <div class="live-row">
-          <button class="btn" data-variant="primary" data-size="base" type="button"><span class="btn__label">Primary</span></button>
+          <button class="btn" data-variant="brand" data-size="base" type="button"><span class="btn__label">Primary</span></button>
           <button class="btn" data-variant="secondary" data-size="base" type="button"><span class="btn__label">Secondary</span></button>
           <button class="btn" data-variant="tertiary" data-size="base" type="button"><span class="btn__label">Tertiary</span></button>
           <button class="btn" data-variant="ghost" data-size="base" type="button"><span class="btn__label">Ghost</span></button>
@@ -448,7 +448,7 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
           <button class="btn" data-variant="danger" data-size="base" type="button"><span class="btn__label">Danger</span></button>
           <button class="btn" data-variant="success" data-size="base" type="button"><span class="btn__label">Success</span></button>
           <button class="btn" data-variant="warning" data-size="base" type="button"><span class="btn__label">Warning</span></button>
-          <button class="btn" data-variant="primary" data-size="base" disabled type="button"><span class="btn__label">Disabled</span></button>
+          <button class="btn" data-variant="brand" data-size="base" disabled type="button"><span class="btn__label">Disabled</span></button>
         </div>
         <div class="live-row-label">Input</div>
         <div class="live-row">
@@ -487,7 +487,7 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
         <div class="live-row-label">On Accent Surface</div>
         <div class="live-card" style="background:var(--surface-accent-bg);border-color:var(--surface-accent-outline)">
           <div class="live-row">
-            <button class="btn" data-variant="primary" data-size="base" type="button"><span class="btn__label">Action</span></button>
+            <button class="btn" data-variant="brand" data-size="base" type="button"><span class="btn__label">Action</span></button>
             <button class="btn" data-variant="secondary" data-size="base" type="button"><span class="btn__label">Cancel</span></button>
             <div class="input-group" data-variant="outline" data-size="base" style="flex:1;max-width:220px">
               <div class="input-field"><input type="text" placeholder="Search..."></div>
@@ -501,7 +501,7 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
         <div class="live-pane-title">Dark Mode</div>
         <div class="live-row-label" style="color:#888">Primary Variants</div>
         <div class="live-row">
-          <button class="btn" data-variant="primary" data-size="base" type="button"><span class="btn__label">Primary</span></button>
+          <button class="btn" data-variant="brand" data-size="base" type="button"><span class="btn__label">Primary</span></button>
           <button class="btn" data-variant="secondary" data-size="base" type="button"><span class="btn__label">Secondary</span></button>
           <button class="btn" data-variant="tertiary" data-size="base" type="button"><span class="btn__label">Tertiary</span></button>
           <button class="btn" data-variant="ghost" data-size="base" type="button"><span class="btn__label">Ghost</span></button>
@@ -511,7 +511,7 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
           <button class="btn" data-variant="danger" data-size="base" type="button"><span class="btn__label">Danger</span></button>
           <button class="btn" data-variant="success" data-size="base" type="button"><span class="btn__label">Success</span></button>
           <button class="btn" data-variant="warning" data-size="base" type="button"><span class="btn__label">Warning</span></button>
-          <button class="btn" data-variant="primary" data-size="base" disabled type="button"><span class="btn__label">Disabled</span></button>
+          <button class="btn" data-variant="brand" data-size="base" disabled type="button"><span class="btn__label">Disabled</span></button>
         </div>
         <div class="live-row-label" style="color:#888">Input</div>
         <div class="live-row">
@@ -687,7 +687,7 @@ body.auth-locked .global-save-bar{filter:blur(6px);pointer-events:none;user-sele
           <input type="password" id="ghPatInput" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" style="width:100%;box-sizing:border-box">
           <span class="field-hint">
             Needs <code>repo</code> + <code>workflow</code> scope &nbsp;·&nbsp;
-            <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=DTF+Color+Editor" target="_blank" rel="noopener" style="color:var(--primary-content-default,#286CE5)">Get a token &rarr;</a>
+            <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=DTF+Color+Editor" target="_blank" rel="noopener" style="color:var(--brand-content-default,#286CE5)">Get a token &rarr;</a>
           </span>
         </div>
         <button class="gh-connect-btn" id="ghConnectBtn" type="button" style="display:block;width:100%;padding:10px;margin-top:8px;font-size:13px;border-radius:6px">Connect</button>
@@ -868,7 +868,7 @@ var SEM_GROUPS = [
 ];
 
 // Roles that map to actual component semantic tokens
-var TOKEN_ROLES = ['primary','brand','danger','warning','info','success'];
+var TOKEN_ROLES = ['brand','danger','warning','info','success'];
 
 // ══════════════════════════════════════════════════════════════
 // ROLE STATE
@@ -877,16 +877,16 @@ var roles = [];
 var palettes = {};
 var certs = {};
 var customCounter = 0;
-var selectedCertRole = 'primary';
-var selectedMapRole = 'primary';
-var selectedStepRole = 'primary';
+var selectedCertRole = 'brand';
+var selectedMapRole = 'brand';
+var selectedStepRole = 'brand';
 var currentFormat = 'css';
 
 var DEFAULT_CUSTOM_COLORS = ['#7C3AED','#EC4899','#F97316','#06B6D4','#8B5CF6','#10B981','#EF4444','#14B8A6'];
 var CUSTOM_NAMES = ['Secondary','Tertiary','Accent','Extra'];
 
 // Reserved role IDs — slug must not collide with these
-var RESERVED_IDS = new Set(['primary','brand','danger','warning','info','success','greyscale','desaturated','monochromatic']);
+var RESERVED_IDS = new Set(['brand','danger','warning','info','success','greyscale','desaturated','monochromatic']);
 function slugifyLabel(label) {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'custom';
 }
@@ -906,8 +906,7 @@ var STORAGE_KEY_CONFIG = 'dtf-color-config';
 var STORAGE_KEY_ACTIVE = 'dtf-active-project';
 
 var DEFAULT_ROLES = [
-  {id:'primary',  label:'Primary',  keyHex:'#286CE5', type:'fixed'},
-  {id:'brand',    label:'Brand',    keyHex:'#E53F28', type:'fixed'},
+  {id:'brand',  label:'Brand',  keyHex:'#286CE5', type:'fixed'},
   {id:'danger',   label:'Danger',   keyHex:'#DC2626', type:'fixed'},
   {id:'warning',  label:'Warning',  keyHex:'#D97706', type:'fixed'},
   {id:'info',     label:'Info',     keyHex:'#0EA5E9', type:'fixed'},
@@ -918,7 +917,7 @@ var DEFAULT_ROLES = [
 
 // Map config.json palette key names → role IDs
 var PALETTE_KEY_TO_ROLE = {
-  monochromatic:'primary', brand:'brand', danger:'danger', warning:'warning',
+  monochromatic:'brand', danger:'danger', warning:'warning',
   info:'info', success:'success', greyscale:'greyscale', desaturated:'desaturated'
 };
 var ROLE_TO_PALETTE_KEY = {};
@@ -1072,7 +1071,7 @@ function buildRoleRow(r) {
     h += '<span class="cert-mini" data-status="' + certStatus + '">' + certIcon + ' ' + certCount + '</span>';
   }
 
-  if (r.id !== 'primary' && r.type !== 'auto') {
+  if (r.id !== 'brand' && r.type !== 'auto') {
     h += '<button class="role-del" data-role-del="' + r.id + '" type="button" title="Remove role">&times;</button>';
   }
 
@@ -1183,7 +1182,7 @@ function onRoleColorChange(roleId, hex) {
   generateRole(roleId);
 
   // If primary changed, regenerate auto-derived roles
-  if (roleId === 'primary') {
+  if (roleId === 'brand') {
     for (var i = 0; i < roles.length; i++) {
       if (roles[i].type === 'auto') {
         generateRole(roles[i].id);
@@ -1255,9 +1254,9 @@ function removeRole(rid) {
   }
   delete palettes[rid];
   delete certs[rid];
-  if (selectedCertRole === rid) selectedCertRole = 'primary';
-  if (selectedMapRole === rid) selectedMapRole = 'primary';
-  if (selectedStepRole === rid) selectedStepRole = 'primary';
+  if (selectedCertRole === rid) selectedCertRole = 'brand';
+  if (selectedMapRole === rid) selectedMapRole = 'brand';
+  if (selectedStepRole === rid) selectedStepRole = 'brand';
   renderRolesList();
   refreshSelectors();
   injectAllTokens();
@@ -1314,7 +1313,7 @@ function injectAllTokens() {
       root.setProperty('--prim-' + roleId + '-' + steps[s].name, steps[s].hex);
     }
     // Also inject --prim-monochromatic-* for primary (backwards compat)
-    if (roleId === 'primary') {
+    if (roleId === 'brand') {
       for (var s2 = 0; s2 < steps.length; s2++) {
         root.setProperty('--prim-monochromatic-' + steps[s2].name, steps[s2].hex);
       }
@@ -1644,9 +1643,9 @@ var surfSrcBar = document.getElementById('surfSrcBar');
 var _surfSnapshot = null;
 
 // ── Per-surface palette source map ──────────────────────────
-// Default: all non-accent surfaces use 'greyscale', accent uses 'primary'
+// Default: all non-accent surfaces use 'greyscale', accent uses 'brand'
 var DEFAULT_SURF_SRC = {};
-(function() { for (var i = 0; i < SURF_NAMES.length; i++) DEFAULT_SURF_SRC[SURF_NAMES[i]] = SURF_NAMES[i] === 'accent' ? 'primary' : 'greyscale'; })();
+(function() { for (var i = 0; i < SURF_NAMES.length; i++) DEFAULT_SURF_SRC[SURF_NAMES[i]] = SURF_NAMES[i] === 'accent' ? 'brand' : 'greyscale'; })();
 var SURF_PALETTE_SRC = JSON.parse(JSON.stringify(DEFAULT_SURF_SRC));
 
 function getSurfPalette(surfName) {
@@ -2107,7 +2106,7 @@ function buildSaveableCSS() {
       css += '  --prim-' + prefix + '-' + pal.steps[s].name + ': ' + pal.steps[s].hex + ';\n';
     }
     // Backwards compat for primary->monochromatic
-    if (r.id === 'primary') {
+    if (r.id === 'brand') {
       for (var s2 = 0; s2 < pal.steps.length; s2++) {
         css += '  --prim-monochromatic-' + pal.steps[s2].name + ': ' + pal.steps[s2].hex + ';\n';
       }
@@ -2398,7 +2397,7 @@ ghConnectBtn.addEventListener('click', function() {
           }
           return waitForFork();
         }).catch(function(err) {
-          ghStatusEl.innerHTML = 'Setup failed: ' + (err.message || err) + '. <a href="https://github.com/sridhar-ravi-2917/' + GH_REPO_NAME + '/fork" target="_blank" rel="noopener" style="color:var(--primary-content-default,#286CE5)">Fork manually \u2192</a>';
+          ghStatusEl.innerHTML = 'Setup failed: ' + (err.message || err) + '. <a href="https://github.com/sridhar-ravi-2917/' + GH_REPO_NAME + '/fork" target="_blank" rel="noopener" style="color:var(--brand-content-default,#286CE5)">Fork manually \u2192</a>';
           ghStatusEl.className = 'gh-status err';
         });
       });
@@ -2758,7 +2757,7 @@ function buildPrimitivesFileCSS() {
   lines.push(':root {');
   lines.push('');
   // Map role IDs to primitive prefix names
-  var PRIM_PREFIX = { primary:'monochromatic', brand:'brand', danger:'danger', warning:'warning', info:'info', success:'success', greyscale:'greyscale', desaturated:'desaturated' };
+  var PRIM_PREFIX = { brand:'monochromatic', danger:'danger', warning:'warning', info:'info', success:'success', greyscale:'greyscale', desaturated:'desaturated' };
   // Emit ALL default role palettes + custom roles
   var allRoles = DEFAULT_ROLES.map(function(dr) {
     var active = getRoleById(dr.id);
@@ -2896,7 +2895,7 @@ function buildSemanticFileCSS() {
 }
 
 function rolePrefix(r) {
-  var PRIM_PREFIX = { primary:'monochromatic', brand:'brand', danger:'danger', warning:'warning', info:'info', success:'success', greyscale:'greyscale', desaturated:'desaturated' };
+  var PRIM_PREFIX = { brand:'monochromatic', danger:'danger', warning:'warning', info:'info', success:'success', greyscale:'greyscale', desaturated:'desaturated' };
   return PRIM_PREFIX[r.id] || r.id;
 }
 

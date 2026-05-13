@@ -30,8 +30,8 @@
   color: var(--demo-fg-faint); transition: all 200ms; cursor: pointer;
 }
 .step-pill.active {
-  background: var(--primary-component-bg-default, #286CE5);
-  border-color: var(--primary-component-bg-default, #286CE5); color: #fff;
+  background: var(--brand-component-bg-default, #286CE5);
+  border-color: var(--brand-component-bg-default, #286CE5); color: #fff;
 }
 .step-pill.done {
   background: var(--success-container-bg, #DCFCE7);
@@ -58,7 +58,7 @@
   font-size: 13px; color: var(--demo-fg); font-family: inherit;
 }
 .form-input:focus {
-  outline: 2px solid var(--primary-component-bg-default, #286CE5);
+  outline: 2px solid var(--brand-component-bg-default, #286CE5);
   outline-offset: -1px; border-color: transparent;
 }
 
@@ -101,7 +101,7 @@
   transition: all 150ms; font-family: inherit;
 }
 .btn-primary {
-  background: var(--primary-component-bg-default, #286CE5); color: #fff;
+  background: var(--brand-component-bg-default, #286CE5); color: #fff;
 }
 .btn-primary:hover { opacity: 0.9; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -147,7 +147,7 @@
   display: flex; align-items: center; gap: 10px;
   padding: 8px 0; font-size: 13px; color: var(--demo-fg-subtle);
 }
-.progress-step.active { color: var(--primary-content-default, #286CE5); font-weight: 600; }
+.progress-step.active { color: var(--brand-content-default, #286CE5); font-weight: 600; }
 .progress-step.done { color: var(--success-content-default, #166534); }
 .progress-step.error { color: var(--danger-content-default, #DC2626); }
 .progress-icon { width: 20px; text-align: center; font-size: 14px; }
@@ -213,7 +213,7 @@
     <div class="form-group">
       <label for="ghToken">
         Personal Access Token
-        <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=Design+Token+Forge" target="_blank" rel="noopener" style="font-weight:400;font-size:11px;margin-left:8px;color:var(--primary-content-default, #286CE5);text-decoration:underline;">Don't have one? Create here →</a>
+        <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=Design+Token+Forge" target="_blank" rel="noopener" style="font-weight:400;font-size:11px;margin-left:8px;color:var(--brand-content-default, #286CE5);text-decoration:underline;">Don't have one? Create here →</a>
       </label>
       <div class="gh-connect-row">
         <input class="form-input" type="password" id="ghToken" placeholder="ghp_xxxx...">
@@ -287,15 +287,13 @@
 
   const defaultColors = {
     monochromatic: '#286CE5',
-    brand: '#E53F28',
     danger: '#DC2626',
     warning: '#D97706',
     info: '#0EA5E9',
     success: '#16A34A'
   };
   const colorLabels = {
-    monochromatic: 'Primary',
-    brand: 'Brand / Accent',
+    monochromatic: 'Brand',
     danger: 'Danger / Error',
     warning: 'Warning',
     info: 'Info',
@@ -391,6 +389,18 @@
     });
   }
   buildColorGrid();
+
+  /* ── Pre-fill PAT from launchpad if user came already authenticated ── */
+  (function prefillPat() {
+    var existingPat = localStorage.getItem('dtf-gh-pat') || '';
+    if (existingPat && ghTokenInput) {
+      ghTokenInput.value = existingPat;
+      /* Auto-verify silently so user can skip step 2 */
+      setTimeout(function() {
+        if (typeof connectGitHub === 'function') connectGitHub();
+      }, 200);
+    }
+  })();
 
   /* ── GitHub Connect ─────────────────────────────── */
   ghConnectBtn.addEventListener('click', connectGitHub);
@@ -647,8 +657,7 @@
          (CDN won't have the config.json yet since deploy hasn't completed) */
       const localConfig = JSON.stringify({
         roles: [
-          {id:'primary',  label:'Primary',  keyHex: colors.monochromatic.toUpperCase(), type:'fixed', derive:null},
-          {id:'brand',    label:'Brand',    keyHex: colors.brand.toUpperCase(), type:'fixed', derive:null},
+          {id:'brand',  label:'Brand',  keyHex: colors.monochromatic.toUpperCase(), type:'fixed', derive:null},
           {id:'danger',   label:'Danger',   keyHex: colors.danger.toUpperCase(), type:'fixed', derive:null},
           {id:'warning',  label:'Warning',  keyHex: colors.warning.toUpperCase(), type:'fixed', derive:null},
           {id:'info',     label:'Info',     keyHex: colors.info.toUpperCase(), type:'fixed', derive:null},
