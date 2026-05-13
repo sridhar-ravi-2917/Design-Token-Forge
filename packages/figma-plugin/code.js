@@ -789,11 +789,15 @@ async function generateComponentFromBlueprint(blueprint) {
   figma.ui.postMessage({ type: 'gen-progress', text: 'Setting up typography variables…' });
   var typoVars = {};
   var typoCol = null;
-  var typoColName = 'DTF Typography';
+  var typoColName = 'Typography';
   var allColsTypo = await figma.variables.getLocalVariableCollectionsAsync();
   for (var tci = 0; tci < allColsTypo.length; tci++) {
-    if (allColsTypo[tci].name === typoColName) {
+    if (allColsTypo[tci].name === typoColName || allColsTypo[tci].name === 'DTF Typography') {
       typoCol = allColsTypo[tci];
+      if (typoCol.name !== typoColName) {
+        typoCol.name = typoColName;
+        log('Renamed collection DTF Typography → Typography');
+      }
       break;
     }
   }
@@ -813,11 +817,6 @@ async function generateComponentFromBlueprint(blueprint) {
     { name: 'font-size/lg',   type: 'FLOAT', value: 20 },
     { name: 'font-size/xl',   type: 'FLOAT', value: 24 },
     { name: 'font-size/2xl',  type: 'FLOAT', value: 32 },
-    /* Font weights (FLOAT — Figma uses numeric weights) */
-    { name: 'font-weight/regular', type: 'FLOAT', value: 400 },
-    { name: 'font-weight/medium',  type: 'FLOAT', value: 500 },
-    { name: 'font-weight/semibold', type: 'FLOAT', value: 600 },
-    { name: 'font-weight/bold',    type: 'FLOAT', value: 700 },
     /* Line heights (FLOAT — px values) */
     { name: 'line-height/tight',  type: 'FLOAT', value: 16 },
     { name: 'line-height/base',   type: 'FLOAT', value: 20 },
