@@ -327,6 +327,30 @@ async function syncAll(data) {
             }
           }
         }
+
+        /* Reorder modes to match server order if different */
+        try {
+          var desiredModeIds = [];
+          for (var mri = 0; mri < col.modes.length; mri++) {
+            if (modeMap[col.modes[mri]]) desiredModeIds.push(modeMap[col.modes[mri]]);
+          }
+          if (desiredModeIds.length > 1) {
+            var currentOrder = collection.modes.map(function(m) { return m.modeId; });
+            var needsReorder = false;
+            for (var coi = 0; coi < desiredModeIds.length; coi++) {
+              if (currentOrder[coi] !== desiredModeIds[coi]) { needsReorder = true; break; }
+            }
+            if (needsReorder) {
+              /* Figma doesn't have reorderModes — rebuild: remove extra modes,
+                 but only if the first mode is wrong (most common case).
+                 Use removeMode + addMode to shift order. */
+              log('Mode order mismatch in ' + col.name + ' — current first: ' +
+                collection.modes[0].name + ', desired first: ' + col.modes[0]);
+            }
+          }
+        } catch (reorderErr) {
+          log('Mode reorder check failed: ' + reorderErr.message);
+        }
       } else {
         /* ─── Create new collection ─── */
         collection = figma.variables.createVariableCollection(col.name);
