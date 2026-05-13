@@ -24,8 +24,13 @@
    ════════════════════════════════════════════════════════════════ */
 
 .btn,
-:root {
-
+.split-btn {
+  /* NOTE: Selector list includes .split-btn so the --btn-* var chain is
+     re-evaluated on each element where data-role overrides apply.
+     Custom properties resolve var() at the declaring element; declaring
+     only at :root would eagerly substitute against :root scope (where no
+     data-role override exists), defeating role-remapping for sibling
+     components that inherit from --btn-*. See multi-zone-model.md (Q6). */
   /* ────────────────────────────────────────────────────────────
      📐 SHAPE  (23 vars)
      ──────────────────────────────────────────────────────────── */

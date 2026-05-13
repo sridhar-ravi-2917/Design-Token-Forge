@@ -34,7 +34,8 @@
 <header class="demo-header">
   <h1>SplitButton Explorer <span>— Design Token Forge</span></h1>
   <div class="demo-meta">
-    <span class="demo-badge">141 CSS Variables</span>
+    <span class="demo-badge">~165 CSS Variables</span>
+    <span class="demo-badge">Inherits from --btn-*</span>
     <span class="demo-badge">4 Structures × 7 Roles</span>
     <span class="demo-badge">10 Sizes</span>
     <span class="demo-badge">7 Axes</span>
@@ -454,7 +455,8 @@
   var STRUCTS = ['filled','outlined','soft','ghost'];
   var ROLES   = ['brand','danger','success','warning','info','neutral'];
   var SIZES   = ['micro','tiny','small','base','medium','large','big','huge','mega','ultra'];
-  var SIZE_HT = {micro:'24px',tiny:'28px',small:'32px',base:'36px',medium:'40px',large:'44px',big:'48px',huge:'56px',mega:'64px',ultra:'80px'};
+  /* SplitButton sizes INHERIT from --btn-*. Heights are read live from
+     getComputedStyle so the label can never drift from reality. */
   var SHADOWS = ['none','xs','sm','DEFAULT','md','lg','xl','2xl'];
 
   var ICON_PLUS='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3 8h10"/></svg>';
@@ -522,8 +524,17 @@
     var el=clr('densityScale');
     SIZES.forEach(function(s){
       var it=document.createElement('div');it.className='density-item';
-      it.appendChild(makeSB(curStruct,curRole,s,cap(s),{iconStart:true,noSync:true}));
-      var m=document.createElement('div');m.className='density-meta';m.textContent=SIZE_HT[s];it.appendChild(m);el.appendChild(it);
+      var sb=makeSB(curStruct,curRole,s,cap(s),{iconStart:true,noSync:true});
+      it.appendChild(sb);
+      var m=document.createElement('div');m.className='density-meta';
+      /* Read the TOKEN value (not rendered height — that's clamped by
+         min-tap-target). This shows the inherited --btn-height-* result. */
+      requestAnimationFrame(function(){
+        var v=getComputedStyle(sb).getPropertyValue('--split-btn-height-'+s).trim();
+        m.textContent=v||'\u2014';
+      });
+      m.textContent='\u2026';
+      it.appendChild(m);el.appendChild(it);
     });
   }
 
@@ -594,13 +605,16 @@
   }
 
   /* ── Inspector ──────────────────────────────────── */
+  /* SplitButton tokens INHERIT from --btn-* (see multi-zone-model.md, Q6).
+     The trace below shows the immediate alias target so the inheritance
+     chain is visible in the inspector. */
   var SB_TOKENS={
-    height:{micro:'--spacing-24',tiny:'--spacing-28',small:'--spacing-32',base:'--spacing-36',medium:'--spacing-40',large:'--spacing-44',big:'--spacing-48',huge:'--spacing-56',mega:'--spacing-64',ultra:'--spacing-80'},
-    radius:{micro:'--radius-sm',tiny:'--radius-sm-md',small:'--radius-md',base:'--radius-md',medium:'--radius-DEFAULT',large:'--radius-DEFAULT',big:'--radius-md-lg',huge:'--radius-lg',mega:'--radius-lg-xl',ultra:'--radius-xl'},
-    actionPx:{micro:'--spacing-8',tiny:'--spacing-10',small:'--spacing-12',base:'--spacing-16',medium:'--spacing-18',large:'--spacing-20',big:'--spacing-24',huge:'--spacing-28',mega:'--spacing-32',ultra:'--spacing-40'},
-    triggerPx:{micro:'--spacing-6',tiny:'--spacing-7',small:'--spacing-8',base:'--spacing-10',medium:'--spacing-12',large:'--spacing-14',big:'--spacing-16',huge:'--spacing-18',mega:'--spacing-20',ultra:'--spacing-24'},
-    fs:{micro:'--font-size-10',tiny:'--font-size-11',small:'--font-size-12',base:'--font-size-13',medium:'--font-size-14',large:'--font-size-16',big:'--font-size-18',huge:'--font-size-20',mega:'--font-size-24',ultra:'--font-size-28'},
-    iconSize:{micro:'--spacing-12',tiny:'--spacing-14',small:'--spacing-16',base:'--spacing-18',medium:'--spacing-20',large:'--spacing-22',big:'--spacing-24',huge:'--spacing-28',mega:'--spacing-32',ultra:'--spacing-36'}
+    height:   {micro:'--btn-height-micro',   tiny:'--btn-height-tiny',   small:'--btn-height-small',   base:'--btn-height-base',   medium:'--btn-height-medium',   large:'--btn-height-large',   big:'--btn-height-big',   huge:'--btn-height-huge',   mega:'--btn-height-mega',   ultra:'--btn-height-ultra'},
+    radius:   {micro:'--btn-radius-micro',   tiny:'--btn-radius-tiny',   small:'--btn-radius-small',   base:'--btn-radius-base',   medium:'--btn-radius-medium',   large:'--btn-radius-large',   big:'--btn-radius-big',   huge:'--btn-radius-huge',   mega:'--btn-radius-mega',   ultra:'--btn-radius-ultra'},
+    actionPx: {micro:'--btn-padding-x-micro', tiny:'--btn-padding-x-tiny', small:'--btn-padding-x-small', base:'--btn-padding-x-base', medium:'--btn-padding-x-medium', large:'--btn-padding-x-large', big:'--btn-padding-x-big', huge:'--btn-padding-x-huge', mega:'--btn-padding-x-mega', ultra:'--btn-padding-x-ultra'},
+    triggerPx:{micro:'--btn-icon-pad-micro',  tiny:'--btn-icon-pad-tiny',  small:'--btn-icon-pad-small',  base:'--btn-icon-pad-base',  medium:'--btn-icon-pad-medium',  large:'--btn-icon-pad-large',  big:'--btn-icon-pad-big',  huge:'--btn-icon-pad-huge',  mega:'--btn-icon-pad-mega',  ultra:'--btn-icon-pad-ultra'},
+    fs:       {micro:'--btn-font-size-micro', tiny:'--btn-font-size-tiny', small:'--btn-font-size-small', base:'--btn-font-size-base', medium:'--btn-font-size-medium', large:'--btn-font-size-large', big:'--btn-font-size-big', huge:'--btn-font-size-huge', mega:'--btn-font-size-mega', ultra:'--btn-font-size-ultra'},
+    iconSize: {micro:'--btn-icon-size-micro', tiny:'--btn-icon-size-tiny', small:'--btn-icon-size-small', base:'--btn-icon-size-base', medium:'--btn-icon-size-medium', large:'--btn-icon-size-large', big:'--btn-icon-size-big', huge:'--btn-icon-size-huge', mega:'--btn-icon-size-mega', ultra:'--btn-icon-size-ultra'}
   };
   var STRUCT_TOKEN={filled:'brand',outlined:'secondary',soft:'tertiary',ghost:'ghost'};
   var ROLE_PREFIX={danger:'danger',success:'success',warning:'warning',info:'info',neutral:'surface-base'};
@@ -611,14 +625,14 @@
     var isN=curRole==='neutral';
     var rows=[
       ['--split-btn-height-'+s, SB_TOKENS.height[s], cs.height],
-      [curRounded?'--split-btn-radius-rounded':'--split-btn-radius-'+s, curRounded?'--radius-full':SB_TOKENS.radius[s], cs.borderRadius],
+      [curRounded?'--split-btn-radius-rounded':'--split-btn-radius-'+s, curRounded?'--btn-radius-rounded':SB_TOKENS.radius[s], cs.borderRadius],
       ['--split-btn-action-padding-x-'+s, SB_TOKENS.actionPx[s], ''],
       ['--split-btn-trigger-padding-x-'+s, SB_TOKENS.triggerPx[s], ''],
       ['--split-btn-font-size-'+s, SB_TOKENS.fs[s], cs.fontSize||''],
-      ['--split-btn-'+tg+'-bg', isN?'--surface-base-cm-bg':'--brand-component-bg-default', cs.backgroundColor],
-      ['--split-btn-'+tg+'-fg', isN?'--surface-base-ct-default':'--brand-on-component', cs.color],
-      ['--split-btn-'+tg+'-border-color', '\u2014', cs.borderColor],
-      ['--split-btn-divider-color-'+tg, '\u2014', '']
+      ['--split-btn-'+tg+'-bg', '--btn-'+tg+'-bg', cs.backgroundColor],
+      ['--split-btn-'+tg+'-fg', '--btn-'+tg+'-fg', cs.color],
+      ['--split-btn-'+tg+'-border-color', '--btn-'+tg+'-border-color', cs.borderColor],
+      ['--split-btn-divider-color-'+tg, 'color-mix(--split-btn-'+tg+'-fg, 30%)', '']
     ];
     var ins=document.getElementById('heroInspector');
     ins.innerHTML='<div class="inspector-title">Resolved Tokens ('+curStruct+' / '+curRole+' / '+s+')</div>'+
