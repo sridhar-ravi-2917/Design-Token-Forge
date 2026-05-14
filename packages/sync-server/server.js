@@ -578,22 +578,44 @@ function buildComponentGroup(prefix, group, tokens, extrasVarSet, propMap) {
     const values = {};
     let type = 'FLOAT';
     let valid = true;
+    let dropReason = '';
 
     for (const mode of COMP_SIZE_MODES) {
       const cssKey = `${prefix}-${propCSS}-${mode}`;
       const cssValue = tokens[cssKey];
       if (!cssValue) {
         valid = false;
+        dropReason = `missing CSS token --${cssKey}`;
         break;
       }
 
       const extrasPath = cssVarToExtrasPath(cssValue);
-      if (extrasPath && extrasVarSet.has(extrasPath)) {
-        values[mode] = {
-          type: 'VARIABLE_ALIAS',
-          collection: EXTRAS_COL_NAME,
-          name: extrasPath
-        };
+      if (extrasPath) {
+        if (extrasVarSet.has(extrasPath)) {
+          values[mode] = {
+            type: 'VARIABLE_ALIAS',
+            collection: EXTRAS_COL_NAME,
+            name: extrasPath
+          };
+        } else {
+          // Alias references a nonexistent primitive (e.g. var(--spacing-7)
+          // when only spacing-1..6, 8 exist). Previously this silently set
+          // valid=false and the WHOLE multi-mode variable was dropped from
+          // the export — designers saw no error, just a missing variable
+          // in Figma. Now we warn loudly and fall back to a parsed numeric
+          // value if the suffix happens to be numeric, so the variable
+          // still gets exported (with a literal value for that mode only).
+          const numericSuffix = extrasPath.split('/')[1];
+          const fallback = parseFloat(numericSuffix);
+          if (!isNaN(fallback)) {
+            console.warn(`⚠  ${figmaName} mode=${mode}: alias "${extrasPath}" not in primitives — falling back to literal ${fallback} (please add the primitive or fix the CSS token --${cssKey})`);
+            values[mode] = fallback;
+          } else {
+            valid = false;
+            dropReason = `alias "${extrasPath}" not in primitives-numbers (CSS: --${cssKey} = ${cssValue})`;
+            break;
+          }
+        }
       } else {
         // Direct numeric value (e.g. hardcoded px)
         const num = parseFloat(cssValue);
@@ -601,6 +623,7 @@ function buildComponentGroup(prefix, group, tokens, extrasVarSet, propMap) {
           values[mode] = num;
         } else {
           valid = false;
+          dropReason = `unparseable value "${cssValue}" (CSS: --${cssKey})`;
           break;
         }
       }
@@ -613,6 +636,12 @@ function buildComponentGroup(prefix, group, tokens, extrasVarSet, propMap) {
         scopes: scopeForCompSizeVar(propFigma),
         values
       });
+    } else {
+      // CRITICAL: surface the drop. Past silent failures left designers
+      // chasing missing variables in Figma. If a comp-size variable was
+      // requested in propMap but couldn't be built, the export should
+      // make that visible.
+      console.warn(`❌ DROPPED comp-size variable "${figmaName}": ${dropReason}`);
     }
   }
 
