@@ -6,7 +6,7 @@
 
 figma.showUI(__html__, { width: 480, height: 560 });
 
-var CODE_VERSION = '2026-05-14-v32';
+var CODE_VERSION = '2026-05-14-v33';
 log('code.js loaded — version ' + CODE_VERSION);
 
 /* ── URL migration via clientStorage (reliable, not blocked like localStorage) ── */
@@ -2165,9 +2165,16 @@ async function generateComponentFromBlueprint(blueprint) {
     icPreview.appendChild(chevronIconSet);
     chevronIconSet.x = 22 + 20 + 24; /* placeholder right edge + gap */
     chevronIconSet.y = 22;
-    /* Widen preview to fit placeholder + 4-direction chevron set.
-       Set width grows with auto-layout; rough estimate: 4×20 + 3×16 + 2×16 = 160 */
-    try { icPreview.resize(22 + 20 + 24 + chevronIconSet.width + 22, Math.max(icPreview.height, chevronIconSet.height + 44)); } catch (e) {}
+    /* Widen preview AND outer card to fit placeholder + 4-direction chevron
+       set. chevronIconSet.width is reliable once the node is parented. Add
+       right-padding for breathing room and grow the iconCard so the inner
+       preview never overflows the card boundary. */
+    var chevW = chevronIconSet.width || (4 * 20 + 3 * 16 + 32);
+    var chevH = chevronIconSet.height || 64;
+    var newPreviewW = 22 + 20 + 24 + chevW + 22;
+    var newPreviewH = Math.max(icPreview.height, chevH + 44);
+    try { icPreview.resize(newPreviewW, newPreviewH); } catch (e) {}
+    try { iconCard.resize(Math.max(iconCard.width, 24 + newPreviewW + 24), Math.max(iconCard.height, 82 + newPreviewH + 24)); } catch (e) {}
   } else if (chevronIcon && chevronIcon !== iconPlaceholder) {
     /* Fallback path when combineAsVariants failed — single chevron component */
     icPreview.appendChild(chevronIcon);
@@ -2194,8 +2201,11 @@ async function generateComponentFromBlueprint(blueprint) {
       log('Icon card binding skipped: ' + icBindErr.message);
     }
   }
-  var iconSecH = iconSec.innerY + 160 + 32;
-  try { iconSec.section.resize(480, iconSecH); } catch (e) {}
+  var iconSecH = iconSec.innerY + iconCard.height + 32;
+  /* Section width grows to fit the card (which may have been widened to
+     accommodate the chevron variant set). */
+  var iconSecW = Math.max(480, iconSec.innerX + iconCard.width + 32);
+  try { iconSec.section.resize(iconSecW, iconSecH); } catch (e) {}
   page.appendChild(iconSec.section);
   iconSec.section.x = PAGE_X;
   iconSec.section.y = cursorY;

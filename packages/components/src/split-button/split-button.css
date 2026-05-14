@@ -49,7 +49,9 @@
   box-sizing: border-box;
 
   height: 100%;
-  padding: var(--_sb-py) var(--_sb-action-px);
+  padding-block: var(--_sb-py);
+  padding-inline-start: var(--_sb-action-px-start, var(--_sb-action-px));
+  padding-inline-end: var(--_sb-action-px);
   border: none;
   background: transparent;
   color: inherit;
@@ -107,7 +109,9 @@
   box-sizing: border-box;
 
   height: 100%;
-  padding: 0 var(--_sb-trigger-px);
+  padding-block: 0;
+  padding-inline-start: var(--_sb-trigger-px);
+  padding-inline-end: var(--_sb-trigger-px-end, var(--_sb-trigger-px));
   border: none;
   background: transparent;
   color: inherit;
@@ -263,6 +267,11 @@
 
 .split-btn[data-rounded] {
   --_sb-radius: var(--split-btn-radius-rounded);
+  /* Pill curves eat horizontal padding visually. Add half-height compensation
+     to each outer end so the label and chevron stay centered within the
+     visible (non-curved) area of their zones. */
+  --_sb-action-px-start: calc(var(--_sb-action-px) + var(--_sb-height) / 4);
+  --_sb-trigger-px-end:  calc(var(--_sb-trigger-px)  + var(--_sb-height) / 4);
 }
 
 /* ════════════════════════════════════════════════════════════════
