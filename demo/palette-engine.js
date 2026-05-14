@@ -149,6 +149,11 @@ function toneToOklchL(tone) {
 function generatePalette(keyHex) {
   var oklch = hexToOklch(keyHex);
   var keyC = oklch[1], keyH = oklch[2];
+  // Anchor: rescale tone curve so KEY_INDEX lands on key's actual L*.
+  // Light side lerps tone 100..keyTone, dark side lerps keyTone..0,
+  // preserving monotonicity for any input hex.
+  var keyTone = hexToLstar(keyHex);
+  var baseKeyTone = TONE_SCALE[KEY_INDEX];
 
   var steps = TONE_SCALE.map(function(tone, i) {
     var name = STEP_NAMES[i];
@@ -156,7 +161,21 @@ function generatePalette(keyHex) {
     if (i === 0)                    return { name: name, hex: '#FFFFFF', tone: 100, contrast: 1.0 };
     if (i === STEP_NAMES.length - 1) return { name: name, hex: '#000000', tone: 0,   contrast: 21.0 };
 
-    var targetL = toneToOklchL(tone);
+    // Anchor the key step to the exact input hex.
+    if (i === KEY_INDEX) {
+      return { name: name, hex: keyHex.toUpperCase(), tone: keyTone, contrast: wcagContrast(keyHex, '#FFFFFF') };
+    }
+
+    // Remap the fixed tone onto the input's effective scale.
+    var remappedTone;
+    if (i < KEY_INDEX) {
+      // Light side: 100 → keyTone
+      remappedTone = 100 + (tone - 100) * (100 - keyTone) / (100 - baseKeyTone);
+    } else {
+      // Dark side: keyTone → 0
+      remappedTone = keyTone * (tone / baseKeyTone);
+    }
+    var targetL = toneToOklchL(remappedTone);
 
     // Chroma: asymmetric bell curve — light side decays faster, dark side slower
     var isLight = i < KEY_INDEX;
