@@ -218,6 +218,9 @@ body{
   background:var(--surface-base-cm-bg);
   flex-shrink:0;
 }
+.ev2-preview-titlewrap{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.ev2-preview-title{font-size:13px;font-weight:700;color:var(--surface-base-ct-strong);letter-spacing:.01em}
+.ev2-preview-hint{font-size:10px;font-weight:500;color:var(--surface-base-ct-faint);text-transform:uppercase;letter-spacing:.06em}
 .ev2-preview-pick{display:inline-flex;align-items:center;gap:8px;font-size:11px;color:var(--surface-base-ct-subtle);font-weight:500}
 .ev2-preview-pick select{
   padding:5px 8px;
