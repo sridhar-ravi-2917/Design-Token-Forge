@@ -6,7 +6,7 @@
 
 figma.showUI(__html__, { width: 480, height: 560 });
 
-var CODE_VERSION = '2026-05-14-v36';
+var CODE_VERSION = '2026-05-14-v37';
 log('code.js loaded — version ' + CODE_VERSION);
 
 /* ── URL migration via clientStorage (reliable, not blocked like localStorage) ── */
@@ -1388,13 +1388,18 @@ async function generateComponentFromBlueprint(blueprint) {
       var longName = reqName.replace('button/', 'button/default/');
       var existing = compSizeVars[reqName] || compSizeVars[longName];
       if (existing) {
-        /* Variable already exists — enforce canonical value so stale
-           values from earlier file states (e.g. icon pad = 6) are
-           upgraded to the current source of truth. Update-in-place
-           preserves the variable ID and all bindings. */
+        /* Variable already exists — enforce canonical value ONLY if the
+           current value is a plain literal that differs from the default.
+           If the value is a VARIABLE_ALIAS (i.e. the sync server already
+           bound it to a primitives-numbers token), DO NOT touch it.
+           Otherwise we'd clobber the proper per-mode aliases with our
+           literal fallback. This bug previously reset
+           split-button/chevron/padding (alias → spacing/3) back to
+           literal 8 every time Generate Components ran. */
         try {
           var curVal = existing.valuesByMode && existing.valuesByMode[csModeId];
-          if (curVal !== reqVal) {
+          var isAlias = curVal && typeof curVal === 'object' && curVal.type === 'VARIABLE_ALIAS';
+          if (!isAlias && curVal !== reqVal) {
             existing.setValueForMode(csModeId, reqVal);
             log('Updated ' + reqName + ': ' + curVal + ' → ' + reqVal);
             stats.bindings++;
@@ -3038,7 +3043,27 @@ async function generateComponentFromBlueprint(blueprint) {
             if (triggerChild) {
               var dividerVar = null;
               var isSelected = (stateName === 'Selected');
-              if (isSelected) {
+              /* Ghost variant: divider hidden at REST, revealed on any
+                 interaction. Mirrors the CSS rule
+                   .split-btn[data-variant="ghost"] { --_sb-divider-color: transparent; }
+                   .split-btn[data-variant="ghost"]:hover/:focus/...
+                 Without this, every Neutral Ghost split-button shipped to
+                 designers had a visible divider at rest — inconsistent
+                 with the spec and with the live demo page. */
+              var isGhost = (typeName === 'Ghost');
+              var isRest  = (stateName === 'Default');
+              var ghostHidesDivider = (isGhost && isRest);
+              if (ghostHidesDivider) {
+                /* Strip the divider entirely on rest. */
+                try {
+                  triggerChild.strokes = [];
+                  triggerChild.strokeWeight = 0;
+                  triggerChild.strokeLeftWeight = 0;
+                  triggerChild.strokeRightWeight = 0;
+                  triggerChild.strokeTopWeight = 0;
+                  triggerChild.strokeBottomWeight = 0;
+                } catch (e) {}
+              } else if (isSelected) {
                 /* Use container-flavoured separator for selected. T3 first
                    (works for both Neutral with container collection mode and
                    Brand with brand mode), fall back to T2 if T3 missing. */
