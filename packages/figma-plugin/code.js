@@ -6,7 +6,7 @@
 
 figma.showUI(__html__, { width: 480, height: 560 });
 
-var CODE_VERSION = '2026-05-14-v37';
+var CODE_VERSION = '2026-05-14-v38';
 log('code.js loaded — version ' + CODE_VERSION);
 
 /* ── URL migration via clientStorage (reliable, not blocked like localStorage) ── */
@@ -2901,13 +2901,18 @@ async function generateComponentFromBlueprint(blueprint) {
               try { instance.fills = []; } catch (e) {}
             }
 
-            /* Wrapper-level stroke (focus ring, outlined types) → on the instance */
+            /* Wrapper-level stroke (focus ring, outlined types, selected ring)
+               → on the instance. Uses OUTSIDE alignment so the ring stays
+               visible regardless of inner zone fills. INSIDE alignment was
+               masked by the action+trigger zone fills (Selected applies a
+               container/bg fill that covers the wrapper bounds), making
+               the selected ring invisible on Filled / Ghost / Fill&Outline. */
             if (wrapOv.stroke) {
               var wrapStrokeVar = resolveColorSpec(wrapOv.stroke, t2Vars, t3Vars);
               if (wrapStrokeVar) {
                 setPaintBoundToVariable(instance, 'strokes', wrapStrokeVar);
                 instance.strokeWeight = wrapOv.strokeWeight || 1;
-                instance.strokeAlign = 'INSIDE';
+                instance.strokeAlign = 'OUTSIDE';
                 stats.bindings++;
               }
             } else {
