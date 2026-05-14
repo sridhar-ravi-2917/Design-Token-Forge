@@ -44,8 +44,14 @@
     anchor:     'exact',
     baseline:   {},
     proposed:   {},
-    cachedSteps:{}
+    cachedSteps:{},
+    // Disclosure open-state persists across role / tier swaps.
+    // Keyed by 'tierId:discId' so each tier can have its own pattern.
+    disclosure: { 't0:steps': false, 't0:affects': false },
+    lastSavedAt: null
   };
+
+  var DRAFT_KEY = 'dtf-editor-v2-draft-v1';
 
   var $listTitle = document.getElementById('listTitle');
   var $listSub   = document.getElementById('listSub');
@@ -117,8 +123,90 @@
     $deploy.disabled  = n === 0;
     $deployN.hidden = n === 0;
     $deployN.textContent = n;
-    $autosave.textContent = n === 0 ? 'No pending changes' : 'Staged locally · autosave wires up in Step 6';
+    refreshAutosaveLabel();
   }
+
+  function refreshAutosaveLabel() {
+    var n = totalChanges();
+    if (n === 0) {
+      $autosave.textContent = State.lastSavedAt
+        ? 'Last draft cleared \u00b7 ' + relTime(State.lastSavedAt)
+        : 'No pending changes';
+      return;
+    }
+    if (!State.lastSavedAt) { $autosave.textContent = 'Saving draft\u2026'; return; }
+    $autosave.textContent = 'Saved to local draft \u00b7 ' + relTime(State.lastSavedAt);
+  }
+
+  function relTime(ts) {
+    var s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (s < 5) return 'just now';
+    if (s < 60) return s + 's ago';
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + 'm ago';
+    var h = Math.floor(m / 60);
+    return h + 'h ago';
+  }
+
+  /* ── Local autosave (Step 6 will add server draft branch) ─ */
+  var saveTimer = null;
+  function scheduleAutosave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      try {
+        var payload = {
+          v: 1,
+          ts: Date.now(),
+          anchor: State.anchor,
+          proposed: State.proposed
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        State.lastSavedAt = payload.ts;
+        refreshDraftStatus('saved');
+        refreshAutosaveLabel();
+      } catch (e) {
+        refreshDraftStatus('error');
+      }
+    }, 600);
+    refreshDraftStatus('saving');
+  }
+
+  function loadDraftFromStorage() {
+    try {
+      var raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return false;
+      var d = JSON.parse(raw);
+      if (!d || d.v !== 1 || !d.proposed) return false;
+      // Only adopt fields we recognize; ignore proposed roles not in current ROLES list.
+      ROLES.forEach(function (r) {
+        if (d.proposed[r.id]) State.proposed[r.id] = d.proposed[r.id];
+      });
+      if (d.anchor === 'exact' || d.anchor === 'normalized') State.anchor = d.anchor;
+      State.lastSavedAt = d.ts || null;
+      return totalChanges() > 0;
+    } catch (e) { return false; }
+  }
+
+  function clearDraftFromStorage() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    State.lastSavedAt = null;
+  }
+
+  function refreshDraftStatus(state) {
+    if (!draftStatus) return;
+    draftStatus.setAttribute('data-state', state);
+    var label = draftStatus.querySelector('.ev2-draft-text');
+    if (!label) return;
+    if (state === 'saving') label.textContent = 'Saving draft\u2026';
+    else if (state === 'saved') label.textContent = 'Draft saved \u00b7 ' + relTime(State.lastSavedAt);
+    else if (state === 'error') label.textContent = 'Draft save failed';
+    else label.textContent = State.lastSavedAt ? 'Draft saved \u00b7 ' + relTime(State.lastSavedAt) : 'No draft yet';
+  }
+
+  // Tick the relative timestamp every 30s so it stays honest
+  setInterval(function () {
+    if (State.lastSavedAt) { refreshDraftStatus('saved'); refreshAutosaveLabel(); }
+  }, 30000);
 
   function ladderHTML(role) {
     var steps = stepsFor(role).filter(function(s){ return s.name !== 'white' && s.name !== 'black'; });
@@ -181,7 +269,7 @@
               + '</div>'
             + '</div>'
           + '</div>'
-          + '<div class="ev2-disc"' + (changedThisRole ? ' data-open' : '') + '>'
+          + '<div class="ev2-disc"' + (State.disclosure['t0:steps'] ? ' data-open' : '') + ' data-disc="t0:steps">'
             + '<div class="ev2-disc-head" data-toggle="steps">'
               + '<span>20 derived steps</span>'
               + '<span class="ev2-disc-meta">' + (changedThisRole ? 'before \u2192 after' : 'auto-generated') + '</span>'
@@ -190,7 +278,7 @@
               + '<div class="ev2-ladder">' + ladderHTML(role.id) + '</div>'
             + '</div>'
           + '</div>'
-          + '<div class="ev2-disc">'
+          + '<div class="ev2-disc"' + (State.disclosure['t0:affects'] ? ' data-open' : '') + ' data-disc="t0:affects">'
             + '<div class="ev2-disc-head" data-toggle="affects">'
               + '<span>Affects components</span>'
               + '<span class="ev2-disc-meta">' + affects.length + ' shown</span>'
@@ -217,8 +305,11 @@
     document.querySelectorAll('.ev2-disc-head').forEach(function (h) {
       h.addEventListener('click', function () {
         var disc = h.parentElement;
-        if (disc.hasAttribute('data-open')) disc.removeAttribute('data-open');
-        else disc.setAttribute('data-open', '');
+        var key = disc.getAttribute('data-disc');
+        var nowOpen = !disc.hasAttribute('data-open');
+        if (nowOpen) disc.setAttribute('data-open', '');
+        else disc.removeAttribute('data-open');
+        if (key) State.disclosure[key] = nowOpen;
       });
     });
     document.querySelectorAll('[data-anchor]').forEach(function (b) {
@@ -228,6 +319,7 @@
         pushPreview();
         renderT0();
         refreshChangeBar();
+        scheduleAutosave();
       });
     });
 
@@ -259,6 +351,7 @@
     delete State.cachedSteps[role];
     pushPreview();
     refreshChangeBar();
+    scheduleAutosave();
 
     var swatch = document.querySelector('.ev2-swatch');
     if (swatch) swatch.style.background = State.proposed[role];
@@ -339,9 +432,11 @@
   $discard.addEventListener('click', function () {
     ROLES.forEach(function (r) { State.proposed[r.id] = State.baseline[r.id]; });
     State.cachedSteps = {};
+    clearDraftFromStorage();
     pushPreview();
     renderActiveTier();
     refreshChangeBar();
+    refreshDraftStatus('idle');
     if (window.ev2Toast) window.ev2Toast('Reverted all changes', 'ok');
   });
 
@@ -358,8 +453,6 @@
   });
 
   var draftStatus = document.getElementById('draftStatus');
-  draftStatus.setAttribute('data-state', 'idle');
-  draftStatus.querySelector('.ev2-draft-text').textContent = 'Draft branch wires up in Step 6';
 
   var toastEl = document.getElementById('ev2Toast');
   var toastTimer = null;
@@ -374,9 +467,16 @@
   function boot() {
     if (!window.PaletteEngine) { setTimeout(boot, 30); return; }
     readBaseline();
+    var hadDraft = loadDraftFromStorage();
     $frame.src = './preview.html';
     renderActiveTier();
     refreshChangeBar();
+    if (hadDraft) {
+      refreshDraftStatus('saved');
+      if (window.ev2Toast) window.ev2Toast('Restored from local draft', 'ok');
+    } else {
+      refreshDraftStatus('idle');
+    }
   }
   boot();
 })();
