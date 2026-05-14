@@ -6,7 +6,7 @@
 
 figma.showUI(__html__, { width: 480, height: 560 });
 
-var CODE_VERSION = '2026-05-14-v39';
+var CODE_VERSION = '2026-05-14-v40';
 log('code.js loaded — version ' + CODE_VERSION);
 
 /* ── URL migration via clientStorage (reliable, not blocked like localStorage) ── */
@@ -749,9 +749,12 @@ var BUTTON_BLUEPRINT = {
           'Default':  { fill: 'default/component/bg-default' },
           'Hover':    { fill: 'default/component/bg-hover' },
           'Pressed':  { fill: 'default/component/bg-pressed' },
+          /* Selected on Filled = "stuck pressed" in brand-mode. Don't tint with
+             container/bg (weakens already-solid surface, kills white-on-tint text).
+             Use brand component/bg-pressed + on-component text + brand outline ring. */
           'Selected': { t3Mode: 'brand',
-                        fill: { t3: 'container/bg' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
-                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+                        fill: { t3: 'component/bg-pressed' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
           'Focus':    { fill: 'default/component/bg-default', stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
           'Disabled': { fill: 'default/component/bg-default', componentOpacity: 0.3 }
         },
@@ -779,9 +782,10 @@ var BUTTON_BLUEPRINT = {
           'Default':  { fill: 'default/component/bg-default', stroke: 'default/component/outline-default', strokeWeight: 1 },
           'Hover':    { fill: 'default/component/bg-hover',   stroke: 'default/component/outline-default', strokeWeight: 1 },
           'Pressed':  { fill: 'default/component/bg-pressed', stroke: 'default/component/outline-default', strokeWeight: 1 },
+          /* Selected = same as Filled: solid baseline → bg-pressed + on-component text. */
           'Selected': { t3Mode: 'brand',
-                        fill: { t3: 'container/bg' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
-                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+                        fill: { t3: 'component/bg-pressed' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
           'Focus':    { fill: 'default/component/bg-default', stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
           'Disabled': { fill: 'default/component/bg-default', stroke: 'default/component/outline-default', strokeWeight: 1, componentOpacity: 0.3 }
         }
@@ -1043,6 +1047,9 @@ var SPLIT_BUTTON_BLUEPRINT = {
           rest:     { fill: { t3: 'component/bg-default' }, text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
           hover:    { fill: { t3: 'component/bg-hover' },   text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
           pressed:  { fill: { t3: 'component/bg-pressed' }, text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
+          /* Selected = "stuck pressed": solid brand fill, on-component text, 2px brand ring. */
+          selected: { fill: { t3: 'component/bg-pressed' }, text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' },
+                      wrapper: { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 } },
           focus:    { fill: { t3: 'component/bg-default' }, text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' },
                       wrapper: { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 } },
           disabled: { fill: { t3: 'component/bg-default' }, text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' },
@@ -1052,6 +1059,8 @@ var SPLIT_BUTTON_BLUEPRINT = {
           rest:     { text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
           hover:    { fill: { t3: 'container/bg' },    text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
           pressed:  { fill: { t3: 'container/hover' }, text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          selected: { fill: { t3: 'container/hover' }, text: { t3: 'content/default' }, icon: { t3: 'content/default' },
+                      wrapper: { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 } },
           focus:    { text: { t3: 'content/default' }, icon: { t3: 'content/default' },
                       wrapper: { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 } },
           disabled: { text: { t3: 'content/default' }, icon: { t3: 'content/default' },
@@ -1062,6 +1071,8 @@ var SPLIT_BUTTON_BLUEPRINT = {
           rest:     { fill: { t3: 'container/bg' },     text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
           hover:    { fill: { t3: 'container/hover' },  text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
           pressed:  { fill: { t3: 'container/pressed' }, text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+          selected: { fill: { t3: 'container/pressed' }, text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' },
+                      wrapper: { stroke: { t3: 'container/outline' }, strokeWeight: 2 } },
           focus:    { fill: { t3: 'container/bg' },     text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' },
                       wrapper: { stroke: { t3: 'container/outline' }, strokeWeight: 2 } },
           disabled: { fill: { t3: 'container/bg' },     text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' },
@@ -1071,6 +1082,8 @@ var SPLIT_BUTTON_BLUEPRINT = {
           rest:     { text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
           hover:    { fill: { t3: 'container/bg' },    text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
           pressed:  { fill: { t3: 'container/hover' }, text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          selected: { fill: { t3: 'container/hover' }, text: { t3: 'content/default' }, icon: { t3: 'content/default' },
+                      wrapper: { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 } },
           focus:    { text: { t3: 'content/default' }, icon: { t3: 'content/default' },
                       wrapper: { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 } },
           disabled: { text: { t3: 'content/default' }, icon: { t3: 'content/default' },
