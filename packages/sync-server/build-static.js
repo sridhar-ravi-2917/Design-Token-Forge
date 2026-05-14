@@ -637,23 +637,34 @@ async function main() {
   }
 
   // ── Write per-project CSS to projects/{id}/ for local dev switching ──
+  // ALSO mirror to dist/projects/{id}/ so the deployed demo can fetch the
+  // project's customized brand/secondary/role primitives + semantic + surface
+  // overrides. Without the dist mirror, the live site only ships config.json
+  // and demo pages fall back to the default DTF brand blue regardless of
+  // what the project customized — colors silently revert on every deploy.
   if (PROJECT_ID) {
     const projCSSDir = path.join(ROOT, 'projects', PROJECT_ID);
+    const projDistCSSDir = path.join(BASE_OUT_DIR, 'projects', PROJECT_ID);
     fs.mkdirSync(projCSSDir, { recursive: true });
+    fs.mkdirSync(projDistCSSDir, { recursive: true });
+    const writePair = (name, content) => {
+      fs.writeFileSync(path.join(projCSSDir, name), content);
+      fs.writeFileSync(path.join(projDistCSSDir, name), content);
+    };
     if (exportOpts.primitiveTokens) {
-      fs.writeFileSync(path.join(projCSSDir, 'primitives.css'),
+      writePair('primitives.css',
         tokensToCSSFile(exportOpts.primitiveTokens, 'T0 Primitive Colors'));
     }
     if (exportOpts.semanticTokens) {
-      fs.writeFileSync(path.join(projCSSDir, 'semantic.css'),
+      writePair('semantic.css',
         tokensToCSSFile(exportOpts.semanticTokens, 'T1 Semantic Tokens'));
     }
     if (exportOpts.surfaceTokens) {
-      fs.writeFileSync(path.join(projCSSDir, 'surfaces.css'),
+      writePair('surfaces.css',
         tokensToCSSFile(exportOpts.surfaceTokens, 'T2 Surface Context Tokens'));
     }
     if (exportOpts.primitiveTokens || exportOpts.semanticTokens || exportOpts.surfaceTokens) {
-      console.log(`  ✓ projects/${PROJECT_ID}/*.css → local dev switching`);
+      console.log(`  ✓ projects/${PROJECT_ID}/*.css → local + dist (deploy)`);
     }
   }
 
