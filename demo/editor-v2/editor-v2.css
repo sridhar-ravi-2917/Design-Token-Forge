@@ -498,6 +498,53 @@ body{
   color:var(--surface-base-ct-subtle);
 }
 
+/* T1 Roles — lever blocks + segmented controls + slots table */
+.ev2-levers{display:flex;flex-direction:column;gap:14px}
+.ev2-lever-block{
+  border:1px solid var(--surface-base-outline);
+  border-radius:var(--radius-md,8px);
+  padding:12px 14px;
+  background:var(--surface-base-bg);
+}
+.ev2-lever-head{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.ev2-lever-title{font-size:12.5px;font-weight:700;color:var(--surface-base-ct-strong);letter-spacing:-.005em}
+.ev2-lever-sub{font-size:11px;color:var(--surface-base-ct-faint);line-height:1.4}
+.ev2-seg{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:4px;
+  background:var(--surface-base-subtle);
+  padding:3px;border-radius:var(--radius-sm,6px);
+  border:1px solid var(--surface-base-outline);
+}
+.ev2-seg-btn{
+  padding:7px 10px;border:none;background:transparent;
+  font:inherit;font-size:12px;font-weight:600;
+  color:var(--surface-base-ct-subtle);
+  border-radius:calc(var(--radius-sm,6px) - 2px);
+  cursor:pointer;transition:all 120ms ease;
+  position:relative;
+}
+.ev2-seg-btn:hover{color:var(--surface-base-ct-strong)}
+.ev2-seg-btn[aria-checked="true"]{
+  background:var(--surface-base-bg);
+  color:var(--surface-base-ct-strong);
+  box-shadow:0 1px 2px rgba(0,0,0,.06), 0 0 0 1px var(--surface-base-outline);
+}
+.ev2-seg-btn:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:2px}
+
+.ev2-slots{display:flex;flex-direction:column;gap:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px}
+.ev2-slot-row{
+  display:grid;
+  grid-template-columns:18px 1fr auto auto;
+  gap:10px;align-items:center;
+  padding:5px 8px;
+  border-radius:4px;
+}
+.ev2-slot-row:hover{background:var(--surface-base-subtle)}
+.ev2-slot-sw{width:18px;height:18px;border-radius:3px;border:1px solid var(--surface-base-outline)}
+.ev2-slot-name{color:var(--surface-base-ct-strong)}
+.ev2-slot-step{color:var(--surface-base-ct-faint);font-size:10px}
+.ev2-slot-hex{color:var(--surface-base-ct-subtle);text-transform:uppercase;font-size:10px;min-width:54px;text-align:right}
+
 /* Reload button on preview header */
 .ev2-preview-reload{
   width:28px;height:28px;

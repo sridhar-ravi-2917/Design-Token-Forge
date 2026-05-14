@@ -38,6 +38,46 @@
     info:    ['Alert', 'Toast', 'Badge', 'Tooltip', '+5 more']
   };
 
+  /* ── T1 Roles intent ──────────────────────────────────
+     Each role has 3 "smart" levers. Each lever picks a palette
+     step that becomes the anchor of a slot family. Other slots
+     in the family derive by index-stepping along the ladder.   */
+  var ALL_STEPS = ['25','50','75','100','150','175','200','250','300','350','400','450','500','550','600','700','750','800','850','900'];
+  function stepRel(name, delta) {
+    var i = ALL_STEPS.indexOf(name); if (i < 0) return name;
+    i = Math.max(0, Math.min(ALL_STEPS.length - 1, i + delta));
+    return ALL_STEPS[i];
+  }
+  var T1_PRESETS = {
+    fill:      { soft: '400', standard: '500', bold: '600' },
+    content:   { subtle: '450', standard: '550', strong: '700' },
+    container: { whisper: '25', light: '50', tinted: '100' }
+  };
+  var T1_DEFAULT = { fill: 'standard', content: 'standard', container: 'light' };
+  var T1_LEVERS = [
+    { id: 'fill', label: 'Fill emphasis', sub: 'Solid component backgrounds (buttons, badges, fills)',
+      options: [
+        { id: 'soft',     label: 'Soft',     hint: 'Step 400 \u2014 gentler, less assertive' },
+        { id: 'standard', label: 'Standard', hint: 'Step 500 \u2014 recommended default' },
+        { id: 'bold',     label: 'Bold',     hint: 'Step 600 \u2014 heavier, more presence' }
+      ]
+    },
+    { id: 'content', label: 'Content weight', sub: 'Text and icons rendered in this color',
+      options: [
+        { id: 'subtle',   label: 'Subtle',   hint: 'Step 450 \u2014 lighter on white' },
+        { id: 'standard', label: 'Standard', hint: 'Step 550 \u2014 comfortable everywhere' },
+        { id: 'strong',   label: 'Strong',   hint: 'Step 700 \u2014 high contrast' }
+      ]
+    },
+    { id: 'container', label: 'Container softness', sub: 'Soft tinted surfaces (alert bg, banners)',
+      options: [
+        { id: 'whisper',  label: 'Whisper',  hint: 'Step 25 \u2014 barely tinted' },
+        { id: 'light',    label: 'Light',    hint: 'Step 50 \u2014 gentle wash' },
+        { id: 'tinted',   label: 'Tinted',   hint: 'Step 100 \u2014 clearly colored' }
+      ]
+    }
+  ];
+
   var State = {
     activeTier: 't0',
     activeRole: 'brand',
@@ -45,9 +85,16 @@
     baseline:   {},
     proposed:   {},
     cachedSteps:{},
+    t1: {
+      brand:   { fill:'standard', content:'standard', container:'light' },
+      danger:  { fill:'standard', content:'standard', container:'light' },
+      success: { fill:'standard', content:'standard', container:'light' },
+      warning: { fill:'standard', content:'standard', container:'light' },
+      info:    { fill:'standard', content:'standard', container:'light' }
+    },
     // Disclosure open-state persists across role / tier swaps.
     // Keyed by 'tierId:discId' so each tier can have its own pattern.
-    disclosure: { 't0:steps': false, 't0:affects': false },
+    disclosure: { 't0:steps': false, 't0:affects': false, 't1:slots': false, 't1:affects': false },
     lastSavedAt: null
   };
 
@@ -76,8 +123,13 @@
   function isChanged(roleId) {
     return State.proposed[roleId].toUpperCase() !== State.baseline[roleId].toUpperCase();
   }
+  function isT1Changed(roleId) {
+    var t = State.t1[roleId];
+    return t.fill !== T1_DEFAULT.fill || t.content !== T1_DEFAULT.content || t.container !== T1_DEFAULT.container;
+  }
+  function isRoleDirty(roleId) { return isChanged(roleId) || isT1Changed(roleId); }
   function totalChanges() {
-    return ROLES.reduce(function (n, r) { return n + (isChanged(r.id) ? 1 : 0); }, 0);
+    return ROLES.reduce(function (n, r) { return n + (isRoleDirty(r.id) ? 1 : 0); }, 0);
   }
 
   function stepsFor(roleId) {
@@ -94,6 +146,43 @@
     return window.PaletteEngine.generatePalette(State.baseline[roleId], { anchor: State.anchor }).steps;
   }
 
+  function stepHexByName(roleId, name) {
+    var steps = stepsFor(roleId);
+    for (var i = 0; i < steps.length; i++) if (steps[i].name === name) return steps[i].hex;
+    return null;
+  }
+  function semanticVarsFor(roleId) {
+    var t = State.t1[roleId];
+    var fillStep      = T1_PRESETS.fill[t.fill];
+    var contentStep   = T1_PRESETS.content[t.content];
+    var containerStep = T1_PRESETS.container[t.container];
+    var get = function (name) { return stepHexByName(roleId, name); };
+    var p = roleId; // semantic prefix matches role id (brand, danger, ...)
+    var lines = [];
+    // Component fill family
+    lines.push('  --' + p + '-component-bg-default: ' + get(fillStep) + ';');
+    lines.push('  --' + p + '-component-bg-hover: '   + get(stepRel(fillStep, 1)) + ';');
+    lines.push('  --' + p + '-component-bg-pressed: ' + get(stepRel(fillStep, 2)) + ';');
+    lines.push('  --' + p + '-component-outline-default: ' + get(stepRel(fillStep, -2)) + ';');
+    lines.push('  --' + p + '-component-outline-hover: '   + get(stepRel(fillStep, -2)) + ';');
+    lines.push('  --' + p + '-component-outline-pressed: ' + get(stepRel(fillStep, -1)) + ';');
+    lines.push('  --' + p + '-on-component: #FFFFFF;');
+    // Content family
+    lines.push('  --' + p + '-content-default: ' + get(contentStep) + ';');
+    lines.push('  --' + p + '-content-strong: '  + get(stepRel(contentStep, 1)) + ';');
+    lines.push('  --' + p + '-content-subtle: '  + get(stepRel(contentStep, -2)) + ';');
+    lines.push('  --' + p + '-content-faint: '   + get(stepRel(contentStep, -3)) + ';');
+    // Container family
+    lines.push('  --' + p + '-container-bg: '       + get(containerStep) + ';');
+    lines.push('  --' + p + '-container-hover: '    + get(stepRel(containerStep, 1)) + ';');
+    lines.push('  --' + p + '-container-pressed: '  + get(stepRel(containerStep, 2)) + ';');
+    lines.push('  --' + p + '-container-outline: ' + get(stepRel(containerStep, 6)) + ';');
+    lines.push('  --' + p + '-container-separator: ' + get(stepRel(containerStep, 2)) + ';');
+    lines.push('  --' + p + '-component-separator: ' + get(stepRel(fillStep, -4)) + ';');
+    lines.push('  --' + p + '-on-container: ' + get(stepRel(fillStep, 2)) + ';');
+    return lines;
+  }
+
   function pushPreview() {
     var doc = $frame.contentDocument;
     if (!doc || !doc.head) return;
@@ -105,12 +194,18 @@
     }
     var lines = [':root, [data-theme="dark"] {'];
     ROLES.forEach(function (r) {
-      if (!isChanged(r.id)) return;
+      var t0 = isChanged(r.id);
+      var t1 = isT1Changed(r.id);
+      if (!t0 && !t1) return;
       var steps = stepsFor(r.id);
+      // Always re-emit the prim ladder when role is dirty so semantic
+      // overrides and any direct prim consumers stay coherent.
       steps.forEach(function (s) {
         if (s.name === 'white' || s.name === 'black') return;
         lines.push('  --prim-' + r.prefix + '-' + s.name + ': ' + s.hex + ';');
       });
+      // Re-emit semantic mapping any time the role is dirty (T0 or T1).
+      semanticVarsFor(r.id).forEach(function (l) { lines.push(l); });
     });
     lines.push('}');
     style.textContent = lines.join('\n');
@@ -158,7 +253,8 @@
           v: 1,
           ts: Date.now(),
           anchor: State.anchor,
-          proposed: State.proposed
+          proposed: State.proposed,
+          t1: State.t1
         };
         localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
         State.lastSavedAt = payload.ts;
@@ -180,6 +276,12 @@
       // Only adopt fields we recognize; ignore proposed roles not in current ROLES list.
       ROLES.forEach(function (r) {
         if (d.proposed[r.id]) State.proposed[r.id] = d.proposed[r.id];
+        if (d.t1 && d.t1[r.id]) {
+          var t = d.t1[r.id];
+          if (T1_PRESETS.fill[t.fill])           State.t1[r.id].fill = t.fill;
+          if (T1_PRESETS.content[t.content])     State.t1[r.id].content = t.content;
+          if (T1_PRESETS.container[t.container]) State.t1[r.id].container = t.container;
+        }
       });
       if (d.anchor === 'exact' || d.anchor === 'normalized') State.anchor = d.anchor;
       State.lastSavedAt = d.ts || null;
@@ -395,11 +497,147 @@
       + '</div>';
   }
 
+  /* ── T1 Roles ────────────────────────────────────────── */
+  function renderT1() {
+    var role = ROLES.find(function (r) { return r.id === State.activeRole; });
+    if (!role) return;
+    var t1 = State.t1[role.id];
+    var changed = isT1Changed(role.id) || isChanged(role.id);
+    var affects = AFFECTS[role.id] || [];
+
+    var leversHTML = T1_LEVERS.map(function (lever) {
+      var current = t1[lever.id];
+      return '<div class="ev2-lever-block">'
+        + '<div class="ev2-lever-head">'
+          + '<span class="ev2-lever-title">' + lever.label + '</span>'
+          + '<span class="ev2-lever-sub">' + lever.sub + '</span>'
+        + '</div>'
+        + '<div class="ev2-seg" role="radiogroup" aria-label="' + lever.label + '">'
+          + lever.options.map(function (opt) {
+              var isSel = opt.id === current;
+              return '<button class="ev2-seg-btn" role="radio" '
+                + 'aria-checked="' + isSel + '" '
+                + 'data-t1-lever="' + lever.id + '" data-t1-value="' + opt.id + '" '
+                + 'data-tip="' + opt.hint + '">'
+                + opt.label
+                + '</button>';
+            }).join('')
+        + '</div>'
+      + '</div>';
+    }).join('');
+
+    $body.innerHTML =
+      '<div class="ev2-roles" role="tablist">'
+        + ROLES.map(function (r) {
+            var current = r.id === role.id;
+            return '<button class="ev2-role" role="tab" data-role-tab="' + r.id + '" '
+              + 'aria-selected="' + current + '" data-changed="' + isRoleDirty(r.id) + '">'
+              + '<span class="ev2-role-dot" style="background:' + State.proposed[r.id] + '"></span>'
+              + '<span>' + r.label + '</span>'
+              + '</button>';
+          }).join('')
+      + '</div>'
+      + '<div class="ev2-intent">'
+        + '<div class="ev2-intent-head">'
+          + '<div class="ev2-intent-titlewrap">'
+            + '<span class="ev2-intent-title">' + role.label + ' role</span>'
+            + '<span class="ev2-intent-sub">How prominently should ' + role.label.toLowerCase() + ' appear across surfaces, content and containers?</span>'
+          + '</div>'
+          + (changed ? '<span class="ev2-intent-changed">Changed</span>' : '')
+        + '</div>'
+        + '<div class="ev2-intent-body">'
+          + '<div class="ev2-levers">' + leversHTML + '</div>'
+          + '<div class="ev2-disc"' + (State.disclosure['t1:slots'] ? ' data-open' : '') + ' data-disc="t1:slots">'
+            + '<div class="ev2-disc-head">'
+              + '<span>Resulting slots</span>'
+              + '<span class="ev2-disc-meta">' + (changed ? 'updated' : 'defaults') + '</span>'
+            + '</div>'
+            + '<div class="ev2-disc-body">'
+              + slotsTableHTML(role.id)
+            + '</div>'
+          + '</div>'
+          + '<div class="ev2-disc"' + (State.disclosure['t1:affects'] ? ' data-open' : '') + ' data-disc="t1:affects">'
+            + '<div class="ev2-disc-head">'
+              + '<span>Affects components</span>'
+              + '<span class="ev2-disc-meta">' + affects.length + ' shown</span>'
+            + '</div>'
+            + '<div class="ev2-disc-body">'
+              + '<div class="ev2-affects">'
+                + affects.map(function (c) { return '<span class="ev2-aff-chip">' + c + '</span>'; }).join('')
+              + '</div>'
+            + '</div>'
+          + '</div>'
+        + '</div>'
+      + '</div>';
+
+    bindT1();
+  }
+
+  function slotsTableHTML(roleId) {
+    var t = State.t1[roleId];
+    var fillStep      = T1_PRESETS.fill[t.fill];
+    var contentStep   = T1_PRESETS.content[t.content];
+    var containerStep = T1_PRESETS.container[t.container];
+    var rows = [
+      { slot: 'component-bg-default',     step: fillStep },
+      { slot: 'component-bg-hover',       step: stepRel(fillStep, 1) },
+      { slot: 'component-bg-pressed',     step: stepRel(fillStep, 2) },
+      { slot: 'content-default',          step: contentStep },
+      { slot: 'content-strong',           step: stepRel(contentStep, 1) },
+      { slot: 'content-subtle',           step: stepRel(contentStep, -2) },
+      { slot: 'container-bg',             step: containerStep },
+      { slot: 'container-hover',          step: stepRel(containerStep, 1) },
+      { slot: 'container-outline',        step: stepRel(containerStep, 6) }
+    ];
+    return '<div class="ev2-slots">'
+      + rows.map(function (r) {
+          var hex = stepHexByName(roleId, r.step) || '#000';
+          return '<div class="ev2-slot-row">'
+            + '<div class="ev2-slot-sw" style="background:' + hex + '"></div>'
+            + '<div class="ev2-slot-name">--' + roleId + '-' + r.slot + '</div>'
+            + '<div class="ev2-slot-step">step ' + r.step + '</div>'
+            + '<div class="ev2-slot-hex">' + hex.toUpperCase().replace('#','') + '</div>'
+          + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  function bindT1() {
+    document.querySelectorAll('[data-role-tab]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        State.activeRole = b.getAttribute('data-role-tab');
+        renderT1();
+      });
+    });
+    document.querySelectorAll('.ev2-disc-head').forEach(function (h) {
+      h.addEventListener('click', function () {
+        var disc = h.parentElement;
+        var key = disc.getAttribute('data-disc');
+        var nowOpen = !disc.hasAttribute('data-open');
+        if (nowOpen) disc.setAttribute('data-open', '');
+        else disc.removeAttribute('data-open');
+        if (key) State.disclosure[key] = nowOpen;
+      });
+    });
+    document.querySelectorAll('[data-t1-lever]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var lever = b.getAttribute('data-t1-lever');
+        var value = b.getAttribute('data-t1-value');
+        State.t1[State.activeRole][lever] = value;
+        pushPreview();
+        refreshChangeBar();
+        scheduleAutosave();
+        renderT1();
+      });
+    });
+  }
+
   function renderActiveTier() {
     var meta = TIER_META[State.activeTier];
     $listTitle.textContent = meta.title;
     $listSub.textContent = meta.sub;
     if (State.activeTier === 't0') renderT0();
+    else if (State.activeTier === 't1') renderT1();
     else renderTierPlaceholder(State.activeTier);
   }
 
@@ -432,7 +670,10 @@
   });
 
   $discard.addEventListener('click', function () {
-    ROLES.forEach(function (r) { State.proposed[r.id] = State.baseline[r.id]; });
+    ROLES.forEach(function (r) {
+      State.proposed[r.id] = State.baseline[r.id];
+      State.t1[r.id] = { fill: T1_DEFAULT.fill, content: T1_DEFAULT.content, container: T1_DEFAULT.container };
+    });
     State.cachedSteps = {};
     clearDraftFromStorage();
     pushPreview();
