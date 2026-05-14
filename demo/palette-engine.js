@@ -146,10 +146,12 @@ function toneToOklchL(tone) {
 // PALETTE GENERATOR
 // ══════════════════════════════════════════════════════════════
 
-function generatePalette(keyHex) {
+function generatePalette(keyHex, opts) {
+  var anchor = (opts && opts.anchor) || 'normalized';
   var oklch = hexToOklch(keyHex);
   var keyC = oklch[1], keyH = oklch[2];
-  // Anchor: rescale tone curve so KEY_INDEX lands on key's actual L*.
+  // Anchor math (only used when anchor === 'exact'):
+  // rescale tone curve so KEY_INDEX lands on key's actual L*.
   // Light side lerps tone 100..keyTone, dark side lerps keyTone..0,
   // preserving monotonicity for any input hex.
   var keyToneActual = hexToLstar(keyHex);
@@ -165,21 +167,20 @@ function generatePalette(keyHex) {
     if (i === 0)                    return { name: name, hex: '#FFFFFF', tone: 100, contrast: 1.0 };
     if (i === STEP_NAMES.length - 1) return { name: name, hex: '#000000', tone: 0,   contrast: 21.0 };
 
-    // Anchor the key step to the exact input hex.
-    if (i === KEY_INDEX) {
+    // 'exact' mode: anchor key step to input hex.
+    if (anchor === 'exact' && i === KEY_INDEX) {
       return { name: name, hex: keyHex.toUpperCase(), tone: keyToneActual, contrast: wcagContrast(keyHex, '#FFFFFF') };
     }
 
-    // Remap the fixed tone onto the input's effective scale.
-    var remappedTone;
-    if (i < KEY_INDEX) {
-      // Light side: 100 → keyTone
-      remappedTone = 100 + (tone - 100) * (100 - keyTone) / (100 - baseKeyTone);
+    var targetL;
+    if (anchor === 'exact') {
+      var remappedTone = i < KEY_INDEX
+        ? 100 + (tone - 100) * (100 - keyTone) / (100 - baseKeyTone)
+        : keyTone * (tone / baseKeyTone);
+      targetL = toneToOklchL(remappedTone);
     } else {
-      // Dark side: keyTone → 0
-      remappedTone = keyTone * (tone / baseKeyTone);
+      targetL = toneToOklchL(tone);
     }
-    var targetL = toneToOklchL(remappedTone);
 
     // Chroma: asymmetric bell curve — light side decays faster, dark side slower
     var isLight = i < KEY_INDEX;

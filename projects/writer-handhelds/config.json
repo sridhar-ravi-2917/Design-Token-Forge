@@ -421,5 +421,6 @@
     "float": "secondary",
     "inverse": "secondary"
   },
-  "owner": "sridhar-ravi-2917"
+  "owner": "sridhar-ravi-2917",
+  "paletteAnchor": "exact"
 }

@@ -173,11 +173,23 @@ function toneToOklchL(tone) {
  * Generate a 22-step palette from a single key hex color.
  *
  * @param {string} keyHex - Key color as hex (e.g. "#E53F28")
+ * @param {{anchor?: 'normalized'|'exact'}} [opts]
+ *   - 'normalized' (default): step 500 lands on the fixed tone scale
+ *     (lightness ~49%). Hue/chroma derive from input. Ladder is uniform
+ *     across all projects — designer-typed hex may be "snapped" to the
+ *     curve. Safest for migrating existing projects without visual shift.
+ *   - 'exact': step 500 returns the input hex unchanged. Neighbor steps
+ *     remap so the ladder bends to fit. Use when the brand color must
+ *     round-trip exactly. Other steps (450, 550, ...) WILL shift relative
+ *     to 'normalized' — only opt in for new projects or when explicitly
+ *     willing to accept the shift.
  * @returns {{ steps: {name:string, hex:string, tone:number, contrast:number}[] }}
  */
-export function generatePalette(keyHex) {
+export function generatePalette(keyHex, opts) {
+  const anchor = (opts && opts.anchor) || 'normalized';
   const [, keyC, keyH] = hexToOklch(keyHex);
-  // Anchor: rescale tone curve so KEY_INDEX lands on key's actual L*.
+  // Anchor math (only used when anchor === 'exact'):
+  // rescale tone curve so KEY_INDEX lands on key's actual L*.
   // Light side lerps tone 100..keyTone, dark side lerps keyTone..0,
   // preserving monotonicity for any input hex.
   const keyToneActual = hexToLstar(keyHex);
@@ -194,17 +206,18 @@ export function generatePalette(keyHex) {
     if (i === 0)                    return { name, hex: '#FFFFFF', tone: 100, contrast: 1.0 };
     if (i === STEP_NAMES.length - 1) return { name, hex: '#000000', tone: 0,   contrast: 21.0 };
 
-    // Anchor the key step to the exact input hex — input colors must round-trip
-    // at step 500 so brand-component-bg-default === designer-supplied brand hex.
-    if (i === KEY_INDEX) {
+    // 'exact' mode: anchor key step to input hex; remap neighbors monotonically.
+    if (anchor === 'exact' && i === KEY_INDEX) {
       return { name, hex: keyHex.toUpperCase(), tone: keyToneActual, contrast: wcagContrast(keyHex, '#FFFFFF') };
     }
 
-    // Remap fixed tone onto input's effective scale (monotonic).
-    const remappedTone = i < KEY_INDEX
-      ? 100 + (tone - 100) * (100 - keyTone) / (100 - baseKeyTone)
-      : keyTone * (tone / baseKeyTone);
-    const targetL = toneToOklchL(remappedTone);
+    const targetL = anchor === 'exact'
+      ? toneToOklchL(
+          i < KEY_INDEX
+            ? 100 + (tone - 100) * (100 - keyTone) / (100 - baseKeyTone)
+            : keyTone * (tone / baseKeyTone)
+        )
+      : toneToOklchL(tone);
 
     // Chroma: asymmetric bell curve peaking at key (index 13), tapering to 0
     // at white/black. Light side decays faster (0.6/1.3) to keep tints clean;

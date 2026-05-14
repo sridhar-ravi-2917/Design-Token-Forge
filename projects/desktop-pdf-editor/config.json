@@ -405,5 +405,6 @@
     "collectionPrefix": "DTF",
     "fileKeys": []
   },
-  "owner": "sridhar-ravi-2917"
+  "owner": "sridhar-ravi-2917",
+  "paletteAnchor": "exact"
 }

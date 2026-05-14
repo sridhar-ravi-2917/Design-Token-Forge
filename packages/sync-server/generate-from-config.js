@@ -108,10 +108,10 @@ function normalizeSemanticMap(map) {
 
 // ── Palette generation ────────────────────────────────────────
 
-function buildPalettes(paletteKeys) {
+function buildPalettes(paletteKeys, opts) {
   const palettes = {};
   for (const [key, hex] of Object.entries(paletteKeys)) {
-    palettes[key] = generatePalette(hex);
+    palettes[key] = generatePalette(hex, opts);
   }
   return palettes;
 }
@@ -275,7 +275,7 @@ export function generateTokenOverrides(config, basePrimitiveTokens) {
     }
   }
 
-  const palettes = buildPalettes(config.paletteKeys);
+  const palettes = buildPalettes(config.paletteKeys, { anchor: config.paletteAnchor || 'normalized' });
   const result = {};
 
   // Primitives: overlay config-derived colors onto existing tokens

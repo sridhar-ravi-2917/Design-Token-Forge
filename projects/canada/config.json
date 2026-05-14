@@ -395,5 +395,6 @@
       "cm-outline-pressed": "500",
       "cm-separator": "750"
     }
-  }
+  },
+  "paletteAnchor": "exact"
 }
