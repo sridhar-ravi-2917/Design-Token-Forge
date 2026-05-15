@@ -230,7 +230,6 @@
     lines.push('}');
     win.postMessage({ type: 'ev2-overrides', css: lines.join('\n') }, '*');
   }
-  }
 
   function refreshChangeBar() {
     var n = totalChanges();
