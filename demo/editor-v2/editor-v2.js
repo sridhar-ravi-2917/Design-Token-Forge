@@ -220,22 +220,24 @@
       doc.head.appendChild(style);
     }
     var lines = [':root, [data-theme="dark"] {'];
+    // ALWAYS re-emit the full PaletteEngine-derived ladder + semantic
+    // mapping for every role. The file's primitives.css was generated
+    // with different palette params, so falling back to its values when
+    // a role is "clean" causes the painted color to disagree with the
+    // UI labels (e.g. UI says "Standard step 500 • 3D5EFC" but bg renders
+    // #3366F0 from the file). Pushing the editor's ladder unconditionally
+    // makes label === paint at all times, for both dirty and clean roles.
     ROLES.forEach(function (r) {
-      var t0 = isChanged(r.id);
-      var t1 = isT1Changed(r.id);
-      if (!t0 && !t1) return;
       var steps = stepsFor(r.id);
-      // Always re-emit the prim ladder when role is dirty so semantic
-      // overrides and any direct prim consumers stay coherent.
       steps.forEach(function (s) {
         if (s.name === 'white' || s.name === 'black') return;
         lines.push('  --prim-' + r.prefix + '-' + s.name + ': ' + s.hex + ';');
       });
-      // Re-emit semantic mapping any time the role is dirty (T0 or T1).
       semanticVarsFor(r.id).forEach(function (l) { lines.push(l); });
     });
     lines.push('}');
-    style.textContent = lines.join('\n');
+    var next = lines.join('\n');
+    if (style.textContent !== next) style.textContent = next;
   }
 
   function refreshChangeBar() {
