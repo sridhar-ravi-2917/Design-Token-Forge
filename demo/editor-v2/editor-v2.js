@@ -49,22 +49,22 @@
     return ALL_STEPS[i];
   }
   var T1_PRESETS = {
-    fill:      { soft: '400', standard: '500', bold: '600' },
-    content:   { subtle: '450', standard: '550', strong: '700' },
-    container: { whisper: '25', light: '50', tinted: '100' }
+    fill:      { soft: '300', standard: '500', bold: '700' },
+    content:   { subtle: '400', standard: '550', strong: '700' },
+    container: { whisper: '25', light: '75', tinted: '150' }
   };
   var T1_DEFAULT = { fill: 'standard', content: 'standard', container: 'light' };
   var T1_LEVERS = [
     { id: 'fill', label: 'Fill emphasis', sub: 'Solid component backgrounds (buttons, badges, fills)',
       options: [
-        { id: 'soft',     label: 'Soft',     hint: 'Step 400 \u2014 gentler, less assertive' },
+        { id: 'soft',     label: 'Soft',     hint: 'Step 300 \u2014 gentler, less assertive' },
         { id: 'standard', label: 'Standard', hint: 'Step 500 \u2014 recommended default' },
-        { id: 'bold',     label: 'Bold',     hint: 'Step 600 \u2014 heavier, more presence' }
+        { id: 'bold',     label: 'Bold',     hint: 'Step 700 \u2014 heavier, more presence' }
       ]
     },
     { id: 'content', label: 'Content weight', sub: 'Text and icons rendered in this color',
       options: [
-        { id: 'subtle',   label: 'Subtle',   hint: 'Step 450 \u2014 lighter on white' },
+        { id: 'subtle',   label: 'Subtle',   hint: 'Step 400 \u2014 lighter on white' },
         { id: 'standard', label: 'Standard', hint: 'Step 550 \u2014 comfortable everywhere' },
         { id: 'strong',   label: 'Strong',   hint: 'Step 700 \u2014 high contrast' }
       ]
@@ -72,8 +72,8 @@
     { id: 'container', label: 'Container softness', sub: 'Soft tinted surfaces (alert bg, banners)',
       options: [
         { id: 'whisper',  label: 'Whisper',  hint: 'Step 25 \u2014 barely tinted' },
-        { id: 'light',    label: 'Light',    hint: 'Step 50 \u2014 gentle wash' },
-        { id: 'tinted',   label: 'Tinted',   hint: 'Step 100 \u2014 clearly colored' }
+        { id: 'light',    label: 'Light',    hint: 'Step 75 \u2014 gentle wash' },
+        { id: 'tinted',   label: 'Tinted',   hint: 'Step 150 \u2014 clearly colored' }
       ]
     }
   ];
