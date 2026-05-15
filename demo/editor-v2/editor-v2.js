@@ -224,6 +224,89 @@
     for (var i = 0; i < steps.length; i++) if (steps[i].name === name) return steps[i].hex;
     return null;
   }
+
+  /* ── WCAG contrast helpers ───────────────────────────── */
+  function _hexToRgb(h) {
+    h = (h || '').replace('#','').trim();
+    if (h.length === 3) h = h.split('').map(function (c) { return c+c; }).join('');
+    if (h.length !== 6) return { r:0, g:0, b:0 };
+    return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) };
+  }
+  function _relLum(hex) {
+    var c = _hexToRgb(hex);
+    var f = function (v) { v = v / 255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+    return 0.2126*f(c.r) + 0.7152*f(c.g) + 0.0722*f(c.b);
+  }
+  function contrastRatio(a, b) {
+    var L1 = _relLum(a), L2 = _relLum(b);
+    var hi = Math.max(L1, L2), lo = Math.min(L1, L2);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  // Returns { grade: 'AAA'|'AA'|'AA-Large'|'Fail', ratio, pass }
+  function wcagJudge(ratio, isLargeText) {
+    if (ratio >= 7) return { grade: 'AAA', ratio: ratio, pass: true };
+    if (ratio >= 4.5) return { grade: 'AA', ratio: ratio, pass: true };
+    if (ratio >= 3 && isLargeText) return { grade: 'AA Large', ratio: ratio, pass: true };
+    return { grade: 'Fail', ratio: ratio, pass: false };
+  }
+  // Mode-aware page surface for content checks
+  function surfaceBgFor(mode) { return mode === 'dark' ? '#0A0A0A' : '#FFFFFF'; }
+  // White text used on filled component backgrounds
+  function onComponentColor() { return '#FFFFFF'; }
+
+  /* Aggregate contrast for the 3 currently-picked levers of a role */
+  function computeRoleContrast(roleId, mode) {
+    mode = mode || State.editingMode;
+    var t = State.t1[mode][roleId];
+    var P = presetsFor(roleId, mode);
+    var pageBg = surfaceBgFor(mode);
+    var fillHex      = stepHexByName(roleId, P.fill[t.fill])           || '#000';
+    var contentHex   = stepHexByName(roleId, P.content[t.content])     || '#000';
+    var containerHex = stepHexByName(roleId, P.container[t.container]) || pageBg;
+    var checks = [
+      (function () { var r = contrastRatio(fillHex, onComponentColor());
+        var j = wcagJudge(r, false); return { label:'White on Fill', ratio:r, grade:j.grade, pass:j.pass }; })(),
+      (function () { var r = contrastRatio(contentHex, pageBg);
+        var j = wcagJudge(r, false); return { label:'Content on page', ratio:r, grade:j.grade, pass:j.pass }; })(),
+      (function () { var r = contrastRatio(contentHex, containerHex);
+        var j = wcagJudge(r, false); return { label:'Content on container', ratio:r, grade:j.grade, pass:j.pass }; })()
+    ];
+    return { checks: checks };
+  }
+
+  /* Walk to the nearest in-options pick that satisfies AA for each lever.
+     Tries the option list in order (soft, standard, bold etc.) — picks the
+     first that passes AA. If none pass, picks the highest-ratio one. */
+  function autoFixT1ToAA(roleId) {
+    var mode = State.editingMode;
+    var t = State.t1[mode][roleId];
+    var P = presetsFor(roleId, mode);
+    var pageBg = surfaceBgFor(mode);
+
+    function bestOption(lever, evaluator) {
+      var best = null;
+      for (var i = 0; i < lever.options.length; i++) {
+        var opt = lever.options[i];
+        var step = P[lever.id][opt.id];
+        var hex = stepHexByName(roleId, step) || '#000';
+        var ratio = evaluator(hex);
+        var pass = ratio >= 4.5;
+        if (!best || ratio > best.ratio) best = { id: opt.id, ratio: ratio, pass: pass };
+        if (pass && (!best.pass || best.id !== opt.id)) best = { id: opt.id, ratio: ratio, pass: true };
+      }
+      return best ? best.id : lever.options[0].id;
+    }
+
+    var fillLever      = T1_LEVERS.find(function (l) { return l.id === 'fill'; });
+    var contentLever   = T1_LEVERS.find(function (l) { return l.id === 'content'; });
+    var containerLever = T1_LEVERS.find(function (l) { return l.id === 'container'; });
+
+    t.fill    = bestOption(fillLever,    function (hex) { return contrastRatio(hex, onComponentColor()); });
+    t.content = bestOption(contentLever, function (hex) { return contrastRatio(hex, pageBg); });
+    // Container check uses the (now-updated) content pick
+    var newContentHex = stepHexByName(roleId, P.content[t.content]) || '#000';
+    t.container = bestOption(containerLever, function (hex) { return contrastRatio(newContentHex, hex); });
+  }
   function semanticVarsFor(roleId, mode) {
     var t = State.t1[mode][roleId];
     var P = presetsFor(roleId, mode);
@@ -599,6 +682,10 @@
     var leversHTML = T1_LEVERS.map(function (lever) {
       var current = t1[lever.id];
       var P = presetsFor(role.id);
+      var pageBg = surfaceBgFor(mode);
+      // Resolve the currently-selected content + container for cross-checks
+      var curContentHex = stepHexByName(role.id, P.content[t1.content]) || '#000';
+      var curContainerHex = stepHexByName(role.id, P.container[t1.container]) || pageBg;
       return '<div class="ev2-lever-block" data-lever="' + lever.id + '">'
         + '<div class="ev2-lever-head">'
           + '<span class="ev2-lever-title">' + lever.label + '</span>'
@@ -610,6 +697,25 @@
               var step  = P[lever.id][opt.id];
               var hex   = stepHexByName(role.id, step) || '#000';
               var preview = renderLeverPreview(lever.id, hex);
+              // Per-lever WCAG check
+              var judge, tipDetail;
+              if (lever.id === 'fill') {
+                judge = wcagJudge(contrastRatio(hex, onComponentColor()), false);
+                tipDetail = 'White text on this fill: ' + judge.ratio.toFixed(2) + ':1';
+              } else if (lever.id === 'content') {
+                judge = wcagJudge(contrastRatio(hex, pageBg), false);
+                tipDetail = 'Text on ' + (mode === 'dark' ? 'dark' : 'light') + ' page surface: ' + judge.ratio.toFixed(2) + ':1';
+              } else { // container
+                // Text-on-container = current content hex over this container hex
+                judge = wcagJudge(contrastRatio(curContentHex, hex), false);
+                tipDetail = 'Selected content text on this container: ' + judge.ratio.toFixed(2) + ':1';
+              }
+              var badgeCls = judge.pass ? (judge.grade === 'AAA' ? 'aaa' : 'aa') : 'fail';
+              var badgeTxt = judge.pass ? judge.grade : 'Fail';
+              var badge = '<span class="ev2-seg-wcag" data-grade="' + badgeCls + '" '
+                + 'data-tip="WCAG ' + judge.grade + ' \u2014 ' + tipDetail + '">'
+                + (judge.pass ? '\u2713 ' : '\u26A0 ') + badgeTxt
+              + '</span>';
               return '<button class="ev2-seg-btn" role="radio" '
                 + 'aria-checked="' + isSel + '" '
                 + 'data-t1-lever="' + lever.id + '" data-t1-value="' + opt.id + '" '
@@ -617,6 +723,7 @@
                 + '<span class="ev2-seg-preview">' + preview + '</span>'
                 + '<span class="ev2-seg-label">' + opt.label + '</span>'
                 + '<span class="ev2-seg-css">step ' + step + ' \u2022 ' + hex.toUpperCase().replace('#','') + '</span>'
+                + badge
                 + '</button>';
             }).join('')
         + '</div>'
@@ -637,8 +744,28 @@
       + '<span class="ev2-spread-line-value">' + spreadOpt.label + ' \u00b7 ' + spreadOpt.sub + '</span> '
       + '<button type="button" class="ev2-spread-link" id="openSpreadDialog">Change</button>'
       + '<span class="ev2-spread-sep" aria-hidden="true">\u00b7</span>'
-      + '<button type="button" class="ev2-spread-link ev2-spread-why" title="' + spreadInfoTip + '" aria-label="' + spreadInfoTip + '">Why is this for?</button>'
+      + '<button type="button" class="ev2-spread-link ev2-spread-why" data-tip="' + spreadInfoTip + '" aria-label="' + spreadInfoTip + '">Why is this for?</button>'
     + '</p>';
+
+    /* Contrast summary for the three currently-picked levers */
+    var wcag = computeRoleContrast(role.id, mode);
+    var failCount = wcag.checks.filter(function (c) { return !c.pass; }).length;
+    var wcagBadgeCls = failCount === 0 ? 'aa' : 'fail';
+    var wcagBadgeTxt = failCount === 0
+      ? 'All ' + wcag.checks.length + ' selected pairs pass AA'
+      : failCount + ' of ' + wcag.checks.length + ' selected pairs fail AA';
+    var wcagDetails = wcag.checks.map(function (c) {
+      var sym = c.pass ? '\u2713' : '\u26A0';
+      return sym + ' ' + c.label + ' \u2014 ' + c.ratio.toFixed(2) + ':1 (' + c.grade + ')';
+    }).join('\n');
+    var wcagHTML = '<div class="ev2-wcag-bar" data-grade="' + wcagBadgeCls + '">'
+      + '<span class="ev2-wcag-bar-icon" aria-hidden="true">' + (failCount === 0 ? '\u2713' : '\u26A0') + '</span>'
+      + '<span class="ev2-wcag-bar-text">' + wcagBadgeTxt + '</span>'
+      + '<button type="button" class="ev2-wcag-bar-info ev2-spread-link" data-tip="' + wcagDetails.replace(/"/g,'&quot;').replace(/\n/g,'\u2003') + '">Details</button>'
+      + (failCount > 0
+          ? '<button type="button" class="ev2-wcag-bar-fix" id="ev2WcagAutoFix">Auto-fix to AA</button>'
+          : '')
+    + '</div>';
 
     var modeBanner = '<div class="ev2-edit-scope" data-mode="' + mode + '" '
       + 'title="You are editing the ' + mode + ' theme. Use the Light\u2009/\u2009Dark toggle in the top bar to switch.">'
@@ -669,6 +796,7 @@
         + '</div>'
         + '<div class="ev2-intent-body">'
           + spreadHTML
+          + wcagHTML
           + '<div class="ev2-levers">' + leversHTML + '</div>'
           + '<div class="ev2-disc"' + (State.disclosure['t1:slots'] ? ' data-open' : '') + ' data-disc="t1:slots">'
             + '<div class="ev2-disc-head">'
@@ -772,6 +900,14 @@
     });
     var openSpread = document.getElementById('openSpreadDialog');
     if (openSpread) openSpread.addEventListener('click', function () { openSpreadDialog(); });
+    var fixBtn = document.getElementById('ev2WcagAutoFix');
+    if (fixBtn) fixBtn.addEventListener('click', function () {
+      autoFixT1ToAA(State.activeRole);
+      pushPreview();
+      refreshChangeBar();
+      scheduleAutosave();
+      renderT1();
+    });
   }
 
   function openSpreadDialog() {

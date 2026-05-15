@@ -285,7 +285,8 @@ body{
   border:1px solid var(--surface-base-outline);
   border-radius:var(--radius-lg,8px);
   background:var(--surface-base-cm-bg);
-  overflow:hidden;
+  /* Note: no overflow:hidden — would clip [data-tip] tooltips rising above
+     buttons inside the card (e.g. "Why is this for?", WCAG badges). */
   margin-bottom:14px;
 }
 .ev2-intent-head{
@@ -518,6 +519,54 @@ body{
 .ev2-spread-sep{margin:0 6px;color:var(--surface-base-ct-subtle)}
 .ev2-spread-why{color:var(--surface-base-ct-subtle)}
 .ev2-spread-why:hover{color:var(--surface-base-ct-strong)}
+
+/* WCAG contrast bar (above levers) */
+.ev2-wcag-bar{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;margin:0 0 14px;
+  border-radius:var(--radius-md,6px);
+  border:1px solid var(--surface-base-outline);
+  background:var(--surface-base-bg);
+  font-size:11.5px;
+}
+.ev2-wcag-bar[data-grade="aa"]{
+  border-color:var(--success-component-outline-default,#7ABF7A);
+  background:var(--success-container-bg,#E9F7EA);
+  color:var(--success-content-default,#1F6B33);
+}
+.ev2-wcag-bar[data-grade="fail"]{
+  border-color:var(--danger-component-outline-default,#E89090);
+  background:var(--danger-container-bg,#FCEBEB);
+  color:var(--danger-content-default,#A12A2A);
+}
+.ev2-wcag-bar-icon{font-weight:700;font-size:13px}
+.ev2-wcag-bar-text{flex:1;font-weight:600}
+.ev2-wcag-bar-info{font-size:11px}
+.ev2-wcag-bar-fix{
+  background:var(--danger-component-bg-default,#D04A4A);
+  color:#fff;border:none;
+  padding:5px 12px;
+  border-radius:999px;
+  font-size:11px;font-weight:700;cursor:pointer;
+  transition:background 140ms;
+}
+.ev2-wcag-bar-fix:hover{background:var(--danger-component-bg-hover,#B83C3C)}
+.ev2-wcag-bar-fix:focus-visible{outline:2px solid var(--danger-component-bg-default,#D04A4A);outline-offset:2px}
+
+/* WCAG badge inside each segmented option button */
+.ev2-seg-btn{position:relative}
+.ev2-seg-wcag{
+  position:absolute;top:6px;right:6px;
+  display:inline-flex;align-items:center;
+  padding:1px 6px;
+  border-radius:999px;
+  font-size:9.5px;font-weight:700;letter-spacing:.02em;
+  line-height:1.4;
+  pointer-events:auto; /* allow data-tip hover */
+}
+.ev2-seg-wcag[data-grade="aaa"]{background:#1F6B33;color:#fff}
+.ev2-seg-wcag[data-grade="aa"]{background:#2F8049;color:#fff}
+.ev2-seg-wcag[data-grade="fail"]{background:#C2392B;color:#fff}
 
 .ev2-spread-dialog{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center}
 .ev2-spread-dialog[hidden]{display:none}
