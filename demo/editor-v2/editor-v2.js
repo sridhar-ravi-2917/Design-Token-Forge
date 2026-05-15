@@ -66,10 +66,12 @@
     { id: 'subtle', label: 'Subtle',  sub: '1-step interval' },
     { id: 'bold',   label: 'Distinct', sub: '2-step interval' }
   ];
-  function presetsFor(roleId) {
-    var s = (State.t1[roleId] && State.t1[roleId].spread) || T1_DEFAULT.spread;
+  function presetsFor(roleId, mode) {
+    mode = mode || State.editingMode;
+    var s = (State.t1[mode][roleId] && State.t1[mode][roleId].spread) || T1_DEFAULT.spread;
     return T1_PRESETS_BY_SPREAD[s] || T1_PRESETS_BY_SPREAD.subtle;
   }
+  function t1For(roleId, mode) { return State.t1[mode || State.editingMode][roleId]; }
   var T1_DEFAULT = { fill: 'standard', content: 'standard', container: 'light', spread: 'subtle' };
   var T1_LEVERS = [
     { id: 'fill', label: 'Fill emphasis', sub: 'Solid component backgrounds (buttons, badges, fills)',
@@ -95,19 +97,26 @@
     }
   ];
 
+  function defaultT1() { return { fill:'standard', content:'standard', container:'light', spread:'subtle' }; }
   var State = {
     activeTier: 't0',
     activeRole: 'brand',
+    editingMode:'light',
     anchor:     'exact',
     baseline:   {},
     proposed:   {},
     cachedSteps:{},
+    // T1 lever state per editing mode. Light and dark each get their
+    // own snapshot so users can dial in different step picks per mode.
     t1: {
-      brand:   { fill:'standard', content:'standard', container:'light', spread:'subtle' },
-      danger:  { fill:'standard', content:'standard', container:'light', spread:'subtle' },
-      success: { fill:'standard', content:'standard', container:'light', spread:'subtle' },
-      warning: { fill:'standard', content:'standard', container:'light', spread:'subtle' },
-      info:    { fill:'standard', content:'standard', container:'light', spread:'subtle' }
+      light: {
+        brand:   defaultT1(), danger:  defaultT1(), success: defaultT1(),
+        warning: defaultT1(), info:    defaultT1()
+      },
+      dark: {
+        brand:   defaultT1(), danger:  defaultT1(), success: defaultT1(),
+        warning: defaultT1(), info:    defaultT1()
+      }
     },
     // Disclosure open-state persists across role / tier swaps.
     // Keyed by 'tierId:discId' so each tier can have its own pattern.
@@ -167,9 +176,13 @@
   function isChanged(roleId) {
     return State.proposed[roleId].toUpperCase() !== State.baseline[roleId].toUpperCase();
   }
+  function isT1ChangedInMode(roleId, mode) {
+    var t = State.t1[mode][roleId];
+    return t.fill !== T1_DEFAULT.fill || t.content !== T1_DEFAULT.content ||
+           t.container !== T1_DEFAULT.container || (t.spread || T1_DEFAULT.spread) !== T1_DEFAULT.spread;
+  }
   function isT1Changed(roleId) {
-    var t = State.t1[roleId];
-    return t.fill !== T1_DEFAULT.fill || t.content !== T1_DEFAULT.content || t.container !== T1_DEFAULT.container || (t.spread || T1_DEFAULT.spread) !== T1_DEFAULT.spread;
+    return isT1ChangedInMode(roleId, 'light') || isT1ChangedInMode(roleId, 'dark');
   }
   function isRoleDirty(roleId) { return isChanged(roleId) || isT1Changed(roleId); }
   function totalChanges() {
@@ -195,9 +208,9 @@
     for (var i = 0; i < steps.length; i++) if (steps[i].name === name) return steps[i].hex;
     return null;
   }
-  function semanticVarsFor(roleId) {
-    var t = State.t1[roleId];
-    var P = presetsFor(roleId);
+  function semanticVarsFor(roleId, mode) {
+    var t = State.t1[mode][roleId];
+    var P = presetsFor(roleId, mode);
     var fillStep      = P.fill[t.fill];
     var contentStep   = P.content[t.content];
     var containerStep = P.container[t.container];
@@ -229,24 +242,28 @@
   }
 
   function pushPreview() {
-    // NOTE: contentDocument access from parent is blocked by Chrome on
-    // file:// URLs (sandboxed iframe). Use postMessage so the iframe
-    // injects the override <style> itself, where it has same-origin
-    // access to its own document. This is the ONLY reliable mechanism
-    // when the editor is opened directly via file:// (no dev server).
+    // contentDocument is null on file:// sandboxed iframes — use postMessage.
     var win = $frame.contentWindow;
     if (!win) return;
-    var lines = [':root, [data-theme="dark"] {'];
+    // T0 (palette anchor + ladder) is shared across modes.
+    var rootLines = [':root {'];
     ROLES.forEach(function (r) {
       var steps = stepsFor(r.id);
       steps.forEach(function (s) {
         if (s.name === 'white' || s.name === 'black') return;
-        lines.push('  --prim-' + r.prefix + '-' + s.name + ': ' + s.hex + ';');
+        rootLines.push('  --prim-' + r.prefix + '-' + s.name + ': ' + s.hex + ';');
       });
-      semanticVarsFor(r.id).forEach(function (l) { lines.push(l); });
+      // Light-mode semantic slots also live on :root (default scope).
+      semanticVarsFor(r.id, 'light').forEach(function (l) { rootLines.push(l); });
     });
-    lines.push('}');
-    win.postMessage({ type: 'ev2-overrides', css: lines.join('\n') }, '*');
+    rootLines.push('}');
+    // Dark-mode semantic slots live under [data-theme="dark"].
+    var darkLines = ['[data-theme="dark"] {'];
+    ROLES.forEach(function (r) {
+      semanticVarsFor(r.id, 'dark').forEach(function (l) { darkLines.push(l); });
+    });
+    darkLines.push('}');
+    win.postMessage({ type: 'ev2-overrides', css: rootLines.concat(darkLines).join('\n') }, '*');
   }
 
   function refreshChangeBar() {
@@ -291,6 +308,7 @@
           v: 1,
           ts: Date.now(),
           anchor: State.anchor,
+          editingMode: State.editingMode,
           proposed: State.proposed,
           t1: State.t1
         };
@@ -311,18 +329,29 @@
       if (!raw) return false;
       var d = JSON.parse(raw);
       if (!d || d.v !== 1 || !d.proposed) return false;
-      // Only adopt fields we recognize; ignore proposed roles not in current ROLES list.
+      function adoptT1(target, src) {
+        if (!src) return;
+        var P = T1_PRESETS_BY_SPREAD[src.spread] || T1_PRESETS_BY_SPREAD.subtle;
+        if (P.fill[src.fill])           target.fill = src.fill;
+        if (P.content[src.content])     target.content = src.content;
+        if (P.container[src.container]) target.container = src.container;
+        if (src.spread === 'subtle' || src.spread === 'bold') target.spread = src.spread;
+      }
       ROLES.forEach(function (r) {
         if (d.proposed[r.id]) State.proposed[r.id] = d.proposed[r.id];
-        if (d.t1 && d.t1[r.id]) {
-          var t = d.t1[r.id];
-          var P = T1_PRESETS_BY_SPREAD[t.spread] || T1_PRESETS_BY_SPREAD.subtle;
-          if (P.fill[t.fill])           State.t1[r.id].fill = t.fill;
-          if (P.content[t.content])     State.t1[r.id].content = t.content;
-          if (P.container[t.container]) State.t1[r.id].container = t.container;
-          if (t.spread === 'subtle' || t.spread === 'bold') State.t1[r.id].spread = t.spread;
+        if (!d.t1) return;
+        // Back-compat: older draft format had a flat State.t1[role] structure.
+        // New format: State.t1.{light|dark}[role].
+        if (d.t1.light || d.t1.dark) {
+          adoptT1(State.t1.light[r.id], d.t1.light && d.t1.light[r.id]);
+          adoptT1(State.t1.dark[r.id],  d.t1.dark  && d.t1.dark[r.id]);
+        } else if (d.t1[r.id]) {
+          // legacy — apply same picks to both modes as a starting point
+          adoptT1(State.t1.light[r.id], d.t1[r.id]);
+          adoptT1(State.t1.dark[r.id],  d.t1[r.id]);
         }
       });
+      if (d.editingMode === 'light' || d.editingMode === 'dark') State.editingMode = d.editingMode;
       if (d.anchor === 'exact' || d.anchor === 'normalized') State.anchor = d.anchor;
       State.lastSavedAt = d.ts || null;
       return totalChanges() > 0;
@@ -548,7 +577,8 @@
     var prevScroll = $body ? $body.scrollTop : 0;
     var role = ROLES.find(function (r) { return r.id === State.activeRole; });
     if (!role) return;
-    var t1 = State.t1[role.id];
+    var mode = State.editingMode;
+    var t1 = t1For(role.id);
     var changed = isT1Changed(role.id) || isChanged(role.id);
     var affects = AFFECTS[role.id] || [];
 
@@ -586,32 +616,19 @@
     }).join('');
 
     var currentSpread = t1.spread || T1_DEFAULT.spread;
-    var spreadHTML = '<div class="ev2-spread" role="radiogroup" aria-label="Step interval between Soft / Standard / Bold">'
-      + '<div class="ev2-spread-head">'
-        + '<span class="ev2-spread-title">Step interval</span>'
-        + '<span class="ev2-spread-sub">Distance between Soft \u2192 Standard \u2192 Bold on the ladder</span>'
-      + '</div>'
-      + '<div class="ev2-spread-seg">'
-        + SPREAD_OPTIONS.map(function (opt) {
-            var isSel = opt.id === currentSpread;
-            var P = T1_PRESETS_BY_SPREAD[opt.id];
-            var preview = '<span class="ev2-spread-pv">'
-              + ['soft','standard','bold'].map(function (k) {
-                  var hex = stepHexByName(role.id, P.fill[k]) || '#000';
-                  return '<span style="background:' + hex + '"></span>';
-                }).join('')
-              + '</span>';
-            var tip = opt.id === 'subtle'
-              ? 'Subtle \u2014 1 step apart on the palette ladder. Soft, Standard and Bold sit close together for gentle, restrained variation. Best for refined or low-contrast brands.'
-              : 'Distinct \u2014 2 steps apart on the palette ladder. Soft, Standard and Bold are clearly different shades for stronger emphasis. Best for high-contrast or expressive brands.';
-            return '<button class="ev2-spread-btn" role="radio" aria-checked="' + isSel + '" '
-              + 'data-t1-spread="' + opt.id + '" data-tip="' + tip + '" title="' + tip + '">'
-              + preview
-              + '<span class="ev2-spread-label">' + opt.label + '</span>'
-              + '<span class="ev2-spread-meta">' + opt.sub + '</span>'
-              + '</button>';
-          }).join('')
-      + '</div>'
+    var spreadOpt = SPREAD_OPTIONS.find(function (o) { return o.id === currentSpread; }) || SPREAD_OPTIONS[0];
+    var spreadInfoTip = 'Step interval controls how far apart Soft, Standard and Bold sit on the palette ladder. Click Change to switch between Subtle (1 step) and Distinct (2 steps).';
+    var spreadHTML = '<div class="ev2-spread-info" title="' + spreadInfoTip + '">'
+      + '<span class="ev2-spread-info-label">Step interval</span>'
+      + '<span class="ev2-spread-info-value">' + spreadOpt.label + ' \u00b7 ' + spreadOpt.sub + '</span>'
+      + '<button class="ev2-spread-info-btn" type="button" id="openSpreadDialog">Change</button>'
+    + '</div>';
+
+    var modeBanner = '<div class="ev2-edit-scope" data-mode="' + mode + '" '
+      + 'title="You are editing the ' + mode + ' theme. Use the Light\u2009/\u2009Dark toggle in the top bar to switch.">'
+      + '<span class="ev2-edit-scope-dot" aria-hidden="true"></span>'
+      + '<span class="ev2-edit-scope-label">Editing <strong>' + (mode === 'dark' ? 'Dark' : 'Light') + ' mode</strong> tokens</span>'
+      + '<span class="ev2-edit-scope-meta">Picks below apply to ' + mode + ' theme only</span>'
     + '</div>';
 
     $body.innerHTML =
@@ -625,6 +642,7 @@
               + '</button>';
           }).join('')
       + '</div>'
+      + modeBanner
       + '<div class="ev2-intent">'
         + '<div class="ev2-intent-head">'
           + '<div class="ev2-intent-titlewrap">'
@@ -664,7 +682,7 @@
   }
 
   function slotsTableHTML(roleId) {
-    var t = State.t1[roleId];
+    var t = t1For(roleId);
     var P = presetsFor(roleId);
     var fillStep      = P.fill[t.fill];
     var contentStep   = P.content[t.content];
@@ -727,7 +745,7 @@
       b.addEventListener('click', function () {
         var lever = b.getAttribute('data-t1-lever');
         var value = b.getAttribute('data-t1-value');
-        State.t1[State.activeRole][lever] = value;
+        t1For(State.activeRole)[lever] = value;
         pushPreview();
         refreshChangeBar();
         scheduleAutosave();
@@ -736,16 +754,62 @@
         focusPreview(lever, true);
       });
     });
-    document.querySelectorAll('[data-t1-spread]').forEach(function (b) {
+    var openSpread = document.getElementById('openSpreadDialog');
+    if (openSpread) openSpread.addEventListener('click', function () { openSpreadDialog(); });
+  }
+
+  function openSpreadDialog() {
+    var role = State.activeRole;
+    var current = t1For(role).spread || T1_DEFAULT.spread;
+    var card = document.getElementById('ev2SpreadDialog');
+    if (!card) return;
+    card.innerHTML = SPREAD_OPTIONS.map(function (opt) {
+      var isSel = opt.id === current;
+      var P = T1_PRESETS_BY_SPREAD[opt.id];
+      var preview = ['soft','standard','bold'].map(function (k) {
+        var hex = stepHexByName(role, P.fill[k]) || '#000';
+        return '<span style="background:' + hex + '"></span>';
+      }).join('');
+      var desc = opt.id === 'subtle'
+        ? 'Soft, Standard and Bold sit close together \u2014 gentle, restrained variation. Best for refined or low-contrast brands.'
+        : 'Soft, Standard and Bold are clearly different shades \u2014 stronger emphasis. Best for high-contrast or expressive brands.';
+      return '<button class="ev2-spread-card" type="button" aria-pressed="' + isSel + '" data-spread-pick="' + opt.id + '">'
+        + '<div class="ev2-spread-card-head">'
+          + '<span class="ev2-spread-card-pv">' + preview + '</span>'
+          + '<div class="ev2-spread-card-titles">'
+            + '<span class="ev2-spread-card-label">' + opt.label + '</span>'
+            + '<span class="ev2-spread-card-meta">' + opt.sub + '</span>'
+          + '</div>'
+        + '</div>'
+        + '<p class="ev2-spread-card-desc">' + desc + '</p>'
+      + '</button>';
+    }).join('');
+    card.querySelectorAll('[data-spread-pick]').forEach(function (b) {
       b.addEventListener('click', function () {
-        State.t1[State.activeRole].spread = b.getAttribute('data-t1-spread');
+        t1For(State.activeRole).spread = b.getAttribute('data-spread-pick');
         pushPreview();
         refreshChangeBar();
         scheduleAutosave();
+        closeSpreadDialog();
         renderT1();
       });
     });
+    document.getElementById('ev2SpreadDialogWrap').removeAttribute('hidden');
   }
+  function closeSpreadDialog() {
+    var w = document.getElementById('ev2SpreadDialogWrap');
+    if (w) w.setAttribute('hidden', '');
+  }
+  // Dismiss handlers (backdrop + Close button)
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.matches && e.target.matches('[data-spread-dismiss]')) closeSpreadDialog();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      var w = document.getElementById('ev2SpreadDialogWrap');
+      if (w && !w.hasAttribute('hidden')) closeSpreadDialog();
+    }
+  });
 
   function leverSlotHint(leverId) {
     if (leverId === 'fill') return 'component-bg-default';
@@ -787,15 +851,20 @@
     });
   });
 
-  // Mode toggle
+  // Mode toggle — single source of truth: switches PREVIEW theme AND
+  // which mode's tokens you are editing in the panel. Per-mode T1 state
+  // means changes apply to that mode only.
   document.querySelectorAll('.ev2-mode').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.ev2-mode').forEach(function (b) { b.setAttribute('aria-checked', 'false'); });
       btn.setAttribute('aria-checked', 'true');
       var mode = btn.getAttribute('data-mode');
+      State.editingMode = mode;
       document.documentElement.setAttribute('data-theme', mode);
       try { $frame.contentWindow.postMessage({ type: 'ev2-theme', mode: mode }, '*'); } catch (e) {}
       saveUIState();
+      // Re-render so T1 panel reflects the new mode's picks + banner.
+      if (State.activeTier === 't1') renderT1();
     });
   });
 
@@ -807,7 +876,8 @@
   $discard.addEventListener('click', function () {
     ROLES.forEach(function (r) {
       State.proposed[r.id] = State.baseline[r.id];
-      State.t1[r.id] = { fill: T1_DEFAULT.fill, content: T1_DEFAULT.content, container: T1_DEFAULT.container, spread: T1_DEFAULT.spread };
+      State.t1.light[r.id] = defaultT1();
+      State.t1.dark[r.id]  = defaultT1();
     });
     State.cachedSteps = {};
     clearDraftFromStorage();
@@ -855,6 +925,7 @@
         Object.keys(ui.disclosure).forEach(function (k) { State.disclosure[k] = !!ui.disclosure[k]; });
       }
       if (ui.mode === 'light' || ui.mode === 'dark') {
+        State.editingMode = ui.mode;
         document.documentElement.setAttribute('data-theme', ui.mode);
         document.querySelectorAll('.ev2-mode').forEach(function (b) {
           b.setAttribute('aria-checked', String(b.getAttribute('data-mode') === ui.mode));
