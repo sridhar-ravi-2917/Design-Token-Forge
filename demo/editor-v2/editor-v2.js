@@ -223,6 +223,10 @@
     // Keyed by 'tierId:discId' so each tier can have its own pattern.
     disclosure: { 't0:steps': false, 't0:affects': false, 't1:slots': false, 't1:affects': false },
     focusedLever: null,
+    // Hover-preview state: { roleId, mode, lever, value } captured on
+    // mouseenter so mouseleave can revert the temporary mutation.
+    // Always null while no preview is active.
+    previewBackup: null,
     lastSavedAt: null
   };
 
@@ -805,6 +809,77 @@
   }
 
   /* ── T1 Roles ────────────────────────────────────────── */
+  /* WCAG bar + auto-paired text panel for the current picks of a role/mode.
+     Extracted so hover-preview can surgically rebuild just these two
+     elements without re-rendering the whole T1 panel (which would tear
+     down the radio button under the user's cursor). */
+  function renderWcagPairsHTML(role, mode) {
+    var t1 = State.t1[mode][role.id];
+    var P = presetsFor(role.id, mode);
+    var pageBg = surfaceBgFor(mode);
+    var wcag = computeRoleContrast(role.id, mode);
+    var failCount = wcag.checks.filter(function (c) { return !c.pass; }).length;
+    var wcagBadgeCls = failCount === 0 ? 'aa' : 'fail';
+    var wcagBadgeTxt = failCount === 0
+      ? 'All ' + wcag.checks.length + ' selected pairs pass AA'
+      : failCount + ' of ' + wcag.checks.length + ' selected pairs fail AA';
+    var wcagDetails = wcag.checks.map(function (c) {
+      var sym = c.pass ? '\u2713' : '\u26A0';
+      return sym + ' ' + c.label + ' \u2014 ' + c.ratio.toFixed(2) + ':1 (' + c.grade + ')';
+    }).join('\n');
+    var wcagHTML = '<div class="ev2-wcag-bar" data-grade="' + wcagBadgeCls + '">'
+      + '<span class="ev2-wcag-bar-icon" aria-hidden="true">' + (failCount === 0 ? '\u2713' : '\u26A0') + '</span>'
+      + '<span class="ev2-wcag-bar-text">' + wcagBadgeTxt + '</span>'
+      + '<button type="button" class="ev2-wcag-bar-info ev2-spread-link" data-tip="' + wcagDetails.replace(/"/g,'&quot;').replace(/\n/g,'\u2003') + '">Details</button>'
+      + (failCount > 0
+          ? '<button type="button" class="ev2-wcag-bar-fix" id="ev2WcagAutoFix">Auto-fix to AA</button>'
+          : '')
+    + '</div>';
+
+    var pairedFillHex = stepHexByName(role.id, P.fill[t1.fill]) || '#000';
+    var pairedContainerHex = stepHexByName(role.id, P.container[t1.container]) || pageBg;
+    var pairOnComp = wcag.onComp;
+    var pairOnCont = wcag.onCont;
+    var pairOnCompRatio = contrastRatio(pairOnComp, pairedFillHex);
+    var pairOnContRatio = contrastRatio(pairOnCont, pairedContainerHex);
+    var pairOnCompJudge = wcagJudge(pairOnCompRatio, false);
+    var pairOnContJudge = wcagJudge(pairOnContRatio, false);
+    var pairOnCompName  = pairOnComp.toUpperCase() === '#FFFFFF' ? 'White' : 'Black';
+    function pairBadge(j) {
+      var cls = j.pass ? (j.grade === 'AAA' ? 'aaa' : 'aa') : 'fail';
+      var txt = j.pass ? j.grade : 'Fail';
+      return '<span class="ev2-pair-badge" data-grade="' + cls + '">'
+        + (j.pass ? '\u2713 ' : '\u26A0 ') + txt + '</span>';
+    }
+    var pairedHTML = '<div class="ev2-pairs" data-tip="These two text colors are auto-derived from your lever picks so on-component and on-container always pass AA. They are not hand-picked — change the underlying levers to adjust them.">'
+      + '<div class="ev2-pairs-head">'
+        + '<span class="ev2-pairs-title">Auto-paired text</span>'
+        + '<span class="ev2-pairs-sub">Derived to keep on-component and on-container legible</span>'
+      + '</div>'
+      + '<div class="ev2-pairs-grid">'
+        + '<div class="ev2-pair">'
+          + '<div class="ev2-pair-label">on-component</div>'
+          + '<div class="ev2-pair-swatch" style="background:' + pairedFillHex + ';color:' + pairOnComp + '">Aa</div>'
+          + '<div class="ev2-pair-meta">'
+            + '<span class="ev2-pair-pick">' + pairOnCompName + ' on fill</span>'
+            + '<span class="ev2-pair-ratio">' + pairOnCompRatio.toFixed(2) + ':1</span>'
+            + pairBadge(pairOnCompJudge)
+          + '</div>'
+        + '</div>'
+        + '<div class="ev2-pair">'
+          + '<div class="ev2-pair-label">on-container</div>'
+          + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';color:' + pairOnCont + '">Aa</div>'
+          + '<div class="ev2-pair-meta">'
+            + '<span class="ev2-pair-pick">step ' + (function(){var s=ALL_STEPS,h=pairOnCont;for(var i=0;i<s.length;i++){if((stepHexByName(role.id,s[i])||'').toLowerCase()===h.toLowerCase())return s[i];}return '?';})() + ' on container</span>'
+            + '<span class="ev2-pair-ratio">' + pairOnContRatio.toFixed(2) + ':1</span>'
+            + pairBadge(pairOnContJudge)
+          + '</div>'
+        + '</div>'
+      + '</div>'
+    + '</div>';
+    return { wcagHTML: wcagHTML, pairedHTML: pairedHTML };
+  }
+
   function renderT1() {
     var prevScroll = $body ? $body.scrollTop : 0;
     var role = ROLES.find(function (r) { return r.id === State.activeRole; });
@@ -886,72 +961,11 @@
       + '<button type="button" class="ev2-spread-link ev2-spread-why" data-tip="' + spreadInfoTip + '" aria-label="' + spreadInfoTip + '">Why is this for?</button>'
     + '</p>';
 
-    /* Contrast summary for the three currently-picked levers */
-    var wcag = computeRoleContrast(role.id, mode);
-    var failCount = wcag.checks.filter(function (c) { return !c.pass; }).length;
-    var wcagBadgeCls = failCount === 0 ? 'aa' : 'fail';
-    var wcagBadgeTxt = failCount === 0
-      ? 'All ' + wcag.checks.length + ' selected pairs pass AA'
-      : failCount + ' of ' + wcag.checks.length + ' selected pairs fail AA';
-    var wcagDetails = wcag.checks.map(function (c) {
-      var sym = c.pass ? '\u2713' : '\u26A0';
-      return sym + ' ' + c.label + ' \u2014 ' + c.ratio.toFixed(2) + ':1 (' + c.grade + ')';
-    }).join('\n');
-    var wcagHTML = '<div class="ev2-wcag-bar" data-grade="' + wcagBadgeCls + '">'
-      + '<span class="ev2-wcag-bar-icon" aria-hidden="true">' + (failCount === 0 ? '\u2713' : '\u26A0') + '</span>'
-      + '<span class="ev2-wcag-bar-text">' + wcagBadgeTxt + '</span>'
-      + '<button type="button" class="ev2-wcag-bar-info ev2-spread-link" data-tip="' + wcagDetails.replace(/"/g,'&quot;').replace(/\n/g,'\u2003') + '">Details</button>'
-      + (failCount > 0
-          ? '<button type="button" class="ev2-wcag-bar-fix" id="ev2WcagAutoFix">Auto-fix to AA</button>'
-          : '')
-    + '</div>';
-
-    /* Auto-paired text colors panel — read-only display of the
-       on-component and on-container values the editor derives for
-       the user's lever picks. Surfaces what's hidden in the emitted
-       CSS so designers know we picked black for warning's amber fill,
-       not the (failing) hardcoded white we used to ship. */
-    var pairedFillHex = stepHexByName(role.id, P.fill[t1.fill]) || '#000';
-    var pairedContainerHex = stepHexByName(role.id, P.container[t1.container]) || pageBg;
-    var pairOnComp = wcag.onComp;
-    var pairOnCont = wcag.onCont;
-    var pairOnCompRatio = contrastRatio(pairOnComp, pairedFillHex);
-    var pairOnContRatio = contrastRatio(pairOnCont, pairedContainerHex);
-    var pairOnCompJudge = wcagJudge(pairOnCompRatio, false);
-    var pairOnContJudge = wcagJudge(pairOnContRatio, false);
-    var pairOnCompName  = pairOnComp.toUpperCase() === '#FFFFFF' ? 'White' : 'Black';
-    function pairBadge(j) {
-      var cls = j.pass ? (j.grade === 'AAA' ? 'aaa' : 'aa') : 'fail';
-      var txt = j.pass ? j.grade : 'Fail';
-      return '<span class="ev2-pair-badge" data-grade="' + cls + '">'
-        + (j.pass ? '\u2713 ' : '\u26A0 ') + txt + '</span>';
-    }
-    var pairedHTML = '<div class="ev2-pairs" data-tip="These two text colors are auto-derived from your lever picks so on-component and on-container always pass AA. They are not hand-picked — change the underlying levers to adjust them.">'
-      + '<div class="ev2-pairs-head">'
-        + '<span class="ev2-pairs-title">Auto-paired text</span>'
-        + '<span class="ev2-pairs-sub">Derived to keep on-component and on-container legible</span>'
-      + '</div>'
-      + '<div class="ev2-pairs-grid">'
-        + '<div class="ev2-pair">'
-          + '<div class="ev2-pair-label">on-component</div>'
-          + '<div class="ev2-pair-swatch" style="background:' + pairedFillHex + ';color:' + pairOnComp + '">Aa</div>'
-          + '<div class="ev2-pair-meta">'
-            + '<span class="ev2-pair-pick">' + pairOnCompName + ' on fill</span>'
-            + '<span class="ev2-pair-ratio">' + pairOnCompRatio.toFixed(2) + ':1</span>'
-            + pairBadge(pairOnCompJudge)
-          + '</div>'
-        + '</div>'
-        + '<div class="ev2-pair">'
-          + '<div class="ev2-pair-label">on-container</div>'
-          + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';color:' + pairOnCont + '">Aa</div>'
-          + '<div class="ev2-pair-meta">'
-            + '<span class="ev2-pair-pick">step ' + (function(){var s=ALL_STEPS,h=pairOnCont;for(var i=0;i<s.length;i++){if((stepHexByName(role.id,s[i])||'').toLowerCase()===h.toLowerCase())return s[i];}return '?';})() + ' on container</span>'
-            + '<span class="ev2-pair-ratio">' + pairOnContRatio.toFixed(2) + ':1</span>'
-            + pairBadge(pairOnContJudge)
-          + '</div>'
-        + '</div>'
-      + '</div>'
-    + '</div>';
+    /* Contrast summary + auto-paired text — extracted helper so
+       hover-preview can rebuild these surgically. */
+    var _wp = renderWcagPairsHTML(role, mode);
+    var wcagHTML = _wp.wcagHTML;
+    var pairedHTML = _wp.pairedHTML;
 
     var modeBanner = '<div class="ev2-edit-scope" data-mode="' + mode + '" '
       + 'title="You are editing the ' + mode + ' theme. Use the Light\u2009/\u2009Dark toggle in the top bar to switch.">'
@@ -1091,6 +1105,10 @@
       b.addEventListener('click', function () {
         var lever = b.getAttribute('data-t1-lever');
         var value = b.getAttribute('data-t1-value');
+        // If we're committing the value we're currently previewing, the
+        // hover-preview already mutated State; just clear the backup so
+        // mouseleave doesn't try to revert what the user just chose.
+        State.previewBackup = null;
         t1For(State.activeRole)[lever] = value;
         pushPreview();
         refreshChangeBar();
@@ -1099,18 +1117,73 @@
         // Highlight + scroll matching preview section into view
         focusPreview(lever, true);
       });
+      // Hover preview: live-render the spotlight + WCAG bar + auto-paired
+      // text panel as if the user had picked this option, without
+      // committing. Lets designers compare options without click-undo
+      // churn. Restored on mouseleave.
+      b.addEventListener('mouseenter', function () {
+        var lever = b.getAttribute('data-t1-lever');
+        var value = b.getAttribute('data-t1-value');
+        var t = t1For(State.activeRole);
+        if (t[lever] === value) return;          // hovering the current pick
+        if (State.previewBackup) return;         // an earlier hover hasn't restored yet
+        State.previewBackup = { roleId: State.activeRole, mode: State.editingMode, lever: lever, value: t[lever] };
+        t[lever] = value;
+        pushPreview();
+        applyHoverPreviewDOM(b);
+      });
+      b.addEventListener('mouseleave', function () {
+        var bk = State.previewBackup;
+        if (!bk) return;
+        // Only restore if leaving the exact button that initiated the preview
+        if (b.getAttribute('data-t1-lever') !== bk.lever) return;
+        var t = State.t1[bk.mode][bk.roleId];
+        t[bk.lever] = bk.value;
+        State.previewBackup = null;
+        pushPreview();
+        applyHoverPreviewDOM(null);
+      });
     });
     var openSpread = document.getElementById('openSpreadDialog');
     if (openSpread) openSpread.addEventListener('click', function () { openSpreadDialog(); });
-    var fixBtn = document.getElementById('ev2WcagAutoFix');
-    if (fixBtn) fixBtn.addEventListener('click', function () {
-      autoFixT1ToAA(State.activeRole);
-      pushPreview();
-      refreshChangeBar();
-      scheduleAutosave();
-      renderT1();
-    });
   }
+
+  /* Surgical re-render of just the WCAG bar + auto-paired text panel.
+     Called by the hover-preview handler so we can show "what AA would
+     look like if you picked this option" without renderT1() (which
+     would tear down the radio under the cursor). The Auto-fix button
+     inside the WCAG bar is wired via document-level delegation below,
+     so it survives outerHTML replacement. */
+  function applyHoverPreviewDOM(hoveredBtn) {
+    var role = ROLES.find(function (r) { return r.id === State.activeRole; });
+    if (!role) return;
+    var html = renderWcagPairsHTML(role, State.editingMode);
+    var bar = document.querySelector('.ev2-wcag-bar');
+    if (bar) bar.outerHTML = html.wcagHTML;
+    var pairs = document.querySelector('.ev2-pairs');
+    if (pairs) pairs.outerHTML = html.pairedHTML;
+    // Mark which option is currently being previewed so CSS can dress
+    // the button (subtle outline + scale) without losing the hover state.
+    document.querySelectorAll('[data-t1-lever][data-previewing]').forEach(function (b) {
+      b.removeAttribute('data-previewing');
+    });
+    if (hoveredBtn) hoveredBtn.setAttribute('data-previewing', 'true');
+  }
+
+  /* Delegated handler for the Auto-fix-to-AA button. Bound once at
+     module init so it survives surgical re-renders of the WCAG bar
+     done by hover-preview. */
+  document.addEventListener('click', function (e) {
+    var fix = e.target && e.target.closest && e.target.closest('#ev2WcagAutoFix');
+    if (!fix) return;
+    // Cancel any in-flight hover preview before mutating
+    State.previewBackup = null;
+    autoFixT1ToAA(State.activeRole);
+    pushPreview();
+    refreshChangeBar();
+    scheduleAutosave();
+    renderT1();
+  });
 
   function openSpreadDialog() {
     var role = State.activeRole;
