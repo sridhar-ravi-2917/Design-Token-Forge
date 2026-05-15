@@ -130,11 +130,24 @@
     },
     warning: {
       subtle: {
-        light: { fill: { soft: '550', standard: '600', bold: '700' } },
+        light: {
+          fill:    { soft: '550', standard: '600', bold: '700' },
+          // Warning amber is the worst hue for AA on white — even step 600
+          // amber sits around 3.5:1. Push content to the dark-amber band
+          // (700+) so every default pick AA-passes both on page and on
+          // the warning container. Order kept monotonic.
+          content: { subtle: '700', standard: '750', strong: '800' }
+        },
         // Warning's amber needs to stay on the darker side in dark mode
         // (lighter amber → near-yellow, loses warning semantic). Keep
         // close to the base lift (450/500/550) but shifted one cooler.
         dark:  { fill: { soft: '500', standard: '550', bold: '600' } }
+      },
+      bold: {
+        light: {
+          fill:    { soft: '500', standard: '600', bold: '750' },
+          content: { subtle: '600', standard: '750', strong: '850' }
+        }
       }
     },
     info: {
@@ -853,16 +866,25 @@
     var pairOnCompJudge = wcagJudge(pairOnCompRatio, false);
     var pairOnContJudge = wcagJudge(pairOnContRatio, false);
     var pairOnCompName  = pairOnComp.toUpperCase() === '#FFFFFF' ? 'White' : 'Black';
+    /* Border + Separator are auto-derived from the container pick
+       (see semanticVarsFor: container-outline = +6 steps, separator
+       = +2 steps). Surface them inside the same card so designers
+       see every axis accounted for without adding a new lever. */
+    var containerStep = P.container[t1.container];
+    var borderStep    = stepRel(containerStep, 6);
+    var separatorStep = stepRel(containerStep, 2);
+    var borderHex     = stepHexByName(role.id, borderStep) || pairedContainerHex;
+    var separatorHex  = stepHexByName(role.id, separatorStep) || pairedContainerHex;
     function pairBadge(j) {
       var cls = j.pass ? (j.grade === 'AAA' ? 'aaa' : 'aa') : 'fail';
       var txt = j.pass ? j.grade : 'Fail';
       return '<span class="ev2-pair-badge" data-grade="' + cls + '">'
         + (j.pass ? '\u2713 ' : '\u26A0 ') + txt + '</span>';
     }
-    var pairedHTML = '<div class="ev2-pairs" data-tip="These two text colors are auto-derived from your lever picks so on-component and on-container always pass AA. They are not hand-picked — change the underlying levers to adjust them.">'
+    var pairedHTML = '<div class="ev2-pairs" data-tip="These slots are auto-derived from your fill / content / container picks. Change the underlying levers to adjust them.">'
       + '<div class="ev2-pairs-head">'
-        + '<span class="ev2-pairs-title">Auto-paired text</span>'
-        + '<span class="ev2-pairs-sub">Derived to keep on-component and on-container legible</span>'
+        + '<span class="ev2-pairs-title">Auto-derived from picks</span>'
+        + '<span class="ev2-pairs-sub">On-pair text, borders and separators — always coherent with the levers above</span>'
       + '</div>'
       + '<div class="ev2-pairs-grid">'
         + '<div class="ev2-pair">'
@@ -881,6 +903,22 @@
             + '<span class="ev2-pair-pick">step ' + (function(){var s=ALL_STEPS,h=pairOnCont;for(var i=0;i<s.length;i++){if((stepHexByName(role.id,s[i])||'').toLowerCase()===h.toLowerCase())return s[i];}return '?';})() + ' on container</span>'
             + '<span class="ev2-pair-ratio">' + pairOnContRatio.toFixed(2) + ':1</span>'
             + pairBadge(pairOnContJudge)
+          + '</div>'
+        + '</div>'
+        + '<div class="ev2-pair" data-kind="surface">'
+          + '<div class="ev2-pair-label">border</div>'
+          + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';border:2px solid ' + borderHex + ';color:transparent">—</div>'
+          + '<div class="ev2-pair-meta">'
+            + '<span class="ev2-pair-pick">step ' + borderStep + ' on container</span>'
+            + '<span class="ev2-pair-ratio">container-outline</span>'
+          + '</div>'
+        + '</div>'
+        + '<div class="ev2-pair" data-kind="surface">'
+          + '<div class="ev2-pair-label">separator</div>'
+          + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';color:transparent;position:relative"><span style="position:absolute;left:6px;right:6px;top:50%;height:2px;background:' + separatorHex + ';transform:translateY(-50%);display:block"></span>—</div>'
+          + '<div class="ev2-pair-meta">'
+            + '<span class="ev2-pair-pick">step ' + separatorStep + ' on container</span>'
+            + '<span class="ev2-pair-ratio">container-separator</span>'
           + '</div>'
         + '</div>'
       + '</div>'

@@ -817,7 +817,9 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
 .ev2-seg-btn[aria-checked="true"]{
   background:var(--surface-base-bg);
   color:var(--surface-base-ct-strong);
-  box-shadow:0 1px 2px rgba(0,0,0,.06), 0 0 0 1px var(--surface-base-outline);
+  /* Stronger selected ring — 1px brand outline + soft drop shadow so the
+     committed pick is unmistakable next to the two unpicked siblings. */
+  box-shadow:0 1px 2px rgba(0,0,0,.10), 0 0 0 2px var(--brand-component-bg-default,#3366f0);
 }
 .ev2-seg-btn:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:2px}
 .ev2-seg-btn[data-previewing="true"]{
@@ -1019,7 +1021,7 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
 .ev2-pairs-head{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
 .ev2-pairs-title{font-size:12px;font-weight:700;color:var(--surface-base-ct-strong);letter-spacing:.02em}
 .ev2-pairs-sub{font-size:11px;color:var(--surface-base-ct-faint)}
-.ev2-pairs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ev2-pairs-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:10px}
 .ev2-pair{
   display:flex;flex-direction:column;gap:6px;
   padding:10px;border-radius:var(--radius-sm,4px);
@@ -1033,6 +1035,10 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   font-size:18px;font-weight:700;
   border:1px solid rgba(0,0,0,.06);
 }
+/* Surface-only pair cards (border / separator) — no AA badge so the
+   meta row is single-line; tighten its spacing to match. */
+.ev2-pair[data-kind="surface"] .ev2-pair-swatch{font-size:0}
+.ev2-pair[data-kind="surface"] .ev2-pair-ratio{margin-left:auto;color:var(--surface-base-ct-faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px}
 .ev2-pair-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px}
 .ev2-pair-pick{color:var(--surface-base-ct-strong);font-weight:600}
 .ev2-pair-ratio{color:var(--surface-base-ct-subtle);font-variant-numeric:tabular-nums}
