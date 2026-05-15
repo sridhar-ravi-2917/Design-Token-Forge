@@ -308,8 +308,46 @@
   }
   // Mode-aware page surface for content checks
   function surfaceBgFor(mode) { return mode === 'dark' ? '#0A0A0A' : '#FFFFFF'; }
-  // White text used on filled component backgrounds
-  function onComponentColor() { return '#FFFFFF'; }
+  // Auto-pair: pick black or white text for a filled component fill,
+  // whichever has higher WCAG contrast. Fixes warning amber where
+  // hardcoded white silently fails.
+  function onComponentColor(roleId, mode) {
+    if (!roleId) return '#FFFFFF'; // legacy callers (preserved for safety)
+    var t = State.t1[mode || State.editingMode][roleId];
+    var P = presetsFor(roleId, mode || State.editingMode);
+    var fillHex = stepHexByName(roleId, P.fill[t.fill]) || '#000';
+    var rWhite = contrastRatio(fillHex, '#FFFFFF');
+    var rBlack = contrastRatio(fillHex, '#0A0A0A');
+    return rBlack > rWhite ? '#0A0A0A' : '#FFFFFF';
+  }
+  // Auto-pair: pick the ladder step (closest to the user's chosen
+  // content-default) that passes AA against the active container.
+  // Walks outward (one step darker, one lighter, two darker, two
+  // lighter, ...) so we land near the user's intent.
+  function onContainerColor(roleId, mode) {
+    mode = mode || State.editingMode;
+    var t = State.t1[mode][roleId];
+    var P = presetsFor(roleId, mode);
+    var containerHex = stepHexByName(roleId, P.container[t.container]) || surfaceBgFor(mode);
+    var startStep = P.content[t.content];
+    var startIdx = ALL_STEPS.indexOf(startStep);
+    if (startIdx < 0) startIdx = ALL_STEPS.indexOf('600');
+    // Search order: start, +1, -1, +2, -2, ...
+    var order = [startIdx];
+    for (var d = 1; d < ALL_STEPS.length; d++) {
+      if (startIdx + d < ALL_STEPS.length) order.push(startIdx + d);
+      if (startIdx - d >= 0) order.push(startIdx - d);
+    }
+    var bestHex = null, bestRatio = 0;
+    for (var i = 0; i < order.length; i++) {
+      var hex = stepHexByName(roleId, ALL_STEPS[order[i]]);
+      if (!hex) continue;
+      var r = contrastRatio(hex, containerHex);
+      if (r >= 4.5) return hex; // first AA pass closest to content-default wins
+      if (r > bestRatio) { bestRatio = r; bestHex = hex; }
+    }
+    return bestHex || stepHexByName(roleId, startStep) || '#000';
+  }
 
   /* Aggregate contrast for the 3 currently-picked levers of a role */
   function computeRoleContrast(roleId, mode) {
@@ -320,15 +358,19 @@
     var fillHex      = stepHexByName(roleId, P.fill[t.fill])           || '#000';
     var contentHex   = stepHexByName(roleId, P.content[t.content])     || '#000';
     var containerHex = stepHexByName(roleId, P.container[t.container]) || pageBg;
+    var onComp       = onComponentColor(roleId, mode);
+    var onCont       = onContainerColor(roleId, mode);
     var checks = [
-      (function () { var r = contrastRatio(fillHex, onComponentColor());
-        var j = wcagJudge(r, false); return { label:'White on Fill', ratio:r, grade:j.grade, pass:j.pass }; })(),
+      (function () { var r = contrastRatio(fillHex, onComp);
+        var j = wcagJudge(r, false); return { label:'On-component on Fill', ratio:r, grade:j.grade, pass:j.pass }; })(),
       (function () { var r = contrastRatio(contentHex, pageBg);
         var j = wcagJudge(r, false); return { label:'Content on page', ratio:r, grade:j.grade, pass:j.pass }; })(),
       (function () { var r = contrastRatio(contentHex, containerHex);
-        var j = wcagJudge(r, false); return { label:'Content on container', ratio:r, grade:j.grade, pass:j.pass }; })()
+        var j = wcagJudge(r, false); return { label:'Content on container', ratio:r, grade:j.grade, pass:j.pass }; })(),
+      (function () { var r = contrastRatio(onCont, containerHex);
+        var j = wcagJudge(r, false); return { label:'On-container on container', ratio:r, grade:j.grade, pass:j.pass }; })()
     ];
-    return { checks: checks };
+    return { checks: checks, onComp: onComp, onCont: onCont };
   }
 
   /* Walk to the nearest in-options pick that satisfies AA for each lever.
@@ -374,7 +416,13 @@
     var contentLever   = T1_LEVERS.find(function (l) { return l.id === 'content'; });
     var containerLever = T1_LEVERS.find(function (l) { return l.id === 'container'; });
 
-    t.fill    = pickMinDisturbance(fillLever,    t.fill,    function (hex) { return contrastRatio(hex, onComponentColor()); });
+    t.fill    = pickMinDisturbance(fillLever,    t.fill,    function (hex) {
+      // Match the on-component derivation: pick whichever of black/white
+      // wins, then evaluate against that. So warning fills get judged
+      // against black (which is correct), not against white.
+      var rW = contrastRatio(hex, '#FFFFFF'), rB = contrastRatio(hex, '#0A0A0A');
+      return Math.max(rW, rB);
+    });
     t.content = pickMinDisturbance(contentLever, t.content, function (hex) { return contrastRatio(hex, pageBg); });
     var newContentHex = stepHexByName(roleId, P.content[t.content]) || '#000';
     t.container = pickMinDisturbance(containerLever, t.container, function (hex) { return contrastRatio(newContentHex, hex); });
@@ -411,7 +459,7 @@
     lines.push('  --' + p + '-component-outline-default: ' + get(stepRel(fillStep, -2)) + ';');
     lines.push('  --' + p + '-component-outline-hover: '   + get(stepRel(fillStep, -2)) + ';');
     lines.push('  --' + p + '-component-outline-pressed: ' + get(stepRel(fillStep, -1)) + ';');
-    lines.push('  --' + p + '-on-component: #FFFFFF;');
+    lines.push('  --' + p + '-on-component: ' + onComponentColor(roleId, mode) + ';');
     // Content family
     lines.push('  --' + p + '-content-default: ' + get(contentStep) + ';');
     lines.push('  --' + p + '-content-strong: '  + get(stepRel(contentStep, 1)) + ';');
@@ -424,7 +472,7 @@
     lines.push('  --' + p + '-container-outline: ' + get(stepRel(containerStep, 6)) + ';');
     lines.push('  --' + p + '-container-separator: ' + get(stepRel(containerStep, 2)) + ';');
     lines.push('  --' + p + '-component-separator: ' + get(stepRel(fillStep, -4)) + ';');
-    lines.push('  --' + p + '-on-container: ' + get(stepRel(fillStep, 2)) + ';');
+    lines.push('  --' + p + '-on-container: ' + onContainerColor(roleId, mode) + ';');
     return lines;
   }
 
@@ -801,6 +849,8 @@
     var t1 = t1For(role.id);
     var changed = isT1Changed(role.id) || isChanged(role.id);
     var affects = AFFECTS[role.id] || [];
+    var P = presetsFor(role.id);
+    var pageBg = surfaceBgFor(mode);
 
     var leversHTML = T1_LEVERS.map(function (lever) {
       var current = t1[lever.id];
@@ -823,8 +873,13 @@
               // Per-lever WCAG check
               var judge, tipDetail;
               if (lever.id === 'fill') {
-                judge = wcagJudge(contrastRatio(hex, onComponentColor()), false);
-                tipDetail = 'White text on this fill: ' + judge.ratio.toFixed(2) + ':1';
+                // Use the smart on-component color (black/white whichever wins)
+                // so the per-option badge agrees with what we actually emit.
+                var rW = contrastRatio(hex, '#FFFFFF'), rB = contrastRatio(hex, '#0A0A0A');
+                var onComp = rB > rW ? '#0A0A0A' : '#FFFFFF';
+                var onCompName = rB > rW ? 'Black' : 'White';
+                judge = wcagJudge(Math.max(rW, rB), false);
+                tipDetail = onCompName + ' text on this fill: ' + judge.ratio.toFixed(2) + ':1';
               } else if (lever.id === 'content') {
                 judge = wcagJudge(contrastRatio(hex, pageBg), false);
                 tipDetail = 'Text on ' + (mode === 'dark' ? 'dark' : 'light') + ' page surface: ' + judge.ratio.toFixed(2) + ':1';
@@ -891,6 +946,53 @@
           : '')
     + '</div>';
 
+    /* Auto-paired text colors panel — read-only display of the
+       on-component and on-container values the editor derives for
+       the user's lever picks. Surfaces what's hidden in the emitted
+       CSS so designers know we picked black for warning's amber fill,
+       not the (failing) hardcoded white we used to ship. */
+    var pairedFillHex = stepHexByName(role.id, P.fill[t1.fill]) || '#000';
+    var pairedContainerHex = stepHexByName(role.id, P.container[t1.container]) || pageBg;
+    var pairOnComp = wcag.onComp;
+    var pairOnCont = wcag.onCont;
+    var pairOnCompRatio = contrastRatio(pairOnComp, pairedFillHex);
+    var pairOnContRatio = contrastRatio(pairOnCont, pairedContainerHex);
+    var pairOnCompJudge = wcagJudge(pairOnCompRatio, false);
+    var pairOnContJudge = wcagJudge(pairOnContRatio, false);
+    var pairOnCompName  = pairOnComp.toUpperCase() === '#FFFFFF' ? 'White' : 'Black';
+    function pairBadge(j) {
+      var cls = j.pass ? (j.grade === 'AAA' ? 'aaa' : 'aa') : 'fail';
+      var txt = j.pass ? j.grade : 'Fail';
+      return '<span class="ev2-pair-badge" data-grade="' + cls + '">'
+        + (j.pass ? '\u2713 ' : '\u26A0 ') + txt + '</span>';
+    }
+    var pairedHTML = '<div class="ev2-pairs" data-tip="These two text colors are auto-derived from your lever picks so on-component and on-container always pass AA. They are not hand-picked — change the underlying levers to adjust them.">'
+      + '<div class="ev2-pairs-head">'
+        + '<span class="ev2-pairs-title">Auto-paired text</span>'
+        + '<span class="ev2-pairs-sub">Derived to keep on-component and on-container legible</span>'
+      + '</div>'
+      + '<div class="ev2-pairs-grid">'
+        + '<div class="ev2-pair">'
+          + '<div class="ev2-pair-label">on-component</div>'
+          + '<div class="ev2-pair-swatch" style="background:' + pairedFillHex + ';color:' + pairOnComp + '">Aa</div>'
+          + '<div class="ev2-pair-meta">'
+            + '<span class="ev2-pair-pick">' + pairOnCompName + ' on fill</span>'
+            + '<span class="ev2-pair-ratio">' + pairOnCompRatio.toFixed(2) + ':1</span>'
+            + pairBadge(pairOnCompJudge)
+          + '</div>'
+        + '</div>'
+        + '<div class="ev2-pair">'
+          + '<div class="ev2-pair-label">on-container</div>'
+          + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';color:' + pairOnCont + '">Aa</div>'
+          + '<div class="ev2-pair-meta">'
+            + '<span class="ev2-pair-pick">step ' + (function(){var s=ALL_STEPS,h=pairOnCont;for(var i=0;i<s.length;i++){if((stepHexByName(role.id,s[i])||'').toLowerCase()===h.toLowerCase())return s[i];}return '?';})() + ' on container</span>'
+            + '<span class="ev2-pair-ratio">' + pairOnContRatio.toFixed(2) + ':1</span>'
+            + pairBadge(pairOnContJudge)
+          + '</div>'
+        + '</div>'
+      + '</div>'
+    + '</div>';
+
     var modeBanner = '<div class="ev2-edit-scope" data-mode="' + mode + '" '
       + 'title="You are editing the ' + mode + ' theme. Use the Light\u2009/\u2009Dark toggle in the top bar to switch.">'
       + '<span class="ev2-edit-scope-dot" aria-hidden="true"></span>'
@@ -928,6 +1030,7 @@
           + spreadHTML
           + wcagHTML
           + '<div class="ev2-levers">' + leversHTML + '</div>'
+          + pairedHTML
           + '<div class="ev2-disc"' + (State.disclosure['t1:slots'] ? ' data-open' : '') + ' data-disc="t1:slots">'
             + '<div class="ev2-disc-head">'
               + '<span>Resulting slots</span>'
