@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../shared.css">
 
   <!-- Editor v2 specific layout -->
-  <link rel="stylesheet" href="./editor-v2.css?v=13">
+  <link rel="stylesheet" href="./editor-v2.css?v=14">
 
   <!-- Palette engine (browser IIFE — exposes window.PaletteEngine) -->
   <script src="../palette-engine.js" defer></script>
@@ -153,13 +153,15 @@
   <div class="ev2-spread-dialog" id="ev2SpreadDialogWrap" hidden role="dialog" aria-modal="true" aria-labelledby="ev2SpreadDialogTitle">
     <div class="ev2-modal-backdrop" data-spread-dismiss></div>
     <div class="ev2-spread-dialog-card" role="document">
+      <button class="ev2-modal-close" type="button" data-spread-dismiss aria-label="Close dialog">&times;</button>
       <div class="ev2-spread-dialog-head">
         <h3 class="ev2-spread-dialog-title" id="ev2SpreadDialogTitle">Step interval</h3>
         <p class="ev2-spread-dialog-sub">Choose how far apart Soft, Standard and Bold sit on the palette ladder. Affects this role only.</p>
       </div>
       <div class="ev2-spread-dialog-body" id="ev2SpreadDialog"></div>
       <div class="ev2-spread-dialog-actions">
-        <button class="ev2-modal-btn" type="button" data-spread-dismiss>Close</button>
+        <button class="ev2-modal-btn" type="button" data-spread-dismiss>Cancel</button>
+        <button class="ev2-modal-btn ev2-modal-btn-primary" type="button" id="ev2SpreadApply">Apply</button>
       </div>
     </div>
   </div>
@@ -168,6 +170,7 @@
   <div class="ev2-modal" id="ev2Modal" hidden role="dialog" aria-modal="true" aria-labelledby="ev2ModalTitle">
     <div class="ev2-modal-backdrop" data-modal-dismiss></div>
     <div class="ev2-modal-card" role="document">
+      <button class="ev2-modal-close" type="button" data-modal-action="cancel" aria-label="Close dialog">&times;</button>
       <h3 class="ev2-modal-title" id="ev2ModalTitle">Title</h3>
       <p class="ev2-modal-body" id="ev2ModalBody">Body</p>
       <div class="ev2-modal-actions">
@@ -177,6 +180,6 @@
     </div>
   </div>
 
-  <script src="./editor-v2.js?v=13" defer></script>
+  <script src="./editor-v2.js?v=14" defer></script>
 </body>
 </html>

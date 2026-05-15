@@ -915,38 +915,55 @@
     var current = t1For(role).spread || T1_DEFAULT.spread;
     var card = document.getElementById('ev2SpreadDialog');
     if (!card) return;
-    card.innerHTML = SPREAD_OPTIONS.map(function (opt) {
-      var isSel = opt.id === current;
-      var family = T1_PRESETS_BY_SPREAD[opt.id];
-      var P = (family && family[State.editingMode]) || family.light;
-      var preview = ['soft','standard','bold'].map(function (k) {
-        var hex = stepHexByName(role, P.fill[k]) || '#000';
-        return '<span style="background:' + hex + '"></span>';
-      }).join('');
-      var desc = opt.id === 'subtle'
-        ? 'Soft, Standard and Bold sit close together \u2014 gentle, restrained variation. Best for refined or low-contrast brands.'
-        : 'Soft, Standard and Bold are clearly different shades \u2014 stronger emphasis. Best for high-contrast or expressive brands.';
-      return '<button class="ev2-spread-card" type="button" aria-pressed="' + isSel + '" data-spread-pick="' + opt.id + '">'
-        + '<div class="ev2-spread-card-head">'
-          + '<span class="ev2-spread-card-pv">' + preview + '</span>'
-          + '<div class="ev2-spread-card-titles">'
-            + '<span class="ev2-spread-card-label">' + opt.label + '</span>'
-            + '<span class="ev2-spread-card-meta">' + opt.sub + '</span>'
+    // Track the pending pick — only commit on Apply
+    var pending = current;
+    function paintCards() {
+      card.innerHTML = SPREAD_OPTIONS.map(function (opt) {
+        var isSel = opt.id === pending;
+        var family = T1_PRESETS_BY_SPREAD[opt.id];
+        var P = (family && family[State.editingMode]) || family.light;
+        var preview = ['soft','standard','bold'].map(function (k) {
+          var hex = stepHexByName(role, P.fill[k]) || '#000';
+          return '<span style="background:' + hex + '"></span>';
+        }).join('');
+        var desc = opt.id === 'subtle'
+          ? 'Soft, Standard and Bold sit close together \u2014 gentle, restrained variation. Best for refined or low-contrast brands.'
+          : 'Soft, Standard and Bold are clearly different shades \u2014 stronger emphasis. Best for high-contrast or expressive brands.';
+        return '<button class="ev2-spread-card" type="button" aria-pressed="' + isSel + '" data-spread-pick="' + opt.id + '">'
+          + '<div class="ev2-spread-card-head">'
+            + '<span class="ev2-spread-card-pv">' + preview + '</span>'
+            + '<div class="ev2-spread-card-titles">'
+              + '<span class="ev2-spread-card-label">' + opt.label + '</span>'
+              + '<span class="ev2-spread-card-meta">' + opt.sub + '</span>'
+            + '</div>'
           + '</div>'
-        + '</div>'
-        + '<p class="ev2-spread-card-desc">' + desc + '</p>'
-      + '</button>';
-    }).join('');
-    card.querySelectorAll('[data-spread-pick]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        t1For(State.activeRole).spread = b.getAttribute('data-spread-pick');
-        pushPreview();
-        refreshChangeBar();
-        scheduleAutosave();
-        closeSpreadDialog();
-        renderT1();
+          + '<p class="ev2-spread-card-desc">' + desc + '</p>'
+        + '</button>';
+      }).join('');
+      card.querySelectorAll('[data-spread-pick]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          pending = b.getAttribute('data-spread-pick');
+          paintCards();
+        });
       });
-    });
+    }
+    paintCards();
+    // Wire Apply (replace handler each open so closure captures fresh `pending`)
+    var applyBtn = document.getElementById('ev2SpreadApply');
+    if (applyBtn) {
+      var fresh = applyBtn.cloneNode(true);
+      applyBtn.parentNode.replaceChild(fresh, applyBtn);
+      fresh.addEventListener('click', function () {
+        if (pending !== current) {
+          t1For(State.activeRole).spread = pending;
+          pushPreview();
+          refreshChangeBar();
+          scheduleAutosave();
+          renderT1();
+        }
+        closeSpreadDialog();
+      });
+    }
     document.getElementById('ev2SpreadDialogWrap').removeAttribute('hidden');
   }
   function closeSpreadDialog() {
