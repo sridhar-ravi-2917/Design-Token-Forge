@@ -585,6 +585,20 @@ body{
 .ev2-seg-wcag[data-grade="aa"]{background:#2F8049;color:#fff}
 .ev2-seg-wcag[data-grade="fail"]{background:#C2392B;color:#fff}
 
+/* Warning banner inside spread dialog (when Distinct is pending) */
+.ev2-spread-warn{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 12px;
+  margin:0 0 12px;
+  border:1px solid var(--warning-component-outline-default,#E0B062);
+  border-radius:var(--radius-md,6px);
+  background:var(--warning-container-bg,#FFF6E6);
+  color:var(--warning-content-default,#704E10);
+  font-size:11.5px;line-height:1.45;
+}
+.ev2-spread-warn-icon{font-size:14px;line-height:1.2;flex:none}
+.ev2-spread-warn strong{font-weight:700}
+
 .ev2-spread-dialog{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center}
 .ev2-spread-dialog[hidden]{display:none}
 .ev2-spread-dialog-card{

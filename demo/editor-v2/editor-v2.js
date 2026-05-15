@@ -49,29 +49,30 @@
     return ALL_STEPS[i];
   }
   // Per-spread, per-mode preset maps. Dark mode inverts the relationship:
-  // content drifts UP the ladder toward near-white steps, containers drift
-  // DOWN toward very dark steps. Defaults match the generated semantic.css.
+  // Subtle = recommended/safe defaults (all picks pass WCAG AA for the
+  // intended pairing). Distinct = opt-in wider range that exposes more
+  // expressive picks — some may fail AA; the badges + warning surface that.
   var T1_PRESETS_BY_SPREAD = {
     subtle: {
       light: {
-        fill:      { soft: '400', standard: '500', bold: '600' },
+        fill:      { soft: '500', standard: '550', bold: '600' },
         content:   { subtle: '500', standard: '550', strong: '600' },
         container: { whisper: '50',  light: '75',  tinted: '100' }
       },
       dark: {
-        fill:      { soft: '500', standard: '450', bold: '400' },
+        fill:      { soft: '500', standard: '550', bold: '600' },
         content:   { subtle: '200', standard: '150', strong: '100' },
         container: { whisper: '900', light: '850', tinted: '800' }
       }
     },
     bold: {
       light: {
-        fill:      { soft: '300', standard: '500', bold: '700' },
+        fill:      { soft: '400', standard: '500', bold: '700' },
         content:   { subtle: '400', standard: '550', strong: '700' },
         container: { whisper: '25',  light: '75',  tinted: '150' }
       },
       dark: {
-        fill:      { soft: '600', standard: '450', bold: '300' },
+        fill:      { soft: '400', standard: '500', bold: '700' },
         content:   { subtle: '250', standard: '150', strong: '50'  },
         container: { whisper: '900', light: '800', tinted: '700' }
       }
@@ -706,20 +707,21 @@
                 judge = wcagJudge(contrastRatio(hex, pageBg), false);
                 tipDetail = 'Text on ' + (mode === 'dark' ? 'dark' : 'light') + ' page surface: ' + judge.ratio.toFixed(2) + ':1';
               } else { // container
-                // Text-on-container = current content hex over this container hex
                 judge = wcagJudge(contrastRatio(curContentHex, hex), false);
                 tipDetail = 'Selected content text on this container: ' + judge.ratio.toFixed(2) + ':1';
               }
               var badgeCls = judge.pass ? (judge.grade === 'AAA' ? 'aaa' : 'aa') : 'fail';
               var badgeTxt = judge.pass ? judge.grade : 'Fail';
-              var badge = '<span class="ev2-seg-wcag" data-grade="' + badgeCls + '" '
-                + 'data-tip="WCAG ' + judge.grade + ' \u2014 ' + tipDetail + '">'
+              // Single combined tooltip on the button \u2014 badge has no own tip,
+              // so the two never stack.
+              var combinedTip = opt.hint + ' \u2014 WCAG ' + judge.grade + ' (' + judge.ratio.toFixed(2) + ':1, ' + tipDetail + ')';
+              var badge = '<span class="ev2-seg-wcag" data-grade="' + badgeCls + '" aria-hidden="true">'
                 + (judge.pass ? '\u2713 ' : '\u26A0 ') + badgeTxt
               + '</span>';
               return '<button class="ev2-seg-btn" role="radio" '
                 + 'aria-checked="' + isSel + '" '
                 + 'data-t1-lever="' + lever.id + '" data-t1-value="' + opt.id + '" '
-                + 'data-tip="' + opt.hint + '">'
+                + 'data-tip="' + combinedTip + '">'
                 + '<span class="ev2-seg-preview">' + preview + '</span>'
                 + '<span class="ev2-seg-label">' + opt.label + '</span>'
                 + '<span class="ev2-seg-css">step ' + step + ' \u2022 ' + hex.toUpperCase().replace('#','') + '</span>'
@@ -918,7 +920,16 @@
     // Track the pending pick — only commit on Apply
     var pending = current;
     function paintCards() {
-      card.innerHTML = SPREAD_OPTIONS.map(function (opt) {
+      var hasRiskyPending = (pending === 'bold');
+      card.innerHTML = (hasRiskyPending
+        ? '<div class="ev2-spread-warn" role="note">'
+            + '<span class="ev2-spread-warn-icon" aria-hidden="true">\u26A0</span>'
+            + '<span><strong>Distinct</strong> opens a wider range of picks. '
+            + 'Some Soft / Subtle / Tinted options may not pass WCAG AA \u2014 '
+            + 'check the badges in each lever before applying.</span>'
+          + '</div>'
+        : ''
+      ) + SPREAD_OPTIONS.map(function (opt) {
         var isSel = opt.id === pending;
         var family = T1_PRESETS_BY_SPREAD[opt.id];
         var P = (family && family[State.editingMode]) || family.light;
