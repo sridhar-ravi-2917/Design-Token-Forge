@@ -337,20 +337,20 @@ Implementation note: cascade is computed in `solver.js`, not the editor — edit
 
 ---
 
-## 10. Open questions  *(must close before code starts)*
+## 10. Open questions  *(closed 15 May 2026 — all defaults accepted)*
 
-| Q | Question | Default answer if you don’t reply |
+| Q | Question | Decision |
 |---|---|---|
-| Q1 | Add `accent` as its own T0 palette, or keep deriving from brand? | keep deriving from brand |
-| Q2 | T2 default offsets in §3.2 — accept as-is or workshop? | accept; tune later via the ± steppers |
-| Q3 | T3 family scope for v1 — all 20, or start with 5 (button, input, select, toggle, toast)? | start with 5; rest follow the same template |
-| Q4 | Do we keep the existing `demo/color-system.html` editor running in parallel, or sunset on T2 ship? | run in parallel until T3 ships, then sunset |
-| Q5 | Where does the bulk-op kebab menu live — every card, or surface only on hover? | surface on hover; always show the inline ± and ↺ |
-| Q6 | Footer “Save all” persists to localStorage AND fires deploy, or localStorage only? | localStorage only; deploy is a separate explicit action |
-| Q7 | Preview iframe — pinned right (resizable) or toggle-overlay? | pinned right, resizable, collapsible |
-| Q8 | Tier rail position — top of editor pane, or top of left rail? | top of editor pane (matches wireframe) |
-| Q9 | Mode toggle scope — global to editor, or per-tier? | global (current behaviour) |
-| Q10 | Naming pass — do it now (rename to spec) or after T2 ships? | after T2 ships, in one bulk pass with codemod |
+| Q1 | Add `accent` as its own T0 palette? | **No** — keep deriving from brand. |
+| Q2 | T2 default offsets in §3.2 — accept or workshop? | **Accept** — tune later via the ± steppers. |
+| Q3 | T3 family scope for v1? | **Start with 5: `button`, `input`, `select`, `toggle`, `toast`.** Rest follow the same template. |
+| Q4 | Sunset existing `color-system.html`? | **Run in parallel** until T3 ships, then sunset with a banner pointing to editor-v2. |
+| Q5 | Bulk-op kebab placement? | **Hover-only on the card; always-visible on the family-group header.** Inline ± and ↺ stay always-visible on the card. |
+| Q6 | Footer “Save all” fires deploy? | **No — localStorage only.** Deploy is a separate explicit action. |
+| Q7 | Preview iframe placement? | **Pinned right, resizable, collapsible.** |
+| Q8 | Tier rail position? | **Top of editor pane** (matches wireframe). |
+| Q9 | Mode toggle scope? | **Global** to editor. |
+| Q10 | Naming pass timing? | **After T2 ships**, single bulk codemod pass. |
 
 ---
 

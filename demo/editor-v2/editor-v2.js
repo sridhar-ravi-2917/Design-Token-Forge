@@ -800,6 +800,9 @@
     var separatorHex  = stepHexByName(role.id, separatorStep) || pairedContainerHex;
     var borderOverridden    = !!t1.borderStep;
     var separatorOverridden = !!t1.separatorStep;
+    var borderRatio    = contrastRatio(borderHex, pairedContainerHex);
+    var separatorRatio = contrastRatio(separatorHex, pairedContainerHex);
+    function surfaceGrade(r) { return r >= 3 ? "aa" : "fail"; }
     function pairBadge(j) {
       var cls = j.pass ? (j.grade === 'AAA' ? 'aaa' : 'aa') : 'fail';
       var txt = j.pass ? j.grade : 'Fail';
@@ -812,16 +815,16 @@
         + '<span class="ev2-pairs-sub">On-pair text, borders and separators — always coherent with the levers above</span>'
       + '</div>'
       + '<div class="ev2-pairs-grid">'
-        + '<div class="ev2-pair">'
+        + '<div class="ev2-pair" data-wcag-grade="' + (pairOnCompJudge.pass ? (pairOnCompJudge.grade === "AAA" ? "aaa" : "aa") : "fail") + '">'
           + '<div class="ev2-pair-label">on-component</div>'
           + '<div class="ev2-pair-swatch" style="background:' + pairedFillHex + ';color:' + pairOnComp + '">Aa</div>'
           + '<div class="ev2-pair-meta">'
             + '<span class="ev2-pair-pick">' + pairOnCompName + ' on fill</span>'
-            + '<span class="ev2-pair-ratio">' + pairOnCompRatio.toFixed(2) + ':1</span>'
+            + '<span class="ev2-pair-ratio"><strong>' + pairOnCompRatio.toFixed(2) + ':1</strong> <em class="ev2-pair-vs" data-tip="This ratio is measured against the component-bg fill (your fill pick).">vs ' + role.id + '-component-bg</em></span>'
             + pairBadge(pairOnCompJudge)
           + '</div>'
         + '</div>'
-        + '<div class="ev2-pair">'
+        + '<div class="ev2-pair" data-wcag-grade="' + (pairOnContJudge.pass ? (pairOnContJudge.grade === "AAA" ? "aaa" : "aa") : "fail") + '">'
           + '<div class="ev2-pair-label">on-container</div>'
           + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';color:' + pairOnCont + '">Aa</div>'
           + '<div class="ev2-pair-meta">'
@@ -840,18 +843,18 @@
                   : 'step ' + derivedStep + ' on container';
                 return '<span class="ev2-pair-pick">' + pick + '</span>';
               })()
-            + '<span class="ev2-pair-ratio">' + pairOnContRatio.toFixed(2) + ':1</span>'
+            + '<span class="ev2-pair-ratio"><strong>' + pairOnContRatio.toFixed(2) + ':1</strong> <em class="ev2-pair-vs" data-tip="This ratio is measured against the container background (your container pick).">vs ' + role.id + '-container-bg</em></span>'
             + pairBadge(pairOnContJudge)
           + '</div>'
         + '</div>'
-        + '<div class="ev2-pair" data-kind="surface">'
+        + '<div class="ev2-pair" data-kind="surface" data-wcag-grade="' + surfaceGrade(borderRatio) + '">'
           + '<div class="ev2-pair-label">border</div>'
           + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';border:2px solid ' + borderHex + ';color:transparent">—</div>'
           + '<div class="ev2-pair-meta">'
             + '<span class="ev2-pair-pick">step ' + borderStep + ' on container'
               + (borderOverridden ? ' <em class="ev2-pair-fallback" data-tip="You overrode the auto-derived step. Click Reset to return to the default.">· custom</em>' : '')
             + '</span>'
-            + '<span class="ev2-pair-ratio">container-outline</span>'
+            + '<span class="ev2-pair-ratio"><strong>' + borderRatio.toFixed(2) + ':1</strong> <em class="ev2-pair-vs" data-tip="Border step is measured against the container background. Aim for at least 3:1 for visible separation.">vs ' + role.id + '-container-bg</em></span>'
           + '</div>'
           + '<div class="ev2-pair-stepper" role="group" aria-label="Border step">'
             + '<button type="button" data-step-walk="border" data-dir="-1" data-tip="Walk one step lighter">\u2212</button>'
@@ -859,14 +862,14 @@
             + (borderOverridden ? '<button type="button" data-step-reset="border" data-tip="Reset to mode default">\u21BA</button>' : '')
           + '</div>'
         + '</div>'
-        + '<div class="ev2-pair" data-kind="surface">'
+        + '<div class="ev2-pair" data-kind="surface" data-wcag-grade="info">'
           + '<div class="ev2-pair-label">separator</div>'
           + '<div class="ev2-pair-swatch" style="background:' + pairedContainerHex + ';color:transparent;position:relative"><span style="position:absolute;left:6px;right:6px;top:50%;height:2px;background:' + separatorHex + ';transform:translateY(-50%);display:block"></span>—</div>'
           + '<div class="ev2-pair-meta">'
             + '<span class="ev2-pair-pick">step ' + separatorStep + ' on container'
               + (separatorOverridden ? ' <em class="ev2-pair-fallback" data-tip="You overrode the auto-derived step. Click Reset to return to the default.">· custom</em>' : '')
             + '</span>'
-            + '<span class="ev2-pair-ratio">container-separator</span>'
+            + '<span class="ev2-pair-ratio"><strong>' + separatorRatio.toFixed(2) + ':1</strong> <em class="ev2-pair-vs" data-tip="Separator step is measured against the container background. Informational only.">vs ' + role.id + '-container-bg</em></span>'
           + '</div>'
           + '<div class="ev2-pair-stepper" role="group" aria-label="Separator step">'
             + '<button type="button" data-step-walk="separator" data-dir="-1" data-tip="Walk one step lighter">\u2212</button>'

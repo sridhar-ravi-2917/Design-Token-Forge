@@ -1005,10 +1005,26 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
 /* Surface-only pair cards (border / separator) — no AA badge so the
    meta row is single-line; tighten its spacing to match. */
 .ev2-pair[data-kind="surface"] .ev2-pair-swatch{font-size:0}
-.ev2-pair[data-kind="surface"] .ev2-pair-ratio{margin-left:auto;color:var(--surface-base-ct-faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px}
+.ev2-pair[data-kind="surface"] .ev2-pair-ratio{margin-left:auto;font-size:10px}
 .ev2-pair-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px}
 .ev2-pair-pick{color:var(--surface-base-ct-strong);font-weight:600}
-.ev2-pair-ratio{color:var(--surface-base-ct-subtle);font-variant-numeric:tabular-nums}
+.ev2-pair-ratio{color:var(--surface-base-ct-subtle);font-variant-numeric:tabular-nums;display:inline-flex;align-items:baseline;gap:6px}
+.ev2-pair-ratio strong{color:var(--surface-base-ct-default);font-weight:700;letter-spacing:.01em}
+/* WCAG sentinel — names the baseline a ratio was measured against
+   (D5 in editor-v2-tier-architecture.md). Always rendered alongside
+   the ratio so "4.6:1 vs brand-component-bg" reads unambiguously. */
+.ev2-pair-vs{
+  font-style:normal;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:10px;
+  color:var(--surface-base-ct-faint);
+  letter-spacing:.01em;
+  border-left:1px solid var(--surface-base-separator);
+  padding-left:6px;
+  cursor:help;
+}
+.ev2-pair[data-wcag-grade="fail"] .ev2-pair-ratio strong{color:#D61D20}
+.ev2-pair[data-wcag-grade="aaa"] .ev2-pair-ratio strong{color:#0B8D28}
 .ev2-pair-badge{
   margin-left:auto;
   display:inline-flex;align-items:center;gap:3px;
