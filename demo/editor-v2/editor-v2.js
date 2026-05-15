@@ -62,13 +62,15 @@
       dark: {
         // Dark-mode aesthetic: lift fills to luminous mid-tones (the
         // saturated-on-near-black "bruise" look is replaced with a
-        // softer glow). Containers lift off pure black (was 800-900,
-        // nearly invisible) so alerts read as distinct surfaces.
-        // Auto-pair will flip on-component to black for the brighter
-        // fills where white loses contrast.
+        // softer glow). Soften content one step (cream-white instead
+        // of bone-white reduces eye strain) while keeping containers
+        // at the deep desaturated end of the ladder so alert
+        // backgrounds read as tinted dark surfaces, not saturated
+        // blocks. Auto-pair flips on-component to black for the
+        // brighter fills where white loses contrast.
         fill:      { soft: '400', standard: '450', bold: '500' },
-        content:   { subtle: '200', standard: '150', strong: '100' },
-        container: { whisper: '850', light: '800', tinted: '700' }
+        content:   { subtle: '250', standard: '200', strong: '150' },
+        container: { whisper: '900', light: '850', tinted: '800' }
       }
     },
     bold: {
@@ -79,8 +81,8 @@
       },
       dark: {
         fill:      { soft: '350', standard: '450', bold: '550' },
-        content:   { subtle: '250', standard: '150', strong: '50'  },
-        container: { whisper: '850', light: '750', tinted: '600' }
+        content:   { subtle: '300', standard: '200', strong: '100' },
+        container: { whisper: '900', light: '850', tinted: '800' }
       }
     }
   };
