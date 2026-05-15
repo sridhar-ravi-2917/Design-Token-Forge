@@ -87,14 +87,19 @@ body{
 .ev2-proj-row-check{width:14px;height:14px;color:var(--brand-content-default,#286CE5);flex-shrink:0}
 .ev2-proj-empty{padding:14px;text-align:center;font-size:12px;color:var(--surface-base-ct-subtle)}
 
-/* Light/Dark mode toggle (segmented) */
+/* UI theme toggle (top bar, segmented) — controls editor chrome only */
 .ev2-mode-toggle{
-  display:inline-flex;
+  display:inline-flex;align-items:center;
   padding:3px;
   border:1px solid var(--surface-base-outline);
   border-radius:999px;
   background:var(--surface-base-subtle);
   gap:2px;
+}
+.ev2-mode-label{
+  padding:0 8px 0 10px;
+  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--surface-base-ct-faint);
 }
 .ev2-mode{
   padding:5px 14px;
@@ -363,20 +368,41 @@ body[data-pane-dragging="true"] .ev2-preview-frame{pointer-events:none}
   gap:10px;
   border-bottom:1px solid var(--surface-base-outline);
 }
-/* Compact "Light" / "Dark" mode chip — replaces the old full-width
-   banner. The Light/Dark toggle in the top bar is the source of truth;
-   this chip just confirms scope inside the role card. */
-.ev2-intent-mode{
+/* In-panel "Editing" toggle — switches which mode's tokens you're
+   editing. Lives inside each role card head; the page UI theme is
+   controlled separately by the top-bar toggle. */
+.ev2-edit-toggle{
   display:inline-flex;align-items:center;
-  padding:3px 8px;
-  border-radius:999px;
-  background:var(--surface-base-cm-bg);
-  color:var(--surface-base-ct-default);
-  font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px;
   border:1px solid var(--surface-base-outline);
+  border-radius:999px;
+  background:var(--surface-base-subtle);
+  gap:2px;
 }
-.ev2-intent-mode[data-mode="light"]{color:#704E10;border-color:#E0B062;background:#FFF6E6}
-.ev2-intent-mode[data-mode="dark"]{color:#1f4ad8;border-color:#a4baf3;background:#EAF2FF}
+.ev2-edit-toggle-label{
+  padding:0 8px 0 10px;
+  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--surface-base-ct-faint);
+}
+.ev2-edit-mode{
+  padding:3px 10px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  font:inherit;font-size:11px;font-weight:600;
+  color:var(--surface-base-ct-subtle);
+  cursor:pointer;
+  transition:all 120ms ease;
+}
+.ev2-edit-mode[aria-checked="true"]{
+  background:var(--surface-base-cm-bg);
+  color:var(--surface-base-ct-strong);
+  box-shadow:var(--shadow-xs,0 1px 2px rgba(0,0,0,.06));
+}
+.ev2-edit-mode:focus-visible{
+  outline:2px solid var(--brand-component-outline-default);
+  outline-offset:2px;
+}
 .ev2-intent-hint{
   font-size:11px;font-weight:500;font-style:italic;
   color:var(--surface-base-ct-faint);

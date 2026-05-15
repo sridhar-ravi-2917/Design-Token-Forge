@@ -922,7 +922,11 @@
       + '</div>'
       + '<div class="ev2-intent">'
         + '<div class="ev2-intent-head">'
-          + '<span class="ev2-intent-mode" data-mode="' + mode + '" data-tip="You are editing the ' + mode + ' theme. Use the Light / Dark toggle in the top bar to switch.">' + (mode === 'dark' ? 'Dark' : 'Light') + '</span>'
+          + '<div class="ev2-edit-toggle" role="radiogroup" aria-label="Editing mode" data-tip="Switches which mode\u2019s tokens you are editing. Light and dark each have their own picks \u2014 changing one does not touch the other. The page UI theme is controlled separately by the UI toggle in the top bar.">'
+            + '<span class="ev2-edit-toggle-label" aria-hidden="true">Editing</span>'
+            + '<button type="button" class="ev2-edit-mode" data-edit-mode="light" role="radio" aria-checked="' + (mode === 'light') + '">Light</button>'
+            + '<button type="button" class="ev2-edit-mode" data-edit-mode="dark" role="radio" aria-checked="' + (mode === 'dark') + '">Dark</button>'
+          + '</div>'
           + (changed ? '<span class="ev2-intent-hint">Edited from defaults</span>' : '')
           + '<button type="button" class="ev2-role-reset" data-role-reset="' + role.id + '"'
             + (changed ? '' : ' disabled')
@@ -1091,21 +1095,35 @@
     });
   });
 
-  // Mode toggle — single source of truth: switches PREVIEW theme AND
-  // which mode's tokens you are editing in the panel. Per-mode T1 state
-  // means changes apply to that mode only.
+  // Top-bar UI theme toggle — controls ONLY the editor's own page
+  // chrome (data-theme on <html>). Does NOT change which mode's
+  // tokens are being edited; the in-panel "Editing" toggle handles
+  // that. Persisted in the same 'dtf-theme' key the rest of the
+  // demo pages use, so the choice survives navigation.
+  var UI_THEME_KEY = 'dtf-theme';
   document.querySelectorAll('.ev2-mode').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.ev2-mode').forEach(function (b) { b.setAttribute('aria-checked', 'false'); });
       btn.setAttribute('aria-checked', 'true');
       var mode = btn.getAttribute('data-mode');
-      State.editingMode = mode;
       document.documentElement.setAttribute('data-theme', mode);
+      try { localStorage.setItem(UI_THEME_KEY, mode); } catch (e) {}
       try { $frame.contentWindow.postMessage({ type: 'ev2-theme', mode: mode }, '*'); } catch (e) {}
-      saveUIState();
-      // Re-render so T1 panel reflects the new mode's picks + banner.
-      if (State.activeTier === 't1') renderT1();
     });
+  });
+
+  // In-panel "Editing" toggle (lives inside each role card's intent
+  // head). Sets which mode's T1 tokens you are editing. Re-renders
+  // T1 only — page UI is untouched.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ev2-edit-mode');
+    if (!btn) return;
+    var mode = btn.getAttribute('data-edit-mode');
+    if (mode !== 'light' && mode !== 'dark') return;
+    if (State.editingMode === mode) return;
+    State.editingMode = mode;
+    saveUIState();
+    if (State.activeTier === 't1') renderT1();
   });
 
   document.getElementById('showCssNames').addEventListener('change', function (e) {
@@ -1375,6 +1393,18 @@
 
     var hadDraft = loadDraftFromStorage();
     var ui = loadUIState();
+    // Boot UI theme from the shared 'dtf-theme' key (matches the
+    // rest of the demo pages). Independent of editingMode.
+    try {
+      var savedUiTheme = localStorage.getItem('dtf-theme');
+      if (savedUiTheme === 'dark' || savedUiTheme === 'light') {
+        document.documentElement.setAttribute('data-theme', savedUiTheme);
+        document.querySelectorAll('.ev2-mode').forEach(function (b) {
+          b.setAttribute('aria-checked', String(b.getAttribute('data-mode') === savedUiTheme));
+        });
+        try { $frame.contentWindow.postMessage({ type: 'ev2-theme', mode: savedUiTheme }, '*'); } catch (e) {}
+      }
+    } catch (e) {}
     if (ui) {
       if (ui.activeTier) State.activeTier = ui.activeTier;
       if (ui.activeRole) State.activeRole = ui.activeRole;
@@ -1384,10 +1414,6 @@
       }
       if (ui.mode === 'light' || ui.mode === 'dark') {
         State.editingMode = ui.mode;
-        document.documentElement.setAttribute('data-theme', ui.mode);
-        document.querySelectorAll('.ev2-mode').forEach(function (b) {
-          b.setAttribute('aria-checked', String(b.getAttribute('data-mode') === ui.mode));
-        });
       }
       if (typeof ui.showCss === 'boolean') {
         document.body.classList.toggle('ev2-show-css', ui.showCss);
