@@ -114,11 +114,27 @@
   </div>
 
   <script>
+    // Inject the override <style> ourselves on first load so file://
+    // sandbox restrictions on parent.contentDocument don't block us.
+    var __ev2OverrideStyle = document.createElement('style');
+    __ev2OverrideStyle.id = 'ev2-overrides';
+    document.head.appendChild(__ev2OverrideStyle);
+
     // Listen for messages from the editor to highlight the relevant pv-section.
     var clearTimer = null;
     var flashing = false;
     window.addEventListener('message', function (e) {
       var d = e.data || {};
+      // Token override push from editor (parent posts CSS string here).
+      if (d.type === 'ev2-overrides' && typeof d.css === 'string') {
+        if (__ev2OverrideStyle.textContent !== d.css) __ev2OverrideStyle.textContent = d.css;
+        return;
+      }
+      // Theme swap (parent can't write to our documentElement under file://).
+      if (d.type === 'ev2-theme' && d.mode) {
+        document.documentElement.setAttribute('data-theme', d.mode);
+        return;
+      }
       if (d.type !== 'ev2-focus') return;
       var lever = d.lever || null;
       // While a click-flash is in flight, ignore hover messages so the auto-clear schedule survives.

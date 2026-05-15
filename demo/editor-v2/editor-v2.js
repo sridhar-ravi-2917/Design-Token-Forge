@@ -211,22 +211,14 @@
   }
 
   function pushPreview() {
-    var doc = $frame.contentDocument;
-    if (!doc || !doc.head) return;
-    var style = doc.getElementById('ev2-overrides');
-    if (!style) {
-      style = doc.createElement('style');
-      style.id = 'ev2-overrides';
-      doc.head.appendChild(style);
-    }
+    // NOTE: contentDocument access from parent is blocked by Chrome on
+    // file:// URLs (sandboxed iframe). Use postMessage so the iframe
+    // injects the override <style> itself, where it has same-origin
+    // access to its own document. This is the ONLY reliable mechanism
+    // when the editor is opened directly via file:// (no dev server).
+    var win = $frame.contentWindow;
+    if (!win) return;
     var lines = [':root, [data-theme="dark"] {'];
-    // ALWAYS re-emit the full PaletteEngine-derived ladder + semantic
-    // mapping for every role. The file's primitives.css was generated
-    // with different palette params, so falling back to its values when
-    // a role is "clean" causes the painted color to disagree with the
-    // UI labels (e.g. UI says "Standard step 500 • 3D5EFC" but bg renders
-    // #3366F0 from the file). Pushing the editor's ladder unconditionally
-    // makes label === paint at all times, for both dirty and clean roles.
     ROLES.forEach(function (r) {
       var steps = stepsFor(r.id);
       steps.forEach(function (s) {
@@ -236,8 +228,8 @@
       semanticVarsFor(r.id).forEach(function (l) { lines.push(l); });
     });
     lines.push('}');
-    var next = lines.join('\n');
-    if (style.textContent !== next) style.textContent = next;
+    win.postMessage({ type: 'ev2-overrides', css: lines.join('\n') }, '*');
+  }
   }
 
   function refreshChangeBar() {
@@ -742,10 +734,7 @@
       btn.setAttribute('aria-checked', 'true');
       var mode = btn.getAttribute('data-mode');
       document.documentElement.setAttribute('data-theme', mode);
-      try {
-        var doc = $frame.contentDocument;
-        if (doc && doc.documentElement) doc.documentElement.setAttribute('data-theme', mode);
-      } catch (e) {}
+      try { $frame.contentWindow.postMessage({ type: 'ev2-theme', mode: mode }, '*'); } catch (e) {}
       saveUIState();
     });
   });
@@ -774,11 +763,9 @@
   });
 
   $frame.addEventListener('load', function () {
+    var mode = document.documentElement.getAttribute('data-theme') || 'light';
+    try { $frame.contentWindow.postMessage({ type: 'ev2-theme', mode: mode }, '*'); } catch (e) {}
     pushPreview();
-    try {
-      var mode = document.documentElement.getAttribute('data-theme') || 'light';
-      $frame.contentDocument.documentElement.setAttribute('data-theme', mode);
-    } catch (e) {}
   });
 
   var draftStatus = document.getElementById('draftStatus');
