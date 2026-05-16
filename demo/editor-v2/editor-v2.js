@@ -1094,6 +1094,67 @@
     };
   }
 
+  /* Walks the surface's palette ladder from the current step in the
+     direction that increases contrast against the baseline, returns
+     the FIRST step that crosses the threshold (3 for large/edge,
+     4.5 for normal text). Null if the current step already passes
+     or no step in the ladder reaches threshold. Used by the WCAG
+     popover to render a one-click "Apply" suggestion. */
+  function t2SuggestStep(surfaceId, propId, mode) {
+    var sent = t2Sentinel(surfaceId, propId, mode);
+    if (!sent || sent.judge.pass) return null;
+    var threshold = sent.large ? 3 : 4.5;
+    var surface = T2_SURFACES.find(function (s) { return s.id === surfaceId; });
+    if (!surface) return null;
+    var ladder = surface.palette === 'brand' ? stepsFor('brand') : neutralSteps();
+    var current = resolveT2Step(surfaceId, propId, mode);
+    var curIdx = -1;
+    for (var i = 0; i < ladder.length; i++) {
+      if (ladder[i].name === current) { curIdx = i; break; }
+    }
+    if (curIdx < 0) return null;
+    // Which way pushes us further from baseline? Whichever side of
+    // the baseline we're already on, push further. If we're sitting
+    // ON the baseline, default to darker (works in light mode; in
+    // dark mode users will see it as "toward white" once tonalDir
+    // mirrors). The ladder order is white -> ... -> black (idx 0..21)
+    // so "darker" = +1 in idx.
+    var cellHex = ladder[curIdx].hex;
+    // Try both directions; prefer the closer step that crosses
+    // threshold. Skips having to luminance-compare upfront.
+    function walk(dir) {
+      for (var d = 1; d < ladder.length; d++) {
+        var j = curIdx + dir * d;
+        if (j < 0 || j >= ladder.length) return null;
+        var r = contrastRatio(ladder[j].hex, sent.baselineHex);
+        if (r >= threshold) {
+          return { idx: j, dist: d, hex: ladder[j].hex, name: ladder[j].name, ratio: r };
+        }
+      }
+      return null;
+    }
+    var darker = walk(+1);
+    var lighter = walk(-1);
+    var pick = null;
+    if (darker && lighter) pick = (darker.dist <= lighter.dist) ? darker : lighter;
+    else pick = darker || lighter;
+    if (!pick) return null;
+    return {
+      step: pick.name,
+      hex: pick.hex,
+      ratio: pick.ratio,
+      judge: wcagJudge(pick.ratio, sent.large),
+      threshold: threshold,
+      baselineHex: sent.baselineHex,
+      baselineToken: sent.baseline,
+      intent: sent.intent,
+      large: sent.large,
+      currentStep: current,
+      currentHex: cellHex,
+      currentRatio: sent.ratio
+    };
+  }
+
   /* Human-readable WCAG tip for the sentinel chip. Replaces the
      old "1.29:1 vs --surface-bright-bg (AA large 3:1)" line, which
      was technically correct but read as a hash to anyone who isn't
@@ -1229,10 +1290,11 @@
         grade = sent.judge.pass ? (sent.judge.grade === 'AAA' ? 'aaa' : (sent.large ? 'aa-large' : 'aa')) : 'fail';
         sym   = sent.judge.pass ? '\u2713' : '\u26A0';
       }
-      sentHTML = '<div class="ev2-pc-wcag" data-grade="' + grade + '"'
-        + ' data-tip="' + wcagTipText(sent, opts.tokenName) + '">'
+      sentHTML = '<button type="button" class="ev2-pc-wcag" data-grade="' + grade + '"'
+        + ' data-pc-wcag-open'
+        + ' aria-label="Contrast ' + sent.ratio.toFixed(2) + ' to 1, click for details and fix">'
         + sym + ' ' + sent.ratio.toFixed(2) + ':1'
-      + '</div>';
+      + '</button>';
     }
     var attrs = '';
     if (opts.dataAttrs) Object.keys(opts.dataAttrs).forEach(function (k) {
@@ -2548,5 +2610,154 @@
     window.addEventListener('scroll', hide, true);
     window.addEventListener('resize', hide);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+  })();
+
+  /* ── WCAG sentinel popover ──────────────────────────────
+     Click a .ev2-pc-wcag chip on a Property Card → opens a click-
+     stable popover with: mini preview of the failing pair (text-on-
+     bg for content, border-on-bg for edge), the plain-language WHY
+     (re-uses wcagTipText), and ONE suggested step + projected ratio
+     + Apply button (writes through setT2Step). Click outside or Esc
+     to close. The hover tooltip on the same chip stays as the quick
+     scan; click upgrades to the full panel. */
+  (function initWcagPopover() {
+    var pop = document.createElement('div');
+    pop.className = 'ev2-wcag-pop';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Contrast details and suggestion');
+    document.body.appendChild(pop);
+    var openOn = null; // the chip currently driving the popover
+    var openedAt = 0;
+
+    function close() {
+      pop.removeAttribute('data-show');
+      pop.innerHTML = '';
+      openOn = null;
+    }
+
+    function renderPreviewHTML(sent, sug, tokenName) {
+      // For edge intent: show a card-shaped baseline with a 1px
+      // border in the failing color. For text: show text in the
+      // failing color on the baseline. Suggested swatch sits next
+      // to it so the eye can compare.
+      var label = tokenName.replace(/^--surface-[^-]+-/, '');
+      if (sent.intent === 'edge') {
+        var beforeBox = '<div class="ev2-wcag-pop-prev-box" style="background:' + sent.baselineHex + ';border:1px solid ' + (pop.__cellHex || '#000') + '">' + label + '</div>';
+        var afterBox  = sug ? '<div class="ev2-wcag-pop-prev-box" style="background:' + sent.baselineHex + ';border:1px solid ' + sug.hex + '">step ' + sug.step + '</div>' : '';
+        return beforeBox + (afterBox ? '<div class="ev2-wcag-pop-arrow" aria-hidden="true">\u2192</div>' + afterBox : '');
+      }
+      // text intent
+      var sample = sent.large ? 'Aa' : 'Body text';
+      var fontSize = sent.large ? '22px' : '14px';
+      var beforeT = '<div class="ev2-wcag-pop-prev-box" style="background:' + sent.baselineHex + ';color:' + (pop.__cellHex || '#000') + ';font-size:' + fontSize + ';font-weight:' + (sent.large ? '700' : '500') + '">' + sample + '</div>';
+      var afterT  = sug ? '<div class="ev2-wcag-pop-prev-box" style="background:' + sent.baselineHex + ';color:' + sug.hex + ';font-size:' + fontSize + ';font-weight:' + (sent.large ? '700' : '500') + '">' + sample + '</div>' : '';
+      return beforeT + (afterT ? '<div class="ev2-wcag-pop-arrow" aria-hidden="true">\u2192</div>' + afterT : '');
+    }
+
+    function open(chip) {
+      var card = chip.closest('.ev2-pc');
+      if (!card) return;
+      var surfaceId = card.getAttribute('data-pc-surface');
+      var propId    = card.getAttribute('data-pc-prop');
+      var mode      = State.editingMode;
+      var sent = t2Sentinel(surfaceId, propId, mode);
+      if (!sent) return;
+      var sug  = t2SuggestStep(surfaceId, propId, mode);
+      var tokenName = '--surface-' + surfaceId + '-' + propId;
+      pop.__cellHex = t2HexFor(surfaceId, propId, mode);
+
+      // header chip mirrors the chip style
+      var grade = chip.getAttribute('data-grade') || 'fail';
+      var sym = grade === 'edge-soft' ? '\u24D8' : (sent.judge.pass ? '\u2713' : '\u26A0');
+      var headerChip = '<span class="ev2-wcag-pop-chip" data-grade="' + grade + '">' + sym + ' ' + sent.ratio.toFixed(2) + ':1</span>';
+
+      var why = wcagTipText(sent, tokenName);
+
+      var sugBlock = '';
+      if (sug) {
+        var sugGrade = sug.judge.pass ? (sug.judge.grade === 'AAA' ? 'aaa' : (sent.large ? 'aa-large' : 'aa')) : 'fail';
+        sugBlock =
+          '<div class="ev2-wcag-pop-fix">'
+          + '<div class="ev2-wcag-pop-fix-head">'
+            + '<span class="ev2-wcag-pop-fix-title">Suggested fix</span>'
+            + '<span class="ev2-wcag-pop-chip" data-grade="' + sugGrade + '">\u2713 ' + sug.ratio.toFixed(2) + ':1</span>'
+          + '</div>'
+          + '<div class="ev2-wcag-pop-fix-body">'
+            + '<span class="ev2-wcag-pop-sw" style="background:' + sug.hex + '"></span>'
+            + '<span class="ev2-wcag-pop-fix-txt">Step <strong>' + sug.step + '</strong> (' + sug.hex.toUpperCase() + ')</span>'
+            + '<button type="button" class="ev2-wcag-pop-apply" data-pc-wcag-apply data-step="' + sug.step + '" data-surface="' + surfaceId + '" data-prop="' + propId + '">Apply</button>'
+          + '</div>'
+        + '</div>';
+      } else {
+        sugBlock = '<div class="ev2-wcag-pop-fix ev2-wcag-pop-fix-empty">No step in this palette reaches the threshold against ' + tokenName.replace(/^--surface-[^-]+-/, '') + '. Try editing the baseline instead.</div>';
+      }
+
+      var edgeNote = sent.intent === 'edge' && !sent.judge.pass
+        ? '<div class="ev2-wcag-pop-alt">Or keep this step and pair the border with a shadow or extra spacing \u2014 3:1 is only required when the border alone identifies the region.</div>'
+        : '';
+
+      pop.innerHTML =
+          '<div class="ev2-wcag-pop-head">'
+            + '<div class="ev2-wcag-pop-name"><code>' + tokenName + '</code></div>'
+            + headerChip
+            + '<button type="button" class="ev2-wcag-pop-close" data-pc-wcag-close aria-label="Close">\u00D7</button>'
+          + '</div>'
+          + '<div class="ev2-wcag-pop-prev" aria-label="Preview">'
+            + renderPreviewHTML(sent, sug, tokenName)
+          + '</div>'
+          + '<div class="ev2-wcag-pop-why">' + why + '</div>'
+          + sugBlock
+          + edgeNote;
+
+      // Position below the chip (flip above if no room).
+      pop.setAttribute('data-show', '1');
+      var r = chip.getBoundingClientRect();
+      var pw = pop.offsetWidth, ph = pop.offsetHeight;
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var top = r.bottom + 8;
+      if (top + ph > vh - 8) top = Math.max(8, r.top - ph - 8);
+      var left = Math.round(r.left + r.width / 2 - pw / 2);
+      left = Math.max(8, Math.min(vw - pw - 8, left));
+      pop.style.top  = Math.round(top) + 'px';
+      pop.style.left = left + 'px';
+      openOn = chip;
+      openedAt = Date.now();
+      // Hide the hover tooltip so we don't show two overlapping
+      // descriptions of the same chip.
+      var tip = document.querySelector('.ev2-tip-portal');
+      if (tip) tip.removeAttribute('data-show');
+    }
+
+    document.addEventListener('click', function (e) {
+      var closeBtn = e.target.closest && e.target.closest('[data-pc-wcag-close]');
+      if (closeBtn) { close(); return; }
+      var applyBtn = e.target.closest && e.target.closest('[data-pc-wcag-apply]');
+      if (applyBtn) {
+        var sId = applyBtn.getAttribute('data-surface');
+        var pId = applyBtn.getAttribute('data-prop');
+        var step = applyBtn.getAttribute('data-step');
+        close();
+        setT2Step(sId, pId, State.editingMode, step);
+        return;
+      }
+      var chip = e.target.closest && e.target.closest('[data-pc-wcag-open]');
+      if (chip) {
+        e.preventDefault();
+        if (openOn === chip) { close(); return; }
+        open(chip);
+        return;
+      }
+      // outside click
+      if (openOn && !pop.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && openOn) { close(); openOn && openOn.focus && openOn.focus(); }
+    });
+    window.addEventListener('scroll', function () {
+      // Ignore the focus-induced scrollIntoView that fires right
+      // after a click; only close on genuine user scrolling.
+      if (openOn && Date.now() - openedAt > 250) close();
+    }, true);
+    window.addEventListener('resize', function () { if (openOn) close(); });
   })();
 })();

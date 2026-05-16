@@ -1544,3 +1544,147 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
 .ev2-deploy-hint{font-size:11px;color:var(--surface-base-ct-subtle);max-width:380px;line-height:1.5}
 .ev2-deploy-btns{display:flex;gap:8px;flex-shrink:0}
 body.ev2-modal-open{overflow:hidden}
+
+/* ── WCAG sentinel popover ──────────────────────────────
+   Click-stable panel anchored under a .ev2-pc-wcag chip. Shows the
+   failing pair previewed, the plain-language why, and a one-click
+   suggested step. */
+.ev2-pc-wcag{
+  /* chip is now a <button> — strip the button defaults */
+  border:0;
+  cursor:pointer;
+  font-family:inherit;
+}
+.ev2-pc-wcag:focus-visible{
+  outline:2px solid var(--brand-component-bg-default,#3366f0);
+  outline-offset:2px;
+}
+.ev2-wcag-pop{
+  position:fixed;
+  z-index:9100;
+  width:340px;
+  padding:14px 14px 12px;
+  background:var(--surface-float-bg, var(--surface-base-bg, #fff));
+  border:1px solid var(--surface-float-outline, var(--surface-base-outline, rgba(0,0,0,.12)));
+  border-radius:10px;
+  box-shadow:0 12px 36px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.08);
+  font-size:12px;
+  line-height:1.5;
+  color:var(--surface-float-ct-default, var(--surface-base-ct-default, #1F2330));
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(-4px);
+  transition:opacity 120ms ease, transform 120ms ease;
+}
+.ev2-wcag-pop[data-show]{opacity:1;pointer-events:auto;transform:translateY(0)}
+.ev2-wcag-pop-head{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:10px;
+}
+.ev2-wcag-pop-name{
+  flex:1;min-width:0;
+  font-size:11px;color:var(--surface-base-ct-subtle,#5b6068);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ev2-wcag-pop-name code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;color:inherit;
+}
+.ev2-wcag-pop-chip{
+  flex-shrink:0;
+  font-size:11px;font-weight:600;
+  padding:3px 7px;border-radius:3px;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.ev2-wcag-pop-chip[data-grade="aaa"]{background:var(--success-container-bg,#E8F5EB);color:var(--success-content-default,#0B8D28)}
+.ev2-wcag-pop-chip[data-grade="aa"]{background:var(--success-container-bg,#E8F5EB);color:var(--success-content-default,#0B8D28)}
+.ev2-wcag-pop-chip[data-grade="aa-large"]{background:var(--info-container-bg,#EAF4FF);color:var(--info-content-default,#0E6FE0)}
+.ev2-wcag-pop-chip[data-grade="fail"]{background:var(--danger-container-bg,#FDEAEB);color:var(--danger-content-default,#D61D20)}
+.ev2-wcag-pop-chip[data-grade="edge-soft"]{background:var(--warning-container-bg,#FFF3D6);color:var(--warning-content-default,#A66208)}
+.ev2-wcag-pop-close{
+  flex-shrink:0;
+  width:22px;height:22px;
+  border:0;background:transparent;cursor:pointer;
+  border-radius:4px;
+  font-size:16px;line-height:1;
+  color:var(--surface-base-ct-subtle,#5b6068);
+}
+.ev2-wcag-pop-close:hover{background:var(--surface-base-subtle,rgba(0,0,0,.04));color:inherit}
+.ev2-wcag-pop-prev{
+  display:flex;align-items:stretch;gap:8px;
+  padding:10px;
+  background:var(--surface-base-subtle,rgba(0,0,0,.03));
+  border-radius:6px;
+  margin-bottom:10px;
+}
+.ev2-wcag-pop-prev-box{
+  flex:1;min-width:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:10px 8px;
+  border-radius:4px;
+  font-size:13px;
+  text-align:center;
+  min-height:42px;
+}
+.ev2-wcag-pop-arrow{
+  display:flex;align-items:center;
+  color:var(--surface-base-ct-subtle,#888);
+  font-size:14px;
+}
+.ev2-wcag-pop-why{
+  font-size:12px;
+  color:var(--surface-base-ct-default,#1F2330);
+  margin-bottom:10px;
+}
+.ev2-wcag-pop-fix{
+  padding:10px;
+  background:var(--info-container-bg,rgba(14,111,224,.06));
+  border:1px solid var(--info-content-default,rgba(14,111,224,.18));
+  border-radius:6px;
+}
+.ev2-wcag-pop-fix-empty{
+  background:var(--surface-base-subtle,rgba(0,0,0,.03));
+  border-color:var(--surface-base-outline,rgba(0,0,0,.12));
+  color:var(--surface-base-ct-subtle,#5b6068);
+  font-size:11.5px;
+}
+.ev2-wcag-pop-fix-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.ev2-wcag-pop-fix-title{
+  font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--info-content-default,#0E6FE0);
+}
+.ev2-wcag-pop-fix-body{
+  display:flex;align-items:center;gap:8px;
+}
+.ev2-wcag-pop-sw{
+  flex-shrink:0;
+  width:28px;height:28px;border-radius:4px;
+  border:1px solid rgba(0,0,0,.18);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.ev2-wcag-pop-fix-txt{
+  flex:1;min-width:0;
+  font-size:12px;
+}
+.ev2-wcag-pop-apply{
+  flex-shrink:0;
+  padding:6px 12px;
+  border:0;border-radius:4px;
+  background:var(--brand-component-bg-default,#3366f0);
+  color:#fff;
+  font-size:12px;font-weight:600;
+  cursor:pointer;
+  font-family:inherit;
+}
+.ev2-wcag-pop-apply:hover{filter:brightness(1.08)}
+.ev2-wcag-pop-apply:focus-visible{outline:2px solid #fff;outline-offset:-3px;box-shadow:0 0 0 4px var(--brand-component-bg-default,#3366f0)}
+.ev2-wcag-pop-alt{
+  margin-top:10px;
+  font-size:11.5px;
+  color:var(--surface-base-ct-subtle,#5b6068);
+  line-height:1.5;
+}
