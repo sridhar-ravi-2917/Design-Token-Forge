@@ -43,12 +43,30 @@ window.DTF = window.DTF || { onThemeChange: null };
   var filename = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
   if (filename === 'index.html' || filename === 'onboard.html') return;
 
-  var nav = document.querySelector('.nav-actions');
-  if (!nav) return;
+  /* Mount into the <dtf-topbar> left-crumb project slot when available,
+     fall back to the right-side .nav-actions for any legacy bar. The
+     web component may upgrade after this IIFE runs, so retry briefly. */
+  function findMount() {
+    return document.querySelector('dtf-topbar [data-slot="project"]')
+        || document.querySelector('.nav-actions');
+  }
+  var nav = findMount();
+  if (!nav) {
+    var tries = 0;
+    var iv = setInterval(function () {
+      nav = findMount();
+      if (nav) { clearInterval(iv); _mount(nav); }
+      else if (++tries > 40) clearInterval(iv);
+    }, 25);
+    return;
+  }
+  _mount(nav);
+
+  function _mount(nav) {
 
   var depth = (location.pathname.indexOf('/demo/') !== -1) ? '..' : '.';
 
-  /* ── Build DOM — custom dropdown ── */
+  /* ── Build DOM — pill chip (mock Option C) ── */
   var wrap = document.createElement('div');
   wrap.className = 'nav-project';
   var label = document.createElement('span');
@@ -69,9 +87,43 @@ window.DTF = window.DTF || { onThemeChange: null };
   wrap.appendChild(label);
   wrap.appendChild(ddWrap);
 
-  var toggle = document.getElementById('themeToggle');
-  if (toggle) nav.insertBefore(wrap, toggle);
-  else nav.appendChild(wrap);
+  /* Inline rename + delete action buttons for the active project */
+  var renActBtn = document.createElement('button');
+  renActBtn.className = 'nav-project-action';
+  renActBtn.type = 'button';
+  renActBtn.title = 'Rename project';
+  renActBtn.setAttribute('aria-label', 'Rename project');
+  renActBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+  renActBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var active = cachedList.find(function (p) { return p.id === currentId; });
+    if (active) doRename(active);
+  });
+
+  var delActBtn = document.createElement('button');
+  delActBtn.className = 'nav-project-action nav-project-del';
+  delActBtn.type = 'button';
+  delActBtn.title = 'Delete project';
+  delActBtn.setAttribute('aria-label', 'Delete project');
+  delActBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
+  delActBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var active = cachedList.find(function (p) { return p.id === currentId; });
+    if (active) doDelete(active);
+  });
+
+  wrap.appendChild(renActBtn);
+  wrap.appendChild(delActBtn);
+
+  /* If we're mounting into the legacy right-side .nav-actions, keep the
+     old before-theme-toggle insertion. In the project slot we just append. */
+  if (nav.classList.contains('nav-actions')) {
+    var toggle = document.getElementById('themeToggle');
+    if (toggle) nav.insertBefore(wrap, toggle);
+    else nav.appendChild(wrap);
+  } else {
+    nav.appendChild(wrap);
+  }
 
   /* ── State ── */
   var currentId = localStorage.getItem('dtf-active-project') || '';
@@ -617,6 +669,8 @@ window.DTF = window.DTF || { onThemeChange: null };
   // can force a fresh fetch+apply when arriving from another page
   // for a project this browser has never cached.
   window.DTF.applyProjectTokens = _applyProjectTokens;
+
+  } /* end _mount */
 })();
 
 /* ── Inject Saved Color Tokens (from Color System page) ── */
