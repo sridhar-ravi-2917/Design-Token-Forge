@@ -1328,13 +1328,6 @@
                 + '</button>';
             }).join('')
         + '</div>'
-        + '<div class="ev2-intent-head">'
-          + '<div class="ev2-intent-titlewrap">'
-            + '<span class="ev2-intent-title">' + role.label + ' key color</span>'
-            + '<span class="ev2-intent-sub">One color. 20 steps recompute. Every component using ' + role.label.toLowerCase() + ' updates.</span>'
-          + '</div>'
-          + (changedThisRole ? '<span class="ev2-intent-hint">Edited from defaults</span>' : '')
-        + '</div>'
         + '<div class="ev2-intent-body">'
           + '<div class="ev2-lever">'
             + '<label class="ev2-swatch" style="background:' + State.proposed[role.id] + '" title="Pick a color">'
