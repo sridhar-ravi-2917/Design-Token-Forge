@@ -48,6 +48,11 @@
   var path = location.pathname;
   var filename = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
 
+  // Onboard wizard is a focused, full-page task. Cancel button covers
+  // navigation back to the caller \u2014 the global site nav would just be
+  // visual noise + a confusing 'second header'.
+  if (filename === 'onboard.html') return;
+
   /* Determine page label for the switcher button */
   var pageLabel = 'All Components';
   for (var i = 0; i < NAV_ITEMS.length; i++) {
