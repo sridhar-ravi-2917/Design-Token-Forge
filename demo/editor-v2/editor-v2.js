@@ -4703,6 +4703,15 @@
         return JSON.parse(xhr.responseText);
       }
     } catch (e) { /* missing file, parse error, CORS — fall through */ }
+    // Fallback for freshly-onboarded projects on file:// — the real
+    // config.json has been committed to the GitHub fork but the
+    // local workspace doesn't have it yet. Onboard stashed the
+    // canonical config under this key so the editor can hydrate
+    // immediately without waiting for the Pages deploy.
+    try {
+      var cached = localStorage.getItem('dtf-project-config-' + id);
+      if (cached) return JSON.parse(cached);
+    } catch (e) { /* corrupt cache, ignore */ }
     return null;
   }
 
@@ -4721,18 +4730,49 @@
     if (!id) return;
     var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
     var url = depth + '/projects/' + encodeURIComponent(id) + '/primitives.css';
+    var cssText = null;
     try {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', url, /* async */ false);
       xhr.send(null);
-      if (!(xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300))) return;
-      var existing = document.getElementById('ev2-project-primitives');
-      var node = existing || document.createElement('style');
-      node.id = 'ev2-project-primitives';
-      node.textContent = xhr.responseText;
-      if (!existing) document.head.appendChild(node);
-      _customPalettesCache = null;
-    } catch (e) { /* fall through to package defaults */ }
+      if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
+        cssText = xhr.responseText;
+      }
+    } catch (e) { /* fall through */ }
+    // Fallback: a freshly-onboarded project on file:// won't have
+    // primitives.css locally yet. Onboard generates the ladder
+    // client-side via PaletteEngine and stashes it under this key
+    // so the editor reflects the user's chosen keys immediately —
+    // no waiting on the Pages deploy.
+    if (!cssText) {
+      try { cssText = localStorage.getItem('dtf-project-primitives-' + id) || null; }
+      catch (e) { /* ignore */ }
+    }
+    // Last-ditch synth: if the project has paletteKeys but no
+    // primitives.css (older onboards that didn't stash the
+    // generated CSS), build it now from PaletteEngine.
+    if (!cssText && window.PaletteEngine) {
+      var cfg = readProjectConfigSync();
+      if (cfg && cfg.paletteKeys) {
+        var parts = [];
+        Object.keys(cfg.paletteKeys).forEach(function (roleId) {
+          var keyHex = cfg.paletteKeys[roleId];
+          if (!keyHex) return;
+          try {
+            var pal = window.PaletteEngine.generatePalette(keyHex, {});
+            parts.push(window.PaletteEngine.toCss(roleId, pal));
+          } catch (e) { /* skip bad role */ }
+        });
+        if (parts.length) cssText = parts.join('\n');
+      }
+    }
+    if (!cssText) return;
+    var existing = document.getElementById('ev2-project-primitives');
+    var node = existing || document.createElement('style');
+    node.id = 'ev2-project-primitives';
+    node.textContent = cssText;
+    if (!existing) document.head.appendChild(node);
+    _customPalettesCache = null;
   }
 
   /* Seed State.t2SurfacePalette from config.surfacePaletteSrc so

@@ -261,6 +261,7 @@
 
 <script src="nav.js?v=20260507b"></script>
 <script src="shared.js?v=20260508a"></script>
+<script src="palette-engine.js?v=20260516a"></script>
 <script>
 (function() {
   /* ── Adjust heading if user already has projects ── */
@@ -671,6 +672,50 @@
         surfacePaletteSrc: config.surfacePaletteSrc
       });
       localStorage.setItem('dtf-color-config-' + slug, localConfig);
+
+      /* Also stash the canonical config.json + a generated
+         primitives.css under project-scoped keys so editor-v2
+         can hydrate the new project immediately on file:// (no
+         wait for the Pages deploy to publish the real files).
+         Editor's injectProjectPrimitivesSync + readProjectConfigSync
+         fall back to these when the on-disk file isn't found. */
+      try {
+        localStorage.setItem('dtf-project-config-' + slug, JSON.stringify(config));
+        if (window.PaletteEngine) {
+          var primParts = [];
+          var allKeys = config.paletteKeys || {};
+          Object.keys(allKeys).forEach(function (roleId) {
+            var keyHex = allKeys[roleId];
+            if (!keyHex) return;
+            var opts = {};
+            // Greyscale + desaturated derive from a fixed key; the engine
+            // handles tone curve internally. Brand/danger/etc. take the
+            // user's key colour as-is.
+            var pal = window.PaletteEngine.generatePalette(keyHex, opts);
+            primParts.push(window.PaletteEngine.toCss(roleId, pal));
+          });
+          localStorage.setItem('dtf-project-primitives-' + slug, primParts.join('\n'));
+        }
+      } catch(e) { console.warn('[DTF] local primitives cache failed (non-critical):', e); }
+
+      /* Reset the editor's shared UI state so the new project lands
+         on T0 / Roles with the step ladders expanded — instead of
+         inheriting whatever tier/disclosure pattern the previous
+         project left behind. */
+      try {
+        localStorage.setItem('dtf-editor-v2-ui-v1', JSON.stringify({
+          v: 1,
+          activeTier: 't0',
+          activeRole: 'brand',
+          activeT0: 'roles',
+          activeSurface: null,
+          anchor: null,
+          disclosure: { 't0:steps': true, 't0:affects': true, 't1:slots': true, 't1:affects': true },
+          mode: 'light',
+          showCss: true,
+          focusedLever: null
+        }));
+      } catch(e) {}
 
       /* Redirect straight into the editor for the freshly-created
          project. Going to the hub (index.html) felt like a dead end
