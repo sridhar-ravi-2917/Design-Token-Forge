@@ -548,8 +548,9 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   padding:8px 10px;
   width:max-content;max-width:260px;
   border-radius:var(--radius-md,6px);
-  background:var(--surface-strong-bg,#1F2330);
-  color:#fff;
+  background:var(--surface-inverse-bg);
+  color:var(--surface-inverse-ct-default);
+  border:1px solid var(--surface-inverse-outline);
   font-size:11px;font-weight:500;line-height:1.4;
   text-transform:none;letter-spacing:0;
   box-shadow:var(--shadow-lg,0 8px 24px rgba(0,0,0,.18));
@@ -563,20 +564,28 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   bottom:calc(100% + 2px);left:50%;
   transform:translateX(-50%) rotate(45deg);
   width:8px;height:8px;
-  background:var(--surface-strong-bg,#1F2330);
+  background:var(--surface-inverse-bg);
+  border-right:1px solid var(--surface-inverse-outline);
+  border-bottom:1px solid var(--surface-inverse-outline);
   z-index:9999;
   pointer-events:none;
 }
 
-/* JS-managed portal tooltip (escapes all overflow clipping) */
+/* JS-managed portal tooltip (escapes all overflow clipping).
+   Painted with the inverse-surface tokens so the tooltip naturally
+   inverts against editor chrome — and any project that retunes the
+   inverse surface picks up the new look here without further work.
+   The previous --surface-strong-bg token never existed; tips were
+   silently falling back to a hardcoded #1F2330. */
 .ev2-tip-portal{
   position:fixed;
   z-index:10000;
   padding:8px 10px;
   max-width:280px;
   border-radius:var(--radius-md,6px);
-  background:var(--surface-strong-bg,#1F2330);
-  color:#fff;
+  background:var(--surface-inverse-bg);
+  color:var(--surface-inverse-ct-default);
+  border:1px solid var(--surface-inverse-outline);
   font-size:11px;font-weight:500;line-height:1.4;
   text-transform:none;letter-spacing:0;
   box-shadow:var(--shadow-lg,0 8px 24px rgba(0,0,0,.22));
