@@ -633,6 +633,19 @@
     } catch (e) {}
   }
 
+  /* Tell the preview canvas to scroll-into-view and flash the
+     specific zone painted by --surface-active-<prop>. Used by the
+     WCAG popover so the designer SEES where the failing token lives
+     and watches it shift when they Apply the suggested step. */
+  function pushPvFlash(propId) {
+    var win = $frame && $frame.contentWindow;
+    if (!win || !propId) return;
+    if (State.activeTier !== 't2') return;
+    try {
+      win.postMessage({ type: 'ev2-pv-flash', prop: propId }, '*');
+    } catch (e) {}
+  }
+
   function pushPreview() {
     // contentDocument is null on file:// sandboxed iframes — use postMessage.
     var win = $frame.contentWindow;
@@ -2726,6 +2739,9 @@
       // descriptions of the same chip.
       var tip = document.querySelector('.ev2-tip-portal');
       if (tip) tip.removeAttribute('data-show');
+      // Point the preview canvas at the same prop so the designer
+      // sees WHERE the failing token lives on real UI.
+      pushPvFlash(propId);
     }
 
     document.addEventListener('click', function (e) {
@@ -2738,6 +2754,9 @@
         var step = applyBtn.getAttribute('data-step');
         close();
         setT2Step(sId, pId, State.editingMode, step);
+        // Re-flash the zone right after the new value lands so the
+        // designer SEES the fix arrive.
+        setTimeout(function () { pushPvFlash(pId); }, 60);
         return;
       }
       var chip = e.target.closest && e.target.closest('[data-pc-wcag-open]');
