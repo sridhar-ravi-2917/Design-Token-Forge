@@ -412,7 +412,7 @@
   },
   "surfacePaletteSrc": {
     "bright": "neutral",
-    "base": "greyscale",
+    "base": "neutral",
     "dim": "neutral",
     "deep": "neutral",
     "accent": "brand",
@@ -424,10 +424,10 @@
   "paletteAnchor": "exact",
   "schemaVersion": 2,
   "latestVersion": {
-    "version": "v0.1.0",
-    "name": "May16 21:41",
-    "description": "",
-    "savedAt": "2026-05-16T16:11:40.199Z",
+    "version": "v1.0.0",
+    "name": "May16 21:59",
+    "description": "FINAL",
+    "savedAt": "2026-05-16T16:29:55.645Z",
     "savedBy": "sridhar-ravi-2917"
   }
 }
