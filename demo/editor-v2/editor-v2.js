@@ -3600,6 +3600,18 @@
     T2_SURFACES.forEach(function (s) {
       cfg.surfacePaletteSrc[s.id] = surfacePaletteFor(s.id);
     });
+    // Sync paletteKeys to the just-published key colors so consumers
+    // that read config.json (project hub swatches, onboard preset
+    // detection, future tooling) agree with primitives.css. Without
+    // this, the hub keeps painting cards from a stale brand hex
+    // even though the published palette is something different.
+    var prevKeys = (prevCfg && prevCfg.paletteKeys) || {};
+    var paletteKeys = JSON.parse(JSON.stringify(prevKeys));
+    ROLES.forEach(function (r) {
+      var hex = State.proposed && State.proposed[r.id];
+      if (hex) paletteKeys[r.id] = String(hex).toUpperCase();
+    });
+    cfg.paletteKeys = paletteKeys;
     // Mirror customRoles so future loads keep them as first-class T1.
     var builtins = { brand:1, danger:1, success:1, warning:1, info:1 };
     var customRoles = ROLES.filter(function (r) { return !builtins[r.id]; }).map(function (r) {
