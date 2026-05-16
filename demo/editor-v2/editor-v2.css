@@ -1117,6 +1117,58 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   color:var(--surface-base-ct-strong);
 }
 
+/* Right-hand control cluster: source-palette picker + mode toggle.
+   Stacked vertically so the surface name stays the headline and the
+   controls read as a compact toolbox. */
+.ev2-surface-head-r{
+  display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;
+}
+
+/* Source-palette picker. The <select> is a native control styled to
+   match the rest of the editor; CUSTOM pill + reset button appear
+   inline only when the surface is on a non-default palette. */
+.ev2-surface-head-palette{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;color:var(--surface-base-ct-subtle);
+}
+.ev2-surface-head-palette-label{
+  font-weight:600;letter-spacing:.02em;
+}
+.ev2-surface-head-palette-sel{
+  font:inherit;font-size:12px;font-weight:600;
+  padding:5px 26px 5px 10px;
+  border-radius:var(--radius-sm,6px);
+  border:1px solid var(--surface-base-outline);
+  background:var(--surface-base-bg)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23737E88' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+    no-repeat right 8px center;
+  color:var(--surface-base-ct-strong);
+  -webkit-appearance:none;appearance:none;
+  cursor:pointer;
+}
+.ev2-surface-head-palette-sel:focus-visible{
+  outline:2px solid var(--brand-fill);
+  outline-offset:2px;
+}
+.ev2-surface-head-palette[data-custom="true"] .ev2-surface-head-palette-sel{
+  border-color:var(--warning-fill,#C97C0E);
+}
+.ev2-surface-head-palette-pill{
+  font-size:10px;font-weight:700;letter-spacing:.06em;
+  padding:2px 6px;border-radius:3px;
+  background:var(--warning-container,#FFF4D6);
+  color:var(--warning-on-container,#5A3A00);
+}
+.ev2-surface-head-palette-reset{
+  font:inherit;font-size:11px;font-weight:600;
+  padding:3px 8px;border-radius:var(--radius-sm,6px);
+  border:1px solid var(--surface-base-outline);
+  background:var(--surface-base-bg);
+  color:var(--surface-base-ct-subtle);
+  cursor:pointer;
+}
+.ev2-surface-head-palette-reset:hover{color:var(--surface-base-ct-strong)}
+
 /* Editing mode toggle (Light / Dark). Reuses .ev2-edit-mode click
    handler from the existing T1 dispatcher — same data-edit-mode
    attribute, so no JS duplication. */

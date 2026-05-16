@@ -1,4 +1,4 @@
-# UI Consistency — Editor v2 + Demo Pages
+    # UI Consistency — Editor v2 + Demo Pages
 
 A **living checklist** of the canonical UI vocabulary, chrome, microcopy, and class-naming
 patterns used across Design Token Forge. The goal is to keep T0/T1/T2/T3 (and the wider
@@ -37,6 +37,15 @@ editor + demo surface) speaking the same language so users learn it once.
 - Never mix `L`/`D`, `lite`, "Day/Night", etc.
 - **Levers** (T1): `fill`, `content`, `container` (lowercase ids; Title Case labels).
 - **Derived T1 tokens**: `border`, `separator`, `onComponent`, `onContainer`.
+- **Surfaces** (T2, ordered): `bright`, `base`, `dim`, `deep`, `accent`, `container`,
+  `float`, `inverse`. Display labels are Title Case.
+- **Surface → source palette** is **user-overridable**. Each surface declares a default
+  in `T2_SURFACES` (page bgs → `neutral`, `accent` → `brand`, etc.); the picker in the
+  surface header lets the designer remap any surface to any role's ladder
+  (`neutral|brand|danger|warning|info|success`). When a surface is on a non-default
+  palette its row is marked `CUSTOM` and a Reset button restores the default. CUSTOM
+  step picks on the surface **survive** a palette swap — the step name stays, it just
+  resolves against the new ladder.
 - **Step names** (T0 ladder, 22 entries): `white`, `25`, `50`, `100`, `200`, `300`, `400`,
   `450`, `500`, `550`, `600`, `650`, `700`, `750`, `800`, `850`, `900`, `black` (numeric steps shown as `step N`, e.g. *"step 500"*).
 
@@ -348,3 +357,4 @@ The four-hop pipeline is where drift creeps in fastest. Lock its surface area he
 | 2026-05-16 | Fixed pass/fail hexes stay hardcoded for now                   | Editor chrome must not depend on user tokens; will tokenize when more chrome moves through the same pattern |
 | 2026-05-16 | Component builder visible to all plugin users                  | Stops being an owner-only tool; gating moves server-side if ever needed |
 | 2026-05-16 | Added §11 Figma plugin + §12 Sync scope to consistency doc     | Plugin / sync drift was the most-repeated source of incidents — pulling rules in-doc so they're checked alongside UI strings |
+| 2026-05-16 | T2 surface → source-palette mapping is user-overridable        | Architecture spec §3.2 always said "step on source palette" — landing the picker closes the loop. CUSTOM step picks survive a palette swap so designers can audition the same elevation shape against multiple hues without re-tuning. |

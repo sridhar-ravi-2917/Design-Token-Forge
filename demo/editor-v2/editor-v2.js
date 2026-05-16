@@ -311,8 +311,10 @@
     return defaultT2Step(surfaceId, propId, mode);
   }
   /* True if any cell in this surface (either mode) carries an
-     override — either a custom step or a follows pointer. */
+     override — either a custom step, a follows pointer, OR a
+     non-default source-palette pick. */
   function isT2Changed(surfaceId) {
+    if (isSurfacePaletteCustom(surfaceId)) return true;
     return ['light','dark'].some(function (mode) {
       var bag = State.t2 && State.t2[mode] && State.t2[mode][surfaceId];
       if (!bag) return false;
@@ -355,15 +357,56 @@
   /* Resolve a T2 cell to its hex value by walking the surface's
      source palette ladder. Used for swatches + WCAG math. */
   function t2HexFor(surfaceId, propId, mode) {
-    var surface = T2_SURFACES.find(function (s) { return s.id === surfaceId; });
-    if (!surface) return '#000';
     var step = resolveT2Step(surfaceId, propId, mode);
-    var ladder = surface.palette === 'brand' ? stepsFor('brand') : neutralSteps();
+    var ladder = t2LadderFor(surfaceId);
+    if (!ladder) return '#000';
     for (var i = 0; i < ladder.length; i++) {
       if (ladder[i].name === step) return ladder[i].hex;
     }
     return '#000';
   }
+
+  /* ── T2 surface → source-palette mapping (user-overridable) ──
+     Each surface declares a DEFAULT source palette in T2_SURFACES
+     (neutral for page bgs, brand for accent, etc.). Designers can
+     remap any surface to a different role's ladder at runtime via
+     the picker in the surface header. Stored flat (NOT per-mode
+     — palette source is the role-ladder name, and the ladder itself
+     already has light/dark behaviour baked in via tonalDir).
+
+     Override survives a step pick: switching Accent from `brand`
+     to `info` keeps your CUSTOM step names; they just resolve
+     against the new ladder. That's the whole point — you've tuned
+     the elevation/contrast shape and you want to audition it
+     against a different hue without losing the work. */
+  function surfacePaletteFor(surfaceId) {
+    var ov = State.t2SurfacePalette && State.t2SurfacePalette[surfaceId];
+    if (ov && SURFACE_PALETTE_OK[ov]) return ov;
+    var def = T2_SURFACES.find(function (s) { return s.id === surfaceId; });
+    return def ? def.palette : 'neutral';
+  }
+  function isSurfacePaletteCustom(surfaceId) {
+    var def = T2_SURFACES.find(function (s) { return s.id === surfaceId; });
+    if (!def) return false;
+    return surfacePaletteFor(surfaceId) !== def.palette;
+  }
+  function t2LadderFor(surfaceId) {
+    var pal = surfacePaletteFor(surfaceId);
+    if (pal === 'neutral') return neutralSteps();
+    return stepsFor(pal);
+  }
+  /* Allowed source-palette ids for a T2 surface. Mirrors ROLES[]
+     plus 'neutral'. Kept as a static map so the draft loader can
+     validate without re-deriving from ROLES (which may grow). */
+  var SURFACE_PALETTE_OPTIONS = [
+    { id:'neutral', label:'Neutral' },
+    { id:'brand',   label:'Brand'   },
+    { id:'danger',  label:'Danger'  },
+    { id:'warning', label:'Warning' },
+    { id:'info',    label:'Info'    },
+    { id:'success', label:'Success' }
+  ];
+  var SURFACE_PALETTE_OK = SURFACE_PALETTE_OPTIONS.reduce(function (m, o) { m[o.id] = true; return m; }, {});
 
   var State = {
     activeTier: 't0',
@@ -423,6 +466,11 @@
     // empty bag if seeding logic ever lands.
     t2:         makeEmptyT2(),
     t2Baseline: makeEmptyT2(),
+    // Per-surface source-palette overrides. Keyed by surfaceId →
+    // role id ('brand' / 'danger' / 'info' / 'success' / 'warning' /
+    // 'neutral'). Absence means "use the default declared in
+    // T2_SURFACES". Validated against SURFACE_PALETTE_OK on load.
+    t2SurfacePalette: {},
     // Disclosure open-state persists across role / tier swaps.
     // Keyed by 'tierId:discId' so each tier can have its own pattern.
     disclosure: { 't0:steps': false, 't0:affects': false, 't1:slots': false, 't1:affects': false },
@@ -861,7 +909,8 @@
           editingMode: State.editingMode,
           proposed: State.proposed,
           t1: State.t1,
-          t2: State.t2
+          t2: State.t2,
+          t2SurfacePalette: State.t2SurfacePalette
         };
         localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
         State.lastSavedAt = payload.ts;
@@ -926,6 +975,16 @@
       }
       if (d.editingMode === 'light' || d.editingMode === 'dark') State.editingMode = d.editingMode;
       if (d.anchor === 'exact' || d.anchor === 'normalized') State.anchor = d.anchor;
+      // Per-surface source palette — validated against the static
+      // SURFACE_PALETTE_OK map so a stale role id can't sneak in.
+      if (d.t2SurfacePalette && typeof d.t2SurfacePalette === 'object') {
+        T2_SURFACES.forEach(function (s) {
+          var v = d.t2SurfacePalette[s.id];
+          if (typeof v === 'string' && SURFACE_PALETTE_OK[v]) {
+            State.t2SurfacePalette[s.id] = v;
+          }
+        });
+      }
       State.lastSavedAt = d.ts || null;
       return totalChanges() > 0;
     } catch (e) { return false; }
@@ -1217,7 +1276,7 @@
     var threshold = sent.large ? 3 : 4.5;
     var surface = T2_SURFACES.find(function (s) { return s.id === surfaceId; });
     if (!surface) return null;
-    var ladder = surface.palette === 'brand' ? stepsFor('brand') : neutralSteps();
+    var ladder = t2LadderFor(surfaceId);
     var current = resolveT2Step(surfaceId, propId, mode);
     var curIdx = -1;
     for (var i = 0; i < ladder.length; i++) {
@@ -1562,7 +1621,7 @@
   function pcLadderHTML(surfaceId, propId, mode) {
     var surface = T2_SURFACES.find(function (s) { return s.id === surfaceId; });
     if (!surface) return '';
-    var ladder = surface.palette === 'brand' ? stepsFor('brand') : neutralSteps();
+    var ladder = t2LadderFor(surfaceId);
     var current = resolveT2Step(surfaceId, propId, mode);
     var def     = defaultT2Step(surfaceId, propId, mode);
     return '<div class="ev2-pc-ladder" data-pc-ladder-surface="' + surfaceId + '" data-pc-ladder-prop="' + propId + '">'
@@ -1994,12 +2053,34 @@
     State.activeSurface = surface.id;
     var mode = State.editingMode;
     var bgHex = t2HexFor(surface.id, 'bg', mode);
+    var activePalette = surfacePaletteFor(surface.id);
+    var paletteCustom = isSurfacePaletteCustom(surface.id);
 
     var modeBtns =
       '<div class="ev2-edit-mode-row" role="radiogroup" aria-label="Editing mode">'
         + '<button type="button" class="ev2-edit-mode" data-edit-mode="light" aria-checked="' + (mode === 'light') + '" role="radio">Light</button>'
         + '<button type="button" class="ev2-edit-mode" data-edit-mode="dark"  aria-checked="' + (mode === 'dark')  + '" role="radio">Dark</button>'
       + '</div>';
+
+    /* Source-palette picker. Lives in the surface header so it's
+       discoverable at the moment a designer is auditioning a
+       surface, not buried in a settings menu. Custom picks get a
+       CUSTOM pill + per-surface reset button so the override is
+       always reversible without leaving the page. */
+    var paletteOpts = SURFACE_PALETTE_OPTIONS.map(function (o) {
+      return '<option value="' + o.id + '"' + (o.id === activePalette ? ' selected' : '') + '>' + o.label + '</option>';
+    }).join('');
+    var paletteCtl =
+      '<label class="ev2-surface-head-palette" data-custom="' + paletteCustom + '">'
+        + '<span class="ev2-surface-head-palette-label">Source palette</span>'
+        + '<select class="ev2-surface-head-palette-sel" data-surface-palette="' + surface.id + '" aria-label="Source palette for ' + surface.label + '">'
+          + paletteOpts
+        + '</select>'
+        + (paletteCustom
+            ? '<span class="ev2-surface-head-palette-pill" data-tip="Default for this surface is ' + surface.palette + '. Click reset to restore.">CUSTOM</span>'
+              + '<button type="button" class="ev2-surface-head-palette-reset" data-surface-palette-reset="' + surface.id + '" aria-label="Reset source palette to ' + surface.palette + '">Reset</button>'
+            : '')
+      + '</label>';
 
     $body.innerHTML =
       surfacePickerHTML()
@@ -2009,10 +2090,13 @@
             + '<span class="ev2-surface-head-sw" style="background:' + bgHex + '"></span>'
             + '<div class="ev2-surface-head-txt">'
               + '<h2 class="ev2-surface-head-name">' + surface.label + '</h2>'
-              + '<p class="ev2-surface-head-sub">' + surface.desc + ' \u2014 source: <code>' + surface.palette + '</code></p>'
+              + '<p class="ev2-surface-head-sub">' + surface.desc + '</p>'
             + '</div>'
           + '</div>'
-          + modeBtns
+          + '<div class="ev2-surface-head-r">'
+            + paletteCtl
+            + modeBtns
+          + '</div>'
         + '</header>'
         + T2_FAMILIES.map(function (f) { return surfaceFamilyHTML(surface, f, mode); }).join('')
       + '</div>';
@@ -2307,6 +2391,32 @@
     else if (State.activeTier === 't2') renderT2();
   });
 
+  /* Surface source-palette picker (T2 header). `change` listener so
+     keyboard arrow-navigation in the <select> commits naturally.
+     Override stored on State.t2SurfacePalette; the surface's CUSTOM
+     step picks are preserved \u2014 they just resolve against the new
+     ladder. */
+  document.addEventListener('change', function (e) {
+    var sel = e.target && e.target.closest && e.target.closest('[data-surface-palette]');
+    if (!sel) return;
+    var sid = sel.getAttribute('data-surface-palette');
+    var def = T2_SURFACES.find(function (s) { return s.id === sid; });
+    if (!def) return;
+    var picked = sel.value;
+    if (!SURFACE_PALETTE_OK[picked]) return;
+    if (picked === def.palette) {
+      // Restoring the default — drop the override entry so the
+      // surface no longer counts as dirty for palette reasons.
+      if (State.t2SurfacePalette[sid]) delete State.t2SurfacePalette[sid];
+    } else {
+      State.t2SurfacePalette[sid] = picked;
+    }
+    scheduleAutosave();
+    pushPreview();
+    if (State.activeTier === 't2') renderT2();
+    refreshChangeBar();
+  });
+
   document.getElementById('showCssNames').addEventListener('change', function (e) {
     document.body.classList.toggle('ev2-show-css', e.target.checked);
     saveUIState();
@@ -2325,6 +2435,7 @@
     // to a deterministic offset from T2_BASE_STEPS, so Discard simply
     // drops all overrides back to empty.
     State.t2 = makeEmptyT2();
+    State.t2SurfacePalette = {};
     State.cachedSteps = {};
     _neutralStepsCache = null;
     clearDraftFromStorage();
@@ -2363,6 +2474,7 @@
       });
     } else if (tierId === 't2') {
       State.t2 = makeEmptyT2();
+      State.t2SurfacePalette = {};
     }
     scheduleAutosave();
     pushPreview();
@@ -2409,6 +2521,19 @@
         // that surface. Active-surface signal is enough; the CSS
         // payload doesn't change.
         pushActiveSurface();
+      }
+      return;
+    }
+    // Reset source-palette override (back to surface's declared default).
+    var palResetBtn = e.target.closest && e.target.closest('[data-surface-palette-reset]');
+    if (palResetBtn) {
+      var rsid = palResetBtn.getAttribute('data-surface-palette-reset');
+      if (rsid && State.t2SurfacePalette && State.t2SurfacePalette[rsid]) {
+        delete State.t2SurfacePalette[rsid];
+        scheduleAutosave();
+        pushPreview();
+        renderT2();
+        refreshChangeBar();
       }
       return;
     }
