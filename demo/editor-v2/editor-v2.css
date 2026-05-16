@@ -2351,6 +2351,17 @@ body.ev2-modal-open{overflow:hidden}
 }
 .ev2-history-row:last-child{border-bottom:0}
 .ev2-history-row[data-current="true"]{background:var(--ev2-chrome-bg)}
+.ev2-history-row[data-state="unavailable"]{opacity:.62}
+.ev2-history-row[data-state="unavailable"] .ev2-history-name,
+.ev2-history-row[data-state="unavailable"] .ev2-history-ver{color:var(--ev2-chrome-ct-subtle)}
+.ev2-history-note{
+  margin:0 16px 8px;
+  padding:8px 12px;
+  border-radius:var(--radius-md,6px);
+  background:var(--ev2-chrome-bg);
+  border:1px solid var(--ev2-chrome-outline);
+  font-size:11px;color:var(--ev2-chrome-ct-subtle);line-height:1.45;
+}
 .ev2-history-ver{
   display:inline-flex;align-items:center;gap:6px;
   font-size:12px;font-weight:700;color:var(--ev2-chrome-ct-strong);

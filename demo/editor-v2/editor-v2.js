@@ -3819,17 +3819,24 @@
       // Restorable only when the snapshot embeds full file contents
       // (object form), not the legacy array-of-names form.
       var hasInline = s.json && s.json.files && !Array.isArray(s.json.files) && typeof s.json.files === 'object';
-      var btnAttrs = hasInline
-        ? 'data-restore="' + escapeAttr(ver) + '"'
-        : 'disabled data-tip="This snapshot was published before inline file storage was added, so its contents aren\u2019t available to restore. Publish a new version to make future restores possible."';
-      var btnLabel = isCurrent ? 'Live' : 'Restore';
-      var btnDisabledAttr = isCurrent ? 'disabled' : '';
+      var restorable = hasInline && !isCurrent;
+      var rowState = isCurrent ? 'live' : (hasInline ? 'restorable' : 'unavailable');
+      var btnAttrs, btnLabel, btnDisabledAttr;
+      if (isCurrent) {
+        btnAttrs = ''; btnLabel = 'Live'; btnDisabledAttr = 'disabled';
+      } else if (hasInline) {
+        btnAttrs = 'data-restore="' + escapeAttr(ver) + '"';
+        btnLabel = 'Restore'; btnDisabledAttr = '';
+      } else {
+        btnAttrs = 'data-tip="This snapshot was published before inline file storage was added, so its contents aren\u2019t available to restore. Publish a new version to make future restores possible."';
+        btnLabel = 'Unavailable'; btnDisabledAttr = 'disabled';
+      }
       var metaBits = [];
       if (when) metaBits.push(escapeHTML(when));
       if (who)  metaBits.push(escapeHTML('@' + who));
-      if (!hasInline) metaBits.push('<span class="ev2-history-flag" data-tip="This snapshot only stored metadata (filenames), not file contents, so it can\u2019t be restored.">metadata only</span>');
+      if (!hasInline) metaBits.push('<span class="ev2-history-flag" data-tip="This snapshot only stored metadata (filenames), not file contents, so it can\u2019t be restored.">no file contents</span>');
       var metaLine = metaBits.join(' <span class="ev2-history-meta-sep">\u00b7</span> ');
-      return '<div class="ev2-history-row" data-current="' + (isCurrent ? 'true' : 'false') + '">'
+      return '<div class="ev2-history-row" data-current="' + (isCurrent ? 'true' : 'false') + '" data-state="' + rowState + '">'
         + '<div class="ev2-history-ver">'
           + escapeHTML(ver)
           + (isCurrent ? '<span class="ev2-history-live">Live</span>' : '')
@@ -3844,7 +3851,13 @@
         + '</button>'
       + '</div>';
     }).join('');
-    body.innerHTML = '<div class="ev2-history-list">' + rows + '</div>';
+    var hasUnavailable = snapshots.some(function (s) {
+      return !(s.json && s.json.files && !Array.isArray(s.json.files) && typeof s.json.files === 'object');
+    });
+    var note = hasUnavailable
+      ? '<div class="ev2-history-note">Snapshots published before this editor saved file contents inline cannot be restored. New publishes are always restorable.</div>'
+      : '';
+    body.innerHTML = note + '<div class="ev2-history-list">' + rows + '</div>';
     body._ghUser = ghUser;
     body._snapshots = snapshots;
   }
