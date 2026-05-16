@@ -570,7 +570,13 @@
   function pushActiveSurface() {
     var win = $frame && $frame.contentWindow;
     if (!win) return;
-    try { win.postMessage({ type: 'ev2-active-surface', surface: activeSurfaceForPreview() }, '*'); } catch (e) {}
+    try {
+      win.postMessage({
+        type: 'ev2-active-surface',
+        surface: activeSurfaceForPreview(),
+        tier: State.activeTier
+      }, '*');
+    } catch (e) {}
   }
 
   function pushPreview() {

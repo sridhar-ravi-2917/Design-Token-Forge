@@ -114,9 +114,151 @@
     .pv-spotlight-cap{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--surface-base-ct-faint);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
     .pv-spotlight-cap-tag{font-size:9px;background:var(--surface-base-subtle);padding:2px 6px;border-radius:3px;font-weight:600;letter-spacing:.04em}
     .pv-spotlight-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+    /* ── Surface canvas ──────────────────────────────────────
+       Renders all 16 props of the active surface as a labeled
+       grid. Every token here consumes the --surface-base-*
+       alias bridge injected by ev2-active-surface, so any T2
+       step change is immediately visible: bg flips, subtle
+       region repaints, ct-strong text re-tones, cm-bg/outline
+       chip shifts. The "canvas" wrapper IS the surface bg, so
+       the user sees their edit on the surface itself, not on
+       a generic page bg. */
+    .pv-canvas{
+      margin-bottom:24px;
+      border-radius:10px;
+      border:1px solid var(--surface-base-outline);
+      background:var(--surface-base-bg);
+      overflow:hidden;
+    }
+    .pv-canvas-head{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:10px 14px;
+      border-bottom:1px solid var(--surface-base-separator);
+      font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+      color:var(--surface-base-ct-strong);
+    }
+    .pv-canvas-name{display:inline-flex;align-items:center;gap:6px}
+    .pv-canvas-name code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:10px;text-transform:none;letter-spacing:0;font-weight:600;
+      padding:2px 6px;border-radius:3px;
+      background:var(--surface-base-subtle);
+      color:var(--surface-base-ct-default);
+    }
+    .pv-canvas-body{padding:14px}
+    .pv-canvas-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .pv-canvas-tile{
+      padding:10px 12px;border-radius:6px;
+      font-size:11px;
+      display:flex;flex-direction:column;gap:6px;
+      min-height:64px;
+    }
+    .pv-canvas-tile-name{
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:10px;font-weight:600;opacity:.85;
+    }
+    .pv-canvas-tile-val{font-size:12px}
+    /* Tint regions */
+    .pv-canvas-tile.t-bg     {background:var(--surface-base-bg);     color:var(--surface-base-ct-default); border:1px solid var(--surface-base-outline)}
+    .pv-canvas-tile.t-subtle {background:var(--surface-base-subtle); color:var(--surface-base-ct-default)}
+    .pv-canvas-tile.t-strong {background:var(--surface-base-strong); color:var(--surface-base-ct-default)}
+    /* Content sample */
+    .pv-canvas-text{
+      grid-column:1 / -1;
+      padding:12px;border-radius:6px;
+      background:var(--surface-base-bg);
+      border:1px dashed var(--surface-base-outline);
+      display:flex;flex-direction:column;gap:4px;
+    }
+    .pv-canvas-text .l1{font-size:14px;font-weight:700;color:var(--surface-base-ct-strong)}
+    .pv-canvas-text .l2{font-size:12.5px;color:var(--surface-base-ct-default)}
+    .pv-canvas-text .l3{font-size:11.5px;color:var(--surface-base-ct-subtle)}
+    .pv-canvas-text .l4{font-size:11px;color:var(--surface-base-ct-faint)}
+    /* Component-on-surface mini */
+    .pv-canvas-comp{
+      grid-column:1 / -1;
+      display:flex;align-items:center;gap:10px;
+      padding:12px;border-radius:6px;
+      background:var(--surface-base-cm-bg);
+      border:1px solid var(--surface-base-cm-outline);
+    }
+    .pv-canvas-comp-dot{
+      width:24px;height:24px;border-radius:50%;
+      background:var(--surface-base-cm-bg-hover);
+      border:1px solid var(--surface-base-cm-outline-hover);
+    }
+    .pv-canvas-comp-txt{font-size:11.5px;color:var(--surface-base-ct-default)}
+    .pv-canvas-comp-txt code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:10px;padding:1px 5px;border-radius:3px;
+      background:var(--surface-base-subtle);
+    }
+    /* Separator demo */
+    .pv-canvas-sep{
+      height:1px;background:var(--surface-base-separator);
+      grid-column:1 / -1;
+    }
+    .pv-canvas-cm-sep{
+      height:1px;background:var(--surface-base-cm-separator);
+      margin-block:6px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Surface canvas: hidden by default; shown when editor is on T2.
+       Every tile/text-line/component-bg consumes a --surface-base-*
+       alias so the editor's alias-bridge override instantly repaints
+       this whole panel as the user steps through tokens. -->
+  <section class="pv-canvas" id="pv-canvas" hidden aria-label="Active surface canvas">
+    <div class="pv-canvas-head">
+      <span class="pv-canvas-name">
+        <span>Surface</span>
+        <code id="pv-canvas-name-code">base</code>
+      </span>
+      <span style="font-size:9px;opacity:.7">repaints as you edit</span>
+    </div>
+    <div class="pv-canvas-body">
+      <div class="pv-canvas-grid">
+        <div class="pv-canvas-tile t-bg">
+          <span class="pv-canvas-tile-name">--…-bg</span>
+          <span class="pv-canvas-tile-val">Page background</span>
+        </div>
+        <div class="pv-canvas-tile t-subtle">
+          <span class="pv-canvas-tile-name">--…-subtle</span>
+          <span class="pv-canvas-tile-val">Soft tint region</span>
+        </div>
+        <div class="pv-canvas-tile t-strong" style="grid-column:1/-1">
+          <span class="pv-canvas-tile-name">--…-strong</span>
+          <span class="pv-canvas-tile-val">Emphasized tint region</span>
+        </div>
+        <div class="pv-canvas-text">
+          <span class="pv-canvas-tile-name">--…-ct-strong / -default / -subtle / -faint</span>
+          <div class="l1">Strong heading on this surface</div>
+          <div class="l2">Default body text — primary reading tone.</div>
+          <div class="l3">Subtle line — secondary metadata.</div>
+          <div class="l4">Faint line — tertiary captions.</div>
+        </div>
+        <div class="pv-canvas-comp">
+          <div class="pv-canvas-comp-dot"></div>
+          <div class="pv-canvas-comp-txt">
+            <div><strong>Component on surface</strong></div>
+            <div><code>--…-cm-bg</code> + <code>--…-cm-outline</code></div>
+          </div>
+        </div>
+        <div class="pv-canvas-sep"></div>
+        <div style="grid-column:1/-1;font-size:10px;color:var(--surface-base-ct-faint);text-align:center">
+          ↑ separator above · cm-separator below ↓
+        </div>
+        <div class="pv-canvas-cm-sep" style="grid-column:1/-1"></div>
+      </div>
+    </div>
+  </section>
 
   <!-- Active-role spotlight: re-binds to whatever role the editor is on -->
   <section class="pv-spotlight" id="pv-spotlight" data-pv-shows="all" data-active-role="brand" aria-label="Active role spotlight">
@@ -336,6 +478,15 @@
           if (sheet.textContent !== next) sheet.textContent = next;
         }
         document.body.setAttribute('data-active-surface', as);
+        // Reveal the surface canvas only when the editor is on T2.
+        // On any other tier, hide — the spotlight + compare-roles
+        // panels are the right preview for T0/T1.
+        var cnv = document.getElementById('pv-canvas');
+        if (cnv) {
+          cnv.hidden = (d.tier !== 't2');
+          var nm = document.getElementById('pv-canvas-name-code');
+          if (nm) nm.textContent = as;
+        }
         return;
       }
       if (d.type !== 'ev2-focus') return;
