@@ -402,6 +402,16 @@
     var found = {};
     var sheets = document.styleSheets;
     for (var i = 0; i < sheets.length; i++) {
+      // Only consider THIS project's primitives sheet. Without
+      // this scope check the package defaults
+      // (packages/tokens/src/primitives.css ships --prim-neutral-*
+      // because writer-handhelds needed it) bleed in as a "Custom
+      // palette: Neutral" on every brand-new project.
+      var sheetHref = sheets[i].href || '';
+      var sheetNode = sheets[i].ownerNode;
+      var isProjectSheet = (sheetNode && sheetNode.id === 'ev2-project-primitives')
+        || /\/projects\/[^/]+\/primitives\.css/.test(sheetHref);
+      if (!isProjectSheet) continue;
       var crs;
       try { crs = sheets[i].cssRules || sheets[i].rules; } catch (e) { continue; }
       if (!crs) continue;
