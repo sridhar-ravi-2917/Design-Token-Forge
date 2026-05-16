@@ -2895,7 +2895,8 @@
     }).join('');
 
     $body.innerHTML =
-      '<div class="ev2-roles" role="tablist">'
+      '<div class="ev2-intent">'
+        + '<div class="ev2-roles" role="tablist" aria-label="Role">'
 
         + ROLES.map(function (r) {
             var current = r.id === role.id;
@@ -2913,7 +2914,6 @@
               + '</button>';
           }).join('')
       + '</div>'
-      + '<div class="ev2-intent">'
         + '<div class="ev2-intent-head">'
           + '<div class="ev2-edit-toggle" role="radiogroup" aria-label="Editing mode" data-tip="Switches which mode\u2019s tokens you are editing AND the editor UI to match. Light and dark each have their own picks \u2014 changing one does not touch the other.">'
             + '<span class="ev2-edit-toggle-label" aria-hidden="true">Editing</span>'
