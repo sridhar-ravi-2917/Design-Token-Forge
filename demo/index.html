@@ -3036,6 +3036,7 @@ function doInitialRender() {
     + '  <button class="nav-proj-btn" type="button" id="projDropBtn">\u2026</button>'
     + '  <div class="nav-proj-panel" id="projDropPanel"></div>'
     + '</div>'
+    + '<button class="nav-project-open" id="projOpenEditorBtn" type="button" title="Open this project in the Token Editor">Open Editor <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button>'
     + '<button class="nav-project-action" id="projRenameBtn" type="button" title="Rename project"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>'
     + '<button class="nav-project-action nav-project-del" id="projDeleteBtn" type="button" title="Delete project"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>';
   if (nav) nav.insertBefore(wrap, nav.firstChild);
@@ -3528,6 +3529,40 @@ function openNewProjectDialog() {
 projNewBtn && projNewBtn.addEventListener('click', openNewProjectDialog);
 projRenameBtn.addEventListener('click', renameProject);
 projDeleteBtn.addEventListener('click', deleteProject);
+
+/* Open the active project in the Token Editor (v2).
+   Named-route style: passes ?project=<id> so the editor can deep-link.
+   v2 strips the param from the URL on boot after persisting it. */
+var projOpenEditorBtn = document.getElementById('projOpenEditorBtn');
+if (projOpenEditorBtn) {
+  function syncOpenEditorBtn() {
+    projOpenEditorBtn.disabled = !projectId;
+    projOpenEditorBtn.title = projectId
+      ? 'Open "' + (knownProjects.find(function(p){return p.id===projectId;}) || {name:projectId}).name + '" in the Token Editor'
+      : 'Pick or create a project first';
+  }
+  projOpenEditorBtn.addEventListener('click', function() {
+    if (!projectId) return;
+    var base = (location.pathname.indexOf('/demo/') !== -1) ? './editor-v2/' : './demo/editor-v2/';
+    window.location.href = base + '?project=' + encodeURIComponent(projectId);
+  });
+  /* Re-sync whenever the project list/active changes */
+  var _origRender = (typeof renderProjPanel === 'function') ? renderProjPanel : null;
+  /* Initial */
+  setTimeout(syncOpenEditorBtn, 0);
+  /* Hook into project switch path */
+  var _origSwitch = (typeof switchProject === 'function') ? switchProject : null;
+  if (_origSwitch) {
+    window.switchProject = function() {
+      var r = _origSwitch.apply(this, arguments);
+      syncOpenEditorBtn();
+      return r;
+    };
+  }
+  /* Also sync after a short delay for initial project resolution */
+  setTimeout(syncOpenEditorBtn, 500);
+  setTimeout(syncOpenEditorBtn, 1500);
+}
 
 projCloseBtn.addEventListener('click', function() {
   projDialogBackdrop.classList.remove('open');

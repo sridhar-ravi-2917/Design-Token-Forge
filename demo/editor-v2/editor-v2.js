@@ -3431,6 +3431,22 @@
 
   function boot() {
     if (!window.PaletteEngine) { setTimeout(boot, 30); return; }
+
+    // Named-route entry: support ?project=<id> from the project hub.
+    // If present, persist as active project and strip the param so
+    // reloads stay clean (and ?project= can be deep-linked safely).
+    try {
+      var url = new URL(window.location.href);
+      var qp  = (url.searchParams.get('project') || '').trim();
+      if (qp && /^[a-z0-9][a-z0-9-]*$/i.test(qp)) {
+        if (localStorage.getItem('dtf-active-project') !== qp) {
+          localStorage.setItem('dtf-active-project', qp);
+        }
+        url.searchParams.delete('project');
+        history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+      }
+    } catch (e) { /* ignore — older browsers, file:// quirks */ }
+
     bindAddPaletteDialog();
     // Default: show CSS names ON. Overridden below if UI state has been saved.
     document.body.classList.add('ev2-show-css');
