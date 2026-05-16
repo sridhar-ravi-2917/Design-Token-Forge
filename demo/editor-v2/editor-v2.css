@@ -127,7 +127,29 @@ body{
 .ev2-proj-row-id{font-size:10px;color:var(--ev2-chrome-ct-faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .ev2-proj-row-check{width:14px;height:14px;color:var(--brand-content-default,#286CE5);flex-shrink:0}
 .ev2-proj-empty{padding:14px;text-align:center;font-size:12px;color:var(--ev2-chrome-ct-subtle)}
-.ev2-proj-foot{display:none}
+.ev2-proj-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:18px;font-size:12px;color:var(--ev2-chrome-ct-subtle)}
+.ev2-proj-loading-spin{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--ev2-chrome-outline);
+  border-top-color:var(--brand-content-default,#286CE5);
+  animation:ev2-proj-spin .7s linear infinite;
+}
+@keyframes ev2-proj-spin{to{transform:rotate(360deg)}}
+.ev2-proj-foot{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:6px 12px;border-top:1px solid var(--ev2-chrome-outline);
+  font-size:11px;color:var(--ev2-chrome-ct-faint);
+}
+.ev2-proj-foot-status{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev2-proj-foot-refresh{
+  appearance:none;border:1px solid var(--ev2-chrome-outline);
+  background:var(--ev2-chrome-bg);color:var(--ev2-chrome-ct-strong);
+  font:inherit;font-size:11px;font-weight:600;
+  padding:3px 8px;border-radius:var(--radius-sm,4px);cursor:pointer;
+  transition:background 120ms,color 120ms;
+}
+.ev2-proj-foot-refresh:hover{background:var(--ev2-chrome-subtle)}
+.ev2-proj-foot-refresh:disabled{opacity:.5;cursor:not-allowed}
 
 /* Topbar icon-button actions for the active project (rename / delete).
    Sit immediately right of the project picker dropdown. */

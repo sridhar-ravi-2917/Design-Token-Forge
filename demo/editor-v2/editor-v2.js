@@ -5035,26 +5035,53 @@
     catch (e) { return []; }
   }
   /* Refresh the localStorage known-projects cache from the canonical
-     projects.json. Tries a few path candidates so we work on file://,
-     Pages, and local dev servers. Best-effort \u2014 silent on failure. */
+     projects.json. When the user is GitHub-authenticated we go
+     straight to the contents API (cache-busted) so a freshly-deleted
+     or freshly-created project shows up the moment the commit lands,
+     not after the Pages deploy + the static file's HTTP cache
+     expire. Falls back to relative-path fetch on file:// when
+     unauthenticated. Returns a Promise so the caller can show a
+     loader and re-render on resolve. */
   function syncKnownProjectsFromIndex() {
+    var user = getGhUser();
+    var pat  = getGhPat();
+    var ghReady = !!(user && pat);
+
+    function applyList(list, source) {
+      if (!Array.isArray(list)) return;
+      try { localStorage.setItem('dtf-known-projects', JSON.stringify(list)); } catch (e) {}
+      _projPanelLastSync = { at: Date.now(), source: source || 'cache' };
+      if (typeof renderProjPanel === 'function' && $projPanel && !$projPanel.hasAttribute('hidden')) renderProjPanel();
+      if (typeof syncProjLabel === 'function') syncProjLabel();
+    }
+
+    if (ghReady) {
+      return ghFetch('/repos/' + user + '/' + GH_REPO_NAME + '/contents/projects.json?ref=main&_cb=' + Date.now())
+        .then(function (idx) {
+          var raw;
+          try { raw = JSON.parse(decodeURIComponent(escape(atob((idx.content || '').replace(/\n/g,''))))); }
+          catch (e) { throw new Error('Could not parse projects.json from fork'); }
+          applyList(raw, 'github');
+          return raw;
+        });
+    }
+
+    // Unauthenticated fallback \u2014 try a few static paths.
     var candidates = ['../../projects.json', '/Design-Token-Forge/projects.json', '/projects.json'];
     var i = 0;
-    function tryNext() {
-      if (i >= candidates.length) return;
-      fetch(candidates[i++], { cache: 'no-store' }).then(function (r) {
-        if (!r.ok) throw new Error('http ' + r.status);
-        return r.json();
-      }).then(function (list) {
-        if (!Array.isArray(list)) return;
-        try { localStorage.setItem('dtf-known-projects', JSON.stringify(list)); } catch (e) {}
-        // Re-render the panel + label if either is stale vs. what we just fetched.
-        if (typeof renderProjPanel === 'function' && $projPanel && !$projPanel.hasAttribute('hidden')) renderProjPanel();
-        if (typeof syncProjLabel === 'function') syncProjLabel();
-      }).catch(tryNext);
-    }
-    tryNext();
+    return new Promise(function (resolve, reject) {
+      function tryNext() {
+        if (i >= candidates.length) return reject(new Error('Couldn\u2019t reach projects.json'));
+        fetch(candidates[i++] + (candidates[i-1].indexOf('?') === -1 ? '?_cb=' : '&_cb=') + Date.now(), { cache: 'no-store' })
+          .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+          .then(function (list) { applyList(list, 'http'); resolve(list); })
+          .catch(tryNext);
+      }
+      tryNext();
+    });
   }
+  var _projPanelLastSync = { at: 0, source: 'cache' };
+  var _projPanelLoading  = false;
   function projectName(id) {
     var list = getKnownProjects();
     var hit = list.find(function (p) { return p && p.id === id; });
@@ -5067,12 +5094,20 @@
     // Pull the canonical project list from projects.json so the
     // switcher matches the hub even on first visit. Async, best-
     // effort: a stale cache is fine to render against meanwhile.
-    syncKnownProjectsFromIndex();
+    refreshProjectsList();
 
     $projBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       var open = !$projPanel.hasAttribute('hidden') ? false : true;
-      if (open) { $projPanel.removeAttribute('hidden'); $projBtn.setAttribute('aria-expanded', 'true'); renderProjPanel(); }
+      if (open) {
+        $projPanel.removeAttribute('hidden');
+        $projBtn.setAttribute('aria-expanded', 'true');
+        renderProjPanel();
+        // Fire a fresh fetch every time the dropdown opens so a
+        // delete/create from another tab \u2014 or a manual GitHub edit \u2014
+        // surfaces immediately instead of waiting on a page reload.
+        refreshProjectsList();
+      }
       else { $projPanel.setAttribute('hidden', ''); $projBtn.setAttribute('aria-expanded', 'false'); }
     });
     document.addEventListener('click', function (e) {
@@ -5114,6 +5149,10 @@
   function renderProjPanel() {
     var list = getKnownProjects();
     var active = getActiveProjectId();
+    if (_projPanelLoading && !list.length) {
+      $projPanel.innerHTML = '<div class="ev2-proj-loading"><span class="ev2-proj-loading-spin" aria-hidden="true"></span>Loading projects\u2026</div>';
+      return;
+    }
     if (!list.length) {
       $projPanel.innerHTML = '<div class="ev2-proj-empty">No projects yet.<br><a href="../onboard.html" style="color:var(--brand-content-default,#286CE5)">Create your first project</a></div>';
       return;
@@ -5128,7 +5167,26 @@
             : '')
         + '</div>';
     }).join('');
-    $projPanel.innerHTML = rowsHtml;
+
+    // Footer: live sync status + manual refresh button. Tells the
+    // user WHERE the list came from (GitHub vs. cache) and lets
+    // them re-fetch on demand without closing the dropdown.
+    var statusText;
+    if (_projPanelLoading) {
+      statusText = '<span class=\"ev2-proj-loading-spin\" aria-hidden=\"true\" style=\"display:inline-block;vertical-align:-2px;margin-right:6px\"></span>Refreshing\u2026';
+    } else if (_projPanelLastSync && _projPanelLastSync.at) {
+      var when = relTime(_projPanelLastSync.at);
+      var src  = _projPanelLastSync.source === 'github' ? 'GitHub' :
+                 _projPanelLastSync.source === 'http'   ? 'projects.json' : 'cache';
+      statusText = 'From ' + src + ' \u00b7 ' + when;
+    } else {
+      statusText = 'Showing cached list';
+    }
+    var footHtml = '<div class=\"ev2-proj-foot\">'
+      + '<span class=\"ev2-proj-foot-status\">' + statusText + '</span>'
+      + '<button class=\"ev2-proj-foot-refresh\" data-proj-refresh type=\"button\"' + (_projPanelLoading ? ' disabled' : '') + '>Refresh</button>'
+      + '</div>';
+    $projPanel.innerHTML = rowsHtml + footHtml;
 
     $projPanel.querySelectorAll('[data-proj-id]').forEach(function (row) {
       row.addEventListener('click', function () {
@@ -5144,6 +5202,31 @@
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.click(); }
       });
     });
+    var $refreshBtn = $projPanel.querySelector('[data-proj-refresh]');
+    if ($refreshBtn) {
+      $refreshBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        refreshProjectsList();
+      });
+    }
+  }
+
+  /* Fetch projects.json (GitHub-first when authed), show a spinner
+     state in the panel, and re-render on resolve. Idempotent \u2014 a
+     second call while one is in flight is a no-op. */
+  function refreshProjectsList() {
+    if (_projPanelLoading) return;
+    _projPanelLoading = true;
+    renderProjPanel();
+    syncKnownProjectsFromIndex()
+      .then(function () { _projPanelLoading = false; renderProjPanel(); })
+      .catch(function () {
+        _projPanelLoading = false;
+        // Render anyway so the cached list reappears with the stale
+        // footer message instead of an indefinite spinner.
+        renderProjPanel();
+        if (window.ev2Toast) window.ev2Toast('Couldn\u2019t refresh project list \u2014 showing cached', 'warn', 3000);
+      });
   }
 
   function attemptProjectDelete(id) {
