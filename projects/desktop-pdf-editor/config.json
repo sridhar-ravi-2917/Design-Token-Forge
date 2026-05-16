@@ -65,9 +65,8 @@
     "base": "greyscale",
     "dim": "greyscale",
     "deep": "greyscale",
-    "accent": "primary",
+    "accent": "brand",
     "container": "greyscale",
-    "over-container": "greyscale",
     "float": "greyscale",
     "inverse": "greyscale"
   },
@@ -407,5 +406,12 @@
   },
   "owner": "sridhar-ravi-2917",
   "paletteAnchor": "exact",
-  "schemaVersion": 2
+  "schemaVersion": 2,
+  "latestVersion": {
+    "version": "v0.0.1",
+    "name": "May16 23:27",
+    "description": "New",
+    "savedAt": "2026-05-16T17:57:49.152Z",
+    "savedBy": "sridhar-ravi-2917"
+  }
 }
