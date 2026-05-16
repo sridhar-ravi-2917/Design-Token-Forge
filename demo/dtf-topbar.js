@@ -168,13 +168,13 @@
   };
 
   DtfTopbar.prototype._labelFor = function (page) {
+    // Explicit label attribute always wins (used by hub / index)
+    var explicit = this.getAttribute('label');
+    if (explicit) return explicit;
     if (!page) return 'All Components';
     for (var i = 0; i < NAV_ITEMS.length; i++) {
       if (NAV_ITEMS[i].href === page) return NAV_ITEMS[i].label;
     }
-    // Allow callers to pass a custom label that isn't in the registry
-    var explicit = this.getAttribute('label');
-    if (explicit) return explicit;
     return 'All Components';
   };
 
