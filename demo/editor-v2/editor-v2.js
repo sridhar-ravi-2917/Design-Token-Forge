@@ -1185,21 +1185,19 @@
     // of crying "FAIL".
     if (sent.intent === 'edge') {
       if (sent.judge.pass) {
-        return (ratio + ' against ' + baselineShort + ' — clears the 3:1 minimum, so this border can identify the region on its own.').replace(/"/g, '&quot;');
+        return (ratio + ' against ' + baselineShort + ' \u2014 clears the 3:1 minimum, so this border can identify the region on its own.').replace(/"/g, '&quot;');
       }
-      return (ratio + ' against ' + baselineShort + '. Below the 3:1 minimum for borders that stand alone (WCAG 1.4.11) — fine if you pair this border with a shadow or spacing, otherwise step it ' + role.direction + '.').replace(/"/g, '&quot;');
+      return ('Below the 3:1 minimum against ' + baselineShort + '. Fine if you pair this border with a shadow or spacing (WCAG 1.4.11), otherwise step it ' + role.direction + '.').replace(/"/g, '&quot;');
     }
-    // Text intent (content family) — strict pass/fail, prescriptive
+    // Text intent (content family) \u2014 strict pass/fail, prescriptive
     // remedy when below threshold.
     var lead = sent.judge.pass
-      ? 'Passes — '
-      : (sent.ratio >= threshold - 0.5 ? 'Just below — ' : 'Fails — ');
-    var body = role.what + ' has ' + ratio + ' contrast against ' + baselineShort
-             + (sent.judge.pass ? '' : (', under the ' + threshold + ':1 minimum for ' + role.usage + '.'));
-    var hint = '';
-    if (!sent.judge.pass) {
-      hint = '  Try stepping it ' + role.direction + ', or step ' + baselineShort + ' the other way.';
-    }
+      ? 'Passes \u2014 '
+      : (sent.ratio >= threshold - 0.5 ? 'Just below \u2014 ' : 'Fails \u2014 ');
+    var body = sent.judge.pass
+      ? role.what + ' reads on ' + baselineShort + '.'
+      : role.what + ' is under the ' + threshold + ':1 minimum against ' + baselineShort + ' for ' + role.usage + '.';
+    var hint = sent.judge.pass ? '' : '  Try stepping it ' + role.direction + ', or step ' + baselineShort + ' the other way.';
     return (lead + body + hint).replace(/"/g, '&quot;');
   }
   /* Per-prop short copy used inside wcagTipText, so a fail on
@@ -2751,9 +2749,7 @@
         sugBlock = '<div class="ev2-wcag-pop-fix ev2-wcag-pop-fix-empty">No step in this palette reaches the threshold against ' + sent.baseline.replace(/^--surface-[^-]+-/, '') + '. Try editing the baseline instead.</div>';
       }
 
-      var edgeNote = sent.intent === 'edge' && !sent.judge.pass
-        ? '<div class="ev2-wcag-pop-alt">Or keep this step and pair the border with a shadow or extra spacing \u2014 3:1 is only required when the border alone identifies the region.</div>'
-        : '';
+      var edgeNote = '';
 
       pop.innerHTML =
           '<div class="ev2-wcag-pop-head">'
