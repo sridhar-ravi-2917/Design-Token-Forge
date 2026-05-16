@@ -146,10 +146,10 @@
      the existing surfaces.css output, and the \u00b1 stepper is the
      escape hatch when a surface needs a different anchor. */
   var T2_BASE_STEPS = {
-    light: { bright:'25',  base:'50',  dim:'100', deep:'200',
+    light: { bright:'white', base:'50',  dim:'100', deep:'200',
              accent:'25',  container:'25', float:'25',  inverse:'900' },
-    dark:  { bright:'850', base:'900', dim:'850', deep:'800',
-             accent:'900', container:'850', float:'800', inverse:'25'  }
+    dark:  { bright:'850', base:'900', dim:'850', deep:'black',
+             accent:'900', container:'850', float:'800', inverse:'white' }
   };
 
   /* The 16 properties per surface. Default offsets are signed in
