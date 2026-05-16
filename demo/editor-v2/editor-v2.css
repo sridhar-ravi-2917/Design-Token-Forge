@@ -84,9 +84,10 @@ body{
 .ev2-title-sub{font-size:10px;font-weight:500;color:var(--ev2-chrome-ct-faint);text-transform:uppercase;letter-spacing:.06em}
 
 /* Project chip itself now uses the unified .nav-project pill from
-   demo/shared.css. Only the dropdown panel keeps editor-local styles
-   so its `position:absolute` resolves against the pill wrapper. */
-.nav-project{position:relative}
+   demo/shared.css. The pill clips its inner action buttons via
+   overflow:hidden, so the dropdown panel cannot live inside it —
+   we wrap pill + panel in a position:relative host instead. */
+.nav-project-host{position:relative;display:inline-flex;align-items:center}
 .ev2-proj-panel{
   position:absolute;top:calc(100% + 6px);left:0;
   min-width:240px;max-width:320px;max-height:340px;overflow-y:auto;
@@ -169,64 +170,52 @@ body{
   box-shadow:var(--shadow-xs,0 1px 2px rgba(0,0,0,.06));
 }
 
+/* Right-side action buttons share the demo's ghost-button density
+   (--demo-* tokens, 28px height, 6px radius) so the editor topbar
+   reads identical to every other page. */
 .ev2-css-toggle{
   display:inline-flex;align-items:center;gap:6px;
-  font-size:11px;font-weight:500;
-  color:var(--ev2-chrome-ct-subtle);cursor:pointer;
+  padding:6px 10px;height:28px;line-height:1;
+  font-size:11px;font-weight:600;
+  color:var(--demo-fg-subtle);cursor:pointer;
   user-select:none;
 }
 .ev2-css-toggle input{margin:0;cursor:pointer}
 
-.ev2-history-btn{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:6px 10px;
-  border:1px solid var(--ev2-chrome-outline);
-  border-radius:var(--radius-md,6px);
-  background:transparent;
-  color:var(--ev2-chrome-ct-subtle);
-  font:inherit;font-size:11px;font-weight:600;
-  cursor:pointer;
-  transition:all 120ms ease;
-}
-.ev2-history-btn:hover{
-  color:var(--ev2-chrome-ct-strong);
-  border-color:var(--ev2-chrome-ct-faint);
-  background:var(--ev2-chrome-bg);
-}
-.ev2-history-btn svg{opacity:.8}
-
-/* Mirror .ev2-history-btn density so the preview link reads as a
-   sibling action, not a heavier CTA. text-decoration:none keeps it
-   from looking like an inline link inside the chrome strip. */
+.ev2-history-btn,
 .ev2-preview-link{
   display:inline-flex;align-items:center;gap:6px;
-  padding:6px 10px;
-  border:1px solid var(--ev2-chrome-outline);
+  padding:6px 10px;height:28px;line-height:1;
+  border:1px solid var(--demo-border);
   border-radius:var(--radius-md,6px);
   background:transparent;
-  color:var(--ev2-chrome-ct-subtle);
+  color:var(--demo-fg-subtle);
   font:inherit;font-size:11px;font-weight:600;
   text-decoration:none;
   cursor:pointer;
   transition:all 120ms ease;
+  font-family:inherit;
 }
+.ev2-history-btn:hover,
 .ev2-preview-link:hover{
-  color:var(--ev2-chrome-ct-strong);
-  border-color:var(--ev2-chrome-ct-faint);
-  background:var(--ev2-chrome-bg);
+  color:var(--demo-fg-strong);
+  border-color:var(--demo-fg-faint);
+  background:var(--demo-surface-alt);
 }
+.ev2-history-btn svg,
 .ev2-preview-link svg{opacity:.8}
 
 .ev2-deploy{
   display:inline-flex;align-items:center;gap:8px;
-  padding:7px 14px;
+  padding:6px 12px;height:28px;line-height:1;
   border:1px solid var(--brand-component-bg-default);
   border-radius:var(--radius-md,6px);
   background:var(--brand-component-bg-default);
   color:var(--brand-on-component);
-  font:inherit;font-size:12px;font-weight:600;
+  font:inherit;font-size:11px;font-weight:600;
   cursor:pointer;
   transition:all 120ms ease;
+  font-family:inherit;
 }
 .ev2-deploy:hover:not(:disabled){background:var(--brand-component-bg-hover);border-color:var(--brand-component-bg-hover)}
 .ev2-deploy:disabled{opacity:.4;cursor:not-allowed}
