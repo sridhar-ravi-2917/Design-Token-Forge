@@ -240,6 +240,20 @@
   };
   function isPolaritySensitive(propId) { return POLARITY_SENSITIVE[propId] === 1; }
 
+  /* Inverse-only deltas for cm-bg-hover and cm-bg-pressed. These
+     override the normal +1/+2 "darker" elevation deltas because the
+     inverse bg sits one step away from the palette extreme — the
+     standard deltas clamp at the wall and produce no motion. The
+     overrides express elevation TOWARD the palette center (same
+     direction cm-bg itself offsets from bg) at compressed magnitudes
+     so hover reads as resting and pressed is a subtle 1-step shift.
+     Tonal multiplier is applied at resolve time so light/dark mirror
+     automatically. */
+  var INVERSE_CM_BG_DELTAS = {
+    'cm-bg-hover':    0,   // sits flush with cm-bg
+    'cm-bg-pressed': -1    // 1 step toward palette center
+  };
+
   function makeEmptyT2() {
     var out = {};
     ['light','dark'].forEach(function (mode) {
@@ -265,6 +279,20 @@
     // Walk: parent's RESOLVED step (so user's parent override
     // cascades into the child's default) + this prop's delta.
     var parentStep = resolveT2Step(surfaceId, prop.parent, mode);
+    // Inverse surface compresses + reverses cm-bg elevation: the
+    // bg sits adjacent to the palette extreme (light-mode inverse
+    // bg = 900, dark-mode inverse bg = white) so the regular
+    // +1 / +2 "darker" hover/pressed deltas clamp into the wall
+    // and produce no visible motion. The natural "raised" feel on
+    // an inverse panel goes back TOWARD the palette center —
+    // matching the direction cm-bg itself offsets from bg. Magnitudes
+    // are also compressed by one step: hover = 0 (same as cm-bg —
+    // no motion required to read as resting), pressed = 1 step
+    // toward center (subtle press indicator). cm-outline subtree
+    // is still handled by POLARITY_SENSITIVE below.
+    if (surfaceId === 'inverse' && INVERSE_CM_BG_DELTAS.hasOwnProperty(propId)) {
+      return stepRel(parentStep, INVERSE_CM_BG_DELTAS[propId] * tonalDir(mode));
+    }
     // Polarity: most props (subtle/strong/outline/separator/ct-*/
     // cm-outline*/cm-separator) encode "contrast against bg" and
     // assume bg sits at the LIGHT end of its mode's palette. For
