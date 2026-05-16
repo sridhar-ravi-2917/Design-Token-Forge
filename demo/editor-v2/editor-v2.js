@@ -1243,6 +1243,63 @@
     pushPreview();
   }
 
+  /* ── T2 bulk ops ─────────────────────────────────────
+     Three high-frequency designer shortcuts wired into a per-row
+     overflow menu. All write through the same setT2Step path so
+     the auto-default-drop logic still keeps the override map clean
+     (e.g. applying step that equals the dark-mode default for that
+     surface won't pollute State.t2.dark). */
+
+  /* Mirror the current step pick in `mode` onto the OTHER mode for
+     the same surface/prop. The mode-mirroring is naive — same
+     literal step name, no tonal flip. That matches designer mental
+     model ("I want step 600 in both"), and works correctly because
+     the per-mode default also uses literal steps. */
+  function bulkApplyToOtherMode(surfaceId, propId, mode) {
+    var step = resolveT2Step(surfaceId, propId, mode);
+    var other = (mode === 'light') ? 'dark' : 'light';
+    setT2Step(surfaceId, propId, other, step);
+  }
+
+  /* Push the current step pick to every OTHER surface in the
+     current mode. Useful when a designer dials in a content/border
+     tone they want consistent across the whole surface family. */
+  function bulkApplyToAllSurfaces(surfaceId, propId, mode) {
+    var step = resolveT2Step(surfaceId, propId, mode);
+    T2_SURFACES.forEach(function (s) {
+      if (s.id === surfaceId) return;
+      setT2Step(s.id, propId, mode, step);
+    });
+  }
+
+  /* Clear THIS prop's override + every descendant prop's override
+     in the current surface + mode. Lets the user roll back an
+     entire branch (e.g. all ct-* once ct-default was tweaked) in
+     one click instead of clicking Reset four times. */
+  function descendantPropIds(rootPropId) {
+    var out = [];
+    function walk(parentId) {
+      T2_PROP_DEFS.forEach(function (p) {
+        if (p.parent === parentId) {
+          out.push(p.id);
+          walk(p.id);
+        }
+      });
+    }
+    walk(rootPropId);
+    return out;
+  }
+  function bulkResetFamily(surfaceId, propId, mode) {
+    if (!State.t2[mode] || !State.t2[mode][surfaceId]) return;
+    var bag = State.t2[mode][surfaceId];
+    delete bag[propId];
+    descendantPropIds(propId).forEach(function (d) { delete bag[d]; });
+    scheduleAutosave();
+    refreshChangeBar();
+    renderT2();
+    pushPreview();
+  }
+
   /* Property Card primitive (docs \u00a74). Same DOM will be used by T1
      migration + T3 \u2014 keep it portable; no T2-specific assumptions
      except what the caller passes in. */
@@ -1342,6 +1399,7 @@
         + '<button type="button" class="ev2-pc-step-btn" data-pc-step="+1" data-tip="Step darker" aria-label="Step darker">+</button>'
         + '<button type="button" class="ev2-pc-disclose" data-pc-toggle aria-expanded="' + (expanded ? 'true' : 'false') + '" data-tip="' + (expanded ? 'Hide steps' : 'Pick a step') + '" aria-label="' + (expanded ? 'Hide steps' : 'Pick a step') + '"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
         + '<button type="button" class="ev2-pc-reset" data-pc-reset' + (opts.isDetached ? '' : ' disabled') + ' data-tip="Reset to default" aria-label="Reset to default">\u21BA</button>'
+        + (opts.showMore ? '<button type="button" class="ev2-pc-more" data-pc-more data-tip="More\u2026" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">\u22EF</button>' : '')
       + '</div>'
       + ladderHTML
     + '</div>';
@@ -1389,6 +1447,14 @@
           deltaSigned = (cIdx - pIdx) * tonalDir(mode);
         }
       }
+      // Overflow menu visibility: this row is detached (has a step
+      // override to bulk-apply or reset) OR has any descendant in
+      // the same mode with an override (so "Reset family" is useful).
+      var bag = (State.t2[mode] && State.t2[mode][surface.id]) || {};
+      var hasDirtyDescendants = descendantPropIds(prop.id).some(function (d) {
+        return bag[d] && bag[d].step;
+      });
+      var showMore = isDetached || hasDirtyDescendants;
       return propertyCardHTML({
         tokenName: '--surface-' + surface.id + '-' + prop.id,
         swatchHex: swatchHex,
@@ -1399,6 +1465,8 @@
         level: prop.level,
         parentLabel: parentLabel,
         deltaSigned: deltaSigned,
+        showMore: showMore,
+        hasDirtyDescendants: hasDirtyDescendants,
         dataAttrs: {
           'pc-surface': surface.id,
           'pc-prop':    prop.id,
@@ -2051,6 +2119,19 @@
         card2.getAttribute('data-pc-prop'),
         State.editingMode
       );
+      return;
+    }
+    var moreBtn = e.target.closest && e.target.closest('[data-pc-more]');
+    if (moreBtn) {
+      var mcard = moreBtn.closest('.ev2-pc');
+      if (!mcard) return;
+      openT2RowMenu(moreBtn, mcard);
+      return;
+    }
+    var menuItem = e.target.closest && e.target.closest('[data-pc-bulk]');
+    if (menuItem) {
+      handleT2RowBulk(menuItem);
+      return;
     }
   });
 
@@ -2622,6 +2703,126 @@
     window.addEventListener('resize', hide);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
   })();
+
+  /* ── T2 row overflow menu (singleton) ──────────────────
+     The ⋯ button on a Property Card pops a small menu of bulk ops:
+       - Apply to {other mode}
+       - Apply to all surfaces (current mode)
+       - Reset family   (this prop + descendants in current mode)
+     All ops resolve at action time (not at menu-open time) via
+     resolveT2Step + the bulkApply* helpers. Outside click / Esc /
+     scroll close. */
+  var __t2RowMenu = null;
+  function closeT2RowMenu() {
+    if (!__t2RowMenu) return;
+    __t2RowMenu.menu.remove();
+    var trig = __t2RowMenu.trigger;
+    if (trig) trig.setAttribute('aria-expanded', 'false');
+    __t2RowMenu = null;
+  }
+  function openT2RowMenu(triggerBtn, card) {
+    if (__t2RowMenu && __t2RowMenu.trigger === triggerBtn) { closeT2RowMenu(); return; }
+    closeT2RowMenu();
+    var surfaceId = card.getAttribute('data-pc-surface');
+    var propId    = card.getAttribute('data-pc-prop');
+    var mode      = State.editingMode;
+    var otherMode = (mode === 'light') ? 'dark' : 'light';
+    var ov = State.t2[mode][surfaceId] && State.t2[mode][surfaceId][propId];
+    var isDetached = !!(ov && ov.step);
+    var bag = (State.t2[mode] && State.t2[mode][surfaceId]) || {};
+    var hasDirtyDescendants = descendantPropIds(propId).some(function (d) {
+      return bag[d] && bag[d].step;
+    });
+    var step = resolveT2Step(surfaceId, propId, mode);
+    // Step preview hex so each "Apply" item shows the literal value
+    // the action will write.
+    var stepHex = t2HexFor(surfaceId, propId, mode);
+
+    var items = [];
+    if (isDetached) {
+      items.push({
+        key: 'apply-other-mode',
+        label: 'Apply to ' + otherMode + ' mode',
+        meta: 'mirror step ' + step,
+        sw: stepHex
+      });
+      items.push({
+        key: 'apply-all-surfaces',
+        label: 'Apply to all surfaces',
+        meta: 'this mode \u2014 step ' + step,
+        sw: stepHex
+      });
+    }
+    if (hasDirtyDescendants || isDetached) {
+      var descCount = descendantPropIds(propId).filter(function (d) { return bag[d] && bag[d].step; }).length;
+      var resetLabel = hasDirtyDescendants
+        ? 'Reset family (' + (descCount + (isDetached ? 1 : 0)) + ' overrides)'
+        : 'Reset just this row';
+      items.push({
+        key: 'reset-family',
+        label: resetLabel,
+        meta: hasDirtyDescendants ? 'this row + descendants, this mode' : 'this mode',
+        danger: true
+      });
+    }
+    if (!items.length) return;
+
+    var menu = document.createElement('div');
+    menu.className = 'ev2-pc-menu';
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = items.map(function (it) {
+      var swHTML = it.sw ? '<span class="ev2-pc-menu-sw" style="background:' + it.sw + '"></span>' : '<span class="ev2-pc-menu-sw ev2-pc-menu-sw-ph" aria-hidden="true"></span>';
+      var dangerAttr = it.danger ? ' data-danger="true"' : '';
+      return '<button type="button" class="ev2-pc-menu-item" role="menuitem"'
+        + ' data-pc-bulk="' + it.key + '"'
+        + ' data-surface="' + surfaceId + '" data-prop="' + propId + '"'
+        + dangerAttr + '>'
+        + swHTML
+        + '<span class="ev2-pc-menu-txt">'
+          + '<span class="ev2-pc-menu-lbl">' + it.label + '</span>'
+          + '<span class="ev2-pc-menu-meta">' + it.meta + '</span>'
+        + '</span>'
+      + '</button>';
+    }).join('');
+    document.body.appendChild(menu);
+
+    var r = triggerBtn.getBoundingClientRect();
+    var mw = menu.offsetWidth, mh = menu.offsetHeight;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var top = r.bottom + 6;
+    if (top + mh > vh - 8) top = Math.max(8, r.top - mh - 6);
+    var left = Math.round(r.right - mw);
+    left = Math.max(8, Math.min(vw - mw - 8, left));
+    menu.style.top = Math.round(top) + 'px';
+    menu.style.left = left + 'px';
+    triggerBtn.setAttribute('aria-expanded', 'true');
+    __t2RowMenu = { menu: menu, trigger: triggerBtn };
+  }
+  function handleT2RowBulk(itemBtn) {
+    var key       = itemBtn.getAttribute('data-pc-bulk');
+    var surfaceId = itemBtn.getAttribute('data-surface');
+    var propId    = itemBtn.getAttribute('data-prop');
+    var mode      = State.editingMode;
+    closeT2RowMenu();
+    if (key === 'apply-other-mode')   bulkApplyToOtherMode(surfaceId, propId, mode);
+    else if (key === 'apply-all-surfaces') bulkApplyToAllSurfaces(surfaceId, propId, mode);
+    else if (key === 'reset-family')  bulkResetFamily(surfaceId, propId, mode);
+  }
+  document.addEventListener('click', function (e) {
+    if (!__t2RowMenu) return;
+    if (e.target.closest && e.target.closest('[data-pc-more]')) return; // own trigger handled above
+    if (__t2RowMenu.menu.contains(e.target)) return; // own item handled above
+    closeT2RowMenu();
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && __t2RowMenu) {
+      var trig = __t2RowMenu.trigger;
+      closeT2RowMenu();
+      if (trig && trig.focus) trig.focus();
+    }
+  });
+  window.addEventListener('scroll', function () { if (__t2RowMenu) closeT2RowMenu(); }, true);
+  window.addEventListener('resize', function () { if (__t2RowMenu) closeT2RowMenu(); });
 
   /* ── WCAG sentinel popover ──────────────────────────────
      Click a .ev2-pc-wcag chip on a Property Card → opens a click-
