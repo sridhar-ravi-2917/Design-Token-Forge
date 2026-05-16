@@ -1,7 +1,7 @@
 {
   "id": "desktop-pdf-editor",
   "name": "Desktop PDF Editor",
-  "description": "Default project \u2014 the original DTF token set for the Desktop PDF Editor product.",
+  "description": "Default project — the original DTF token set for the Desktop PDF Editor product.",
   "created": "2026-04-08",
   "paletteKeys": {
     "brand": "#286CE5",
@@ -406,5 +406,6 @@
     "fileKeys": []
   },
   "owner": "sridhar-ravi-2917",
-  "paletteAnchor": "exact"
+  "paletteAnchor": "exact",
+  "schemaVersion": 2
 }

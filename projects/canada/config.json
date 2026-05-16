@@ -396,5 +396,6 @@
       "cm-separator": "750"
     }
   },
-  "paletteAnchor": "exact"
+  "paletteAnchor": "exact",
+  "schemaVersion": 2
 }

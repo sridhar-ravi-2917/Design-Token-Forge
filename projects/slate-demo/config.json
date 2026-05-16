@@ -66,5 +66,6 @@
     "float": "greyscale",
     "inverse": "greyscale"
   },
-  "paletteAnchor": "exact"
+  "paletteAnchor": "exact",
+  "schemaVersion": 2
 }

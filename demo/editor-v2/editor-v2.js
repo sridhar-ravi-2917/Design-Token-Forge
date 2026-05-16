@@ -3764,9 +3764,9 @@
       targetSchema: MIGRATION_TARGET_SCHEMA,
       undeclaredPalettes: undeclaredPalettes,
       customRoleIds: customRoleIds,
+      // customRoles get promoted at runtime — info only, not blocking.
       hasWork: (schemaVersion < MIGRATION_TARGET_SCHEMA)
             || (undeclaredPalettes.length > 0)
-            || (customRoleIds.length > 0)
     };
   }
 
@@ -3811,9 +3811,11 @@
       // Falls back to a simple alert if the browser blocks Blob+open.
       var summary = '# Audit summary for "' + audit.projectId + '"\n\n'
         + '- schema: ' + audit.schemaVersion + ' → ' + audit.targetSchema + '\n'
-        + '- custom roles awaiting T1: ' + (audit.customRoleIds.join(', ') || 'none') + '\n'
+        + '- custom roles promoted at runtime: ' + (audit.customRoleIds.join(', ') || 'none') + '\n'
         + '- undeclared palettes: ' + (audit.undeclaredPalettes.join(', ') || 'none') + '\n\n'
-        + 'Run `pnpm audit:migration` for the full per-project report.';
+        + 'To finalize the migration on disk, run:\n\n'
+        + '    pnpm audit:migration --bump\n\n'
+        + 'This writes "schemaVersion": 2 to projects/' + audit.projectId + '/config.json. After that, this banner disappears for all users.';
       try {
         var blob = new Blob([summary], { type: 'text/markdown' });
         var url = URL.createObjectURL(blob);

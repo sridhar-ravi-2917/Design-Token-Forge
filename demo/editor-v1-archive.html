@@ -3,7 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Token Editor — Design Token Forge</title>
+<title>Token Editor (archived) — Design Token Forge</title>
+<!--
+  ──────────────────────────────────────────────────────────────
+  ARCHIVED — this is the v1 editor, kept only for diffing and
+  fallback. The default editor is now demo/editor-v2/index.html.
+  Auto-redirect after a short pause so users land on v2.
+  Override with ?keep=1 to view this archive directly.
+  ────────────────────────────────────────────────────────────── -->
+<script>
+  (function () {
+    try {
+      var url = new URL(location.href);
+      if (url.searchParams.get('keep') === '1') return;
+      var activeProject = localStorage.getItem('dtf-active-project') || '';
+      var target = './editor-v2/index.html'
+        + (activeProject ? '?project=' + encodeURIComponent(activeProject) : '');
+      /* Brief 1.2s delay so the redirect banner is visible. Use
+         location.replace so the back button doesn't loop. */
+      setTimeout(function () { location.replace(target); }, 1200);
+    } catch (e) { /* fall through to v1 below */ }
+  })();
+</script>
+<style>
+  #v1-archive-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+    padding: 14px 20px;
+    background: #FEF3C7; border-bottom: 2px solid #F59E0B;
+    color: #78350F; font: 600 13px/1.4 system-ui, -apple-system, sans-serif;
+    display: flex; align-items: center; gap: 12px;
+  }
+  #v1-archive-banner a {
+    color: #78350F; text-decoration: underline; font-weight: 700;
+  }
+</style>
 <link rel="stylesheet" href="../packages/tokens/src/index.css">
 <link rel="stylesheet" href="shared.css?v=20260514l">
 <style>
@@ -189,6 +222,11 @@
 </style>
 </head>
 <body>
+
+<div id="v1-archive-banner">
+  <span>This is the archived v1 editor. Redirecting to the v2 editor… (or append <code>?keep=1</code> to stay on v1).</span>
+  <a href="./editor-v2/index.html">Open v2 now →</a>
+</div>
 
 <nav class="explorer-nav" aria-label="Site navigation"></nav>
 

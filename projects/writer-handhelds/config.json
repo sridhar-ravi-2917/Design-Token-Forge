@@ -422,5 +422,6 @@
     "inverse": "neutral"
   },
   "owner": "sridhar-ravi-2917",
-  "paletteAnchor": "exact"
+  "paletteAnchor": "exact",
+  "schemaVersion": 2
 }

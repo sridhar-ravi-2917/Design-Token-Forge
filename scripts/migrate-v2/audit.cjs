@@ -43,6 +43,7 @@ const TARGET_SCHEMA = 2;
 /* ── arg parsing ─────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
 const wantJSON = argv.includes('--json');
+const wantBump = argv.includes('--bump');
 const onlyId   = argv.find(a => !a.startsWith('--'));
 
 /* ── helpers ─────────────────────────────────────────────────── */
@@ -122,14 +123,17 @@ function auditProject(id) {
   const semanticFrozen = frozenHexes(semantic);
 
   /* hasMigrationWork:
-     true if a structural migration item needs attention. Frozen
-     hex literals are reported as INFO only (current generator
-     emits resolved hex by design, so they're noise as a blocker
-     until we cut over to var()-only output). */
+     true if a structural migration item needs attention.
+     - schemaVersion bump: real work, blocks.
+     - undeclaredPalettes: real work, blocks (data integrity).
+     - customRoles: NOT a blocker — v2 promotes them at runtime via
+       promoteCustomRoles(). Listed as info only so users know
+       what's being promoted.
+     - frozen hex literals: info only (current generator emits
+       resolved hex by design). */
   const hasMigrationWork =
     schemaVersion < TARGET_SCHEMA ||
-    undeclaredPalettes.length > 0 ||
-    t1Pending.length > 0;
+    undeclaredPalettes.length > 0;
 
   return {
     id,
@@ -231,6 +235,46 @@ function main() {
   }
 
   const reports = ids.map(auditProject);
+
+  /* --bump: write schemaVersion:2 in-place for every project whose
+     only outstanding migration item is the schema bump itself.
+     customRoles are handled at runtime (promoted in v2), so they
+     don't block the bump. Undeclared palettes DO block — the user
+     needs to either declare them in paletteKeys or delete the
+     primitive block before the project is considered v2-ready. */
+  if (wantBump) {
+    const bumped = [];
+    const skipped = [];
+    reports.forEach(r => {
+      if (r.schemaVersion >= TARGET_SCHEMA) return;
+      if (r.undeclaredPalettes.length > 0) {
+        skipped.push({ id: r.id, reason: 'undeclared palettes: ' + r.undeclaredPalettes.join(', ') });
+        return;
+      }
+      const cfgPath = path.join(PROJECTS_DIR, r.id, 'config.json');
+      const cfg = readJSON(cfgPath);
+      cfg.schemaVersion = TARGET_SCHEMA;
+      fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+      bumped.push(r.id);
+    });
+    process.stderr.write('\n--bump results:\n');
+    process.stderr.write('  bumped: ' + (bumped.length ? bumped.join(', ') : '—') + '\n');
+    if (skipped.length) {
+      process.stderr.write('  skipped:\n');
+      skipped.forEach(s => process.stderr.write('    ' + s.id + ' — ' + s.reason + '\n'));
+    }
+    process.stderr.write('\n');
+    /* Re-run audit so the exit code reflects post-bump state. */
+    const reports2 = ids.map(auditProject);
+    const exitCode = reports2.some(r => r.hasMigrationWork) ? 1 : 0;
+    if (wantJSON) {
+      process.stdout.write(JSON.stringify({ targetSchema: TARGET_SCHEMA, reports: reports2, bumped, skipped }, null, 2) + '\n');
+    } else {
+      process.stdout.write(renderMd(reports2) + '\n');
+    }
+    process.exit(exitCode);
+  }
+
   const exitCode = reports.some(r => r.hasMigrationWork) ? 1 : 0;
 
   if (wantJSON) {
