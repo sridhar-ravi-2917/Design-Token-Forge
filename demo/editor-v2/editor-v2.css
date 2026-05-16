@@ -1109,10 +1109,25 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   background:var(--surface-inverse-ct-faint);
   flex-shrink:0;
 }
-.ev2-toast[data-show]{opacity:1;transform:translateY(0)}
+.ev2-toast[data-show]{opacity:1;transform:translateY(0);pointer-events:auto}
 .ev2-toast[data-kind="ok"]::before{background:var(--success-component-bg-default,#0B8D28)}
 .ev2-toast[data-kind="err"]::before{background:var(--danger-component-bg-default,#D61D20)}
 .ev2-toast[data-kind="warn"]::before{background:var(--warning-component-bg-default,#A66208)}
+/* Error toasts can carry multi-line GitHub API messages and stick
+   around until dismissed — give them more room to breathe. */
+.ev2-toast[data-kind="err"]{
+  max-width:520px;align-items:flex-start;padding:12px 10px 12px 14px;
+  border-color:var(--danger-component-outline-default,#D61D20);
+}
+.ev2-toast[data-kind="err"]::before{margin-top:6px}
+.ev2-toast-msg{flex:1 1 auto;line-height:1.45;white-space:normal;word-break:break-word}
+.ev2-toast-dismiss{
+  flex-shrink:0;background:transparent;border:0;color:inherit;
+  font-size:18px;line-height:1;cursor:pointer;padding:0 4px;
+  opacity:.7;border-radius:4px;
+}
+.ev2-toast-dismiss:hover{opacity:1;background:rgba(255,255,255,.08)}
+.ev2-toast-dismiss:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:2px}
 
 /* ══════════════════════════════════════════════════════════════
    T2 Surfaces — surface picker + Property Card primitive

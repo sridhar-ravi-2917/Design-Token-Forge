@@ -3694,13 +3694,12 @@
         : '<div class="ev2-deploy-section-empty">Nothing to snapshot yet \u2014 the project has no editable mappings.</div>';
       confirmBtn.disabled = false;
     } else {
-      // In wizard's deploy step the summary is informational; never
-      // disable the Done button because the actual work (commit) is
-      // already finished.
+      // In wizard's deploy step the figma-push panel IS the primary
+      // content. Hide the deploy summary body to keep focus on the
+      // next-action instructions; the user already saw the summary
+      // in step 1.
       if (inWizard) {
-        body.innerHTML = summary.total === 0
-          ? '<div class="ev2-deploy-section-empty">No outstanding changes \u2014 the published snapshot matches what designers will see.</div>'
-          : summary.sections.map(renderSummarySection).join('');
+        body.innerHTML = '';
         confirmBtn.disabled = false;
       } else if (summary.total === 0) {
         body.innerHTML = '<div class="ev2-deploy-section-empty">No changes to deploy. Make some edits first.</div>';
@@ -3747,8 +3746,24 @@
       headers: { 'Authorization': 'Bearer ' + getGhPat(), 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
       body: opts.body ? JSON.stringify(opts.body) : undefined
     }).then(function (r) {
-      if (!r.ok) return r.json().then(function (d) { throw new Error(d.message || r.status); });
-      return r.json();
+      // GitHub endpoints often return 202/204 with an empty body
+      // (workflow_dispatch, delete ref, etc.). Parse JSON only when
+      // there's actually content — otherwise return a synthetic ok
+      // marker so callers can keep chaining .then().
+      return r.text().then(function (txt) {
+        var data = null;
+        if (txt && txt.trim()) {
+          try { data = JSON.parse(txt); } catch (_) { data = { message: txt }; }
+        }
+        if (!r.ok) {
+          var msg = (data && data.message) ? data.message : (r.status + ' ' + r.statusText);
+          var err = new Error(msg);
+          err.status = r.status;
+          err.body = data;
+          throw err;
+        }
+        return data || { ok: true, status: r.status };
+      });
     });
   }
   function ghEncode(str) { return btoa(unescape(encodeURIComponent(str))); }
@@ -4025,11 +4040,33 @@
   var toastEl = document.getElementById('ev2Toast');
   var toastTimer = null;
   window.ev2Toast = function (msg, kind) {
-    toastEl.textContent = msg;
-    toastEl.setAttribute('data-kind', kind || 'ok');
+    kind = kind || 'ok';
+    // Error toasts get a dismiss button and stay until the user
+    // closes them — they often contain GitHub API messages the user
+    // needs to read in full ("Resource not accessible by integration"
+    // is too long for 2.4s).
+    var isErr = (kind === 'err');
+    toastEl.innerHTML = '';
+    var msgSpan = document.createElement('span');
+    msgSpan.className = 'ev2-toast-msg';
+    msgSpan.textContent = msg;
+    toastEl.appendChild(msgSpan);
+    if (isErr) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ev2-toast-dismiss';
+      btn.setAttribute('aria-label', 'Dismiss');
+      btn.textContent = '×';
+      btn.addEventListener('click', function () { toastEl.removeAttribute('data-show'); });
+      toastEl.appendChild(btn);
+    }
+    toastEl.setAttribute('data-kind', kind);
     toastEl.setAttribute('data-show', '');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toastEl.removeAttribute('data-show'); }, 2400);
+    if (!isErr) {
+      var ttl = kind === 'warn' ? 4000 : 2400;
+      toastTimer = setTimeout(function () { toastEl.removeAttribute('data-show'); }, ttl);
+    }
   };
 
   function boot() {
