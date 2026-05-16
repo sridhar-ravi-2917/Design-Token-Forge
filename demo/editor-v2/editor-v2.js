@@ -3454,7 +3454,9 @@
        appear only as custom palettes (T0) but not as editable T1
        roles. We fetch the config synchronously so ROLES + State.t1
        are extended BEFORE the AA-fix loop iterates them. */
+    injectProjectPrimitivesSync();
     promoteCustomRoles();
+    seedSurfacePaletteFromConfig();
 
     bindAddPaletteDialog();
     // Default: show CSS names ON. Overridden below if UI state has been saved.
@@ -3677,6 +3679,52 @@
     return null;
   }
 
+  /* Inject the project's primitives.css into <head> so the editor
+     sees its FULL --prim-* ladder — not just the package default.
+     This is what lets discoverCustomPalettes() pick up project-
+     specific palettes (e.g. writer-handhelds ships "neutral")
+     and what makes T2 surface mappings like "src: neutral"
+     resolve to a valid palette instead of being silently dropped
+     by isValidSurfacePalette().
+     Idempotent: replaces any previously-injected block. Bust the
+     custom-palette cache afterwards so discoverCustomPalettes()
+     re-reads stylesheets on next call. */
+  function injectProjectPrimitivesSync() {
+    var id = getActiveProjectId();
+    if (!id) return;
+    var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
+    var url = depth + '/projects/' + encodeURIComponent(id) + '/primitives.css';
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, /* async */ false);
+      xhr.send(null);
+      if (!(xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300))) return;
+      var existing = document.getElementById('ev2-project-primitives');
+      var node = existing || document.createElement('style');
+      node.id = 'ev2-project-primitives';
+      node.textContent = xhr.responseText;
+      if (!existing) document.head.appendChild(node);
+      _customPalettesCache = null;
+    } catch (e) { /* fall through to package defaults */ }
+  }
+
+  /* Seed State.t2SurfacePalette from config.surfacePaletteSrc so
+     a project's per-surface palette mapping (e.g. writer-handhelds
+     pinning every surface to its custom "neutral" palette) is the
+     visible default on first load \u2014 not the system default.
+     The draft, loaded later, can still override per surface.
+     Idempotent + safe even when no project is active. */
+  function seedSurfacePaletteFromConfig() {
+    var cfg = readProjectConfigSync();
+    if (!cfg || !cfg.surfacePaletteSrc) return;
+    Object.keys(cfg.surfacePaletteSrc).forEach(function (sid) {
+      var pal = cfg.surfacePaletteSrc[sid];
+      if (typeof pal !== 'string' || !pal) return;
+      if (!isValidSurfacePalette(pal)) return;
+      State.t2SurfacePalette[sid] = pal;
+    });
+  }
+
   /* Extend ROLES + State.t1 dictionaries with config.customRoles
      so the new roles are first-class T1 editors instead of just
      palette entries. Idempotent — safe to call repeatedly. */
@@ -3878,19 +3926,28 @@
       $projPanel.innerHTML = '<div class="ev2-proj-empty">No projects yet.<br><a href="../onboard.html" style="color:var(--brand-content-default,#286CE5)">Create one</a></div>';
       return;
     }
-    $projPanel.innerHTML = list.map(function (p) {
+    var rowsHtml = list.map(function (p) {
       var current = p.id === active;
-      return '<button class="ev2-proj-row" role="option" aria-current="' + current + '" data-proj-id="' + p.id + '">'
+      return '<div class="ev2-proj-row" role="option" aria-current="' + current + '" data-proj-id="' + p.id + '" tabindex="0">'
         + '<span class="ev2-proj-row-name">' + (p.name || p.id) + '</span>'
         + '<span class="ev2-proj-row-id">' + p.id + '</span>'
         + (current
             ? '<svg class="ev2-proj-row-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.5 3.5L13 5"/></svg>'
             : '')
-        + '</button>';
+        + '<button class="ev2-proj-row-del" type="button" data-proj-del="' + p.id + '" aria-label="Delete project \u201C' + (p.name || p.id) + '\u201D" title="Delete project">'
+          + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>'
+        + '</button>'
+        + '</div>';
     }).join('');
+    $projPanel.innerHTML = rowsHtml
+      + '<div class="ev2-proj-foot"><span>Manage projects</span>'
+      + '<a href="../editor-legacy.html" title="Open legacy editor for project create/rename">Legacy editor \u2192</a>'
+      + '</div>';
 
     $projPanel.querySelectorAll('[data-proj-id]').forEach(function (row) {
-      row.addEventListener('click', function () {
+      row.addEventListener('click', function (e) {
+        // Ignore clicks on the delete button — it has its own handler.
+        if (e.target.closest('[data-proj-del]')) return;
         var id = row.getAttribute('data-proj-id');
         if (id === getActiveProjectId()) {
           $projPanel.setAttribute('hidden', '');
@@ -3899,6 +3956,36 @@
         }
         attemptProjectSwitch(id);
       });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.click(); }
+      });
+    });
+    $projPanel.querySelectorAll('[data-proj-del]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var id = btn.getAttribute('data-proj-del');
+        attemptProjectDelete(id);
+      });
+    });
+  }
+
+  function attemptProjectDelete(id) {
+    var name = projectName(id);
+    // Close the dropdown so the confirm modal isn't visually crowded.
+    $projPanel.setAttribute('hidden', '');
+    $projBtn.setAttribute('aria-expanded', 'false');
+    openModal({
+      title: 'Delete \u201C' + name + '\u201D?',
+      body: 'Deleting a project removes its tokens, palette, and config from the repository for everyone. '
+        + 'This requires GitHub authentication, so we will hand off to the legacy editor to complete the deletion. '
+        + 'You can cancel from there before the final confirmation.',
+      confirmLabel: 'Continue in legacy editor',
+      cancelLabel: 'Keep project',
+      kind: 'danger',
+      onConfirm: function () {
+        var url = '../editor-legacy.html?project=' + encodeURIComponent(id) + '&action=delete';
+        window.location.href = url;
+      }
     });
   }
 

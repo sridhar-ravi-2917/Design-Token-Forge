@@ -3755,9 +3755,19 @@ projCreateBtn.addEventListener('click', function() {
       doInitialRender();
 
       // Auto-open New Project dialog if linked from another page
-      if (new URLSearchParams(location.search).has('new-project')) {
+      var __params = new URLSearchParams(location.search);
+      if (__params.has('new-project')) {
         openNewProjectDialog();
         history.replaceState(null, '', location.pathname);
+      }
+      // Auto-trigger delete flow when v2 hands off via ?action=delete
+      // (deleteProject() itself prompts for PAT + native confirm, so the
+      // user still has two layers to abort after the v2 modal confirm.)
+      if (__params.get('action') === 'delete') {
+        history.replaceState(null, '', location.pathname);
+        setTimeout(function () {
+          try { deleteProject(); } catch (e) { console.warn('[DTF] auto-delete failed:', e); }
+        }, 800);
       }
     });
 })();
