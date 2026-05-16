@@ -3731,7 +3731,11 @@
   var $modalTitle = document.getElementById('ev2ModalTitle');
   var $modalBody = document.getElementById('ev2ModalBody');
   var $modalConfirm = $modal.querySelector('[data-modal-action="confirm"]');
-  var $modalCancel  = $modal.querySelector('[data-modal-action="cancel"]');
+  /* Scope to the footer button \u2014 the close-X also has
+     data-modal-action="cancel", so a plain querySelector matches
+     it first and openModal would replace the \u00d7 glyph with the
+     cancelLabel text. Use .ev2-modal-actions to skip the close-X. */
+  var $modalCancel  = $modal.querySelector('.ev2-modal-actions [data-modal-action="cancel"]');
   var modalOnConfirm = null;
 
   function openModal(opts) {
