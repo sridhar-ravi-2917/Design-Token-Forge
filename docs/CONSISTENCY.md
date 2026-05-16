@@ -28,6 +28,19 @@ editor + demo surface) speaking the same language so users learn it once.
 - Don't introduce synonyms ("Palette" not "Colors", "Roles" not "Brand Roles", "Surfaces"
   not "Backgrounds").
 
+### 1a. T0 sub-views (canonical)
+
+The T0 Palette tier has two pivots on the same underlying data — name them for the
+end-user task, not the data shape.
+
+| Internal id | UI label          | Purpose                                                                |
+|-------------|-------------------|------------------------------------------------------------------------|
+| `roles`     | **Key colors**    | Pick the seed hex for each role (brand, danger, success, warning, info)|
+| `palettes`  | **Palette library** | Inventory + CRUD for all palettes that T2 surfaces can map to        |
+
+- Don't use "By role" / "By palette" — too abstract for first-time users.
+- Don't say just "Palettes" — collides with the parent tier name "Palette".
+
 ## 2. Role + mode vocabulary
 
 - **Roles** (canonical id / display label):
