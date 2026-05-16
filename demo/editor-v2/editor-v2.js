@@ -3983,6 +3983,13 @@
       var msg = 'project(' + projId + '): restore ' + ver + ' as ' + nextVer;
       return ghMultiCommit(creds.user, toCommit, msg).then(function () { return meta; });
     }).then(function (meta) {
+      // Mirror restored files into localStorage stash so the reload
+      // below picks them up immediately (workspace copy / Pages will
+      // lag by ~1 min).
+      try {
+        localStorage.setItem('dtf-project-primitives-' + projId, files['primitives.css'] || '');
+        localStorage.setItem('dtf-project-config-' + projId, newCfgText);
+      } catch (e) { /* non-fatal */ }
       // Fire Pages rebuild — best-effort like normal Publish.
       triggerPagesRebuild().catch(function () {});
       if (window.ev2Toast) window.ev2Toast('Restored ' + ver + ' as ' + meta.version + '. Reloading editor\u2026', 'success', 3500);
@@ -4293,6 +4300,12 @@
     showTimeline();
     setTimelineStep('save', 'running', 'Connecting to GitHub\u2026');
 
+    // Captured across .then() boundaries so the post-publish step
+    // can sync localStorage stash (read by injectProjectPrimitivesSync
+    // on next page load).
+    var publishedPrimCSS = '';
+    var publishedCfgJSON = '';
+
     ensureGhCredentials().then(function (cred) {
       meta.savedBy = cred.user;
       setTimelineStep('save', 'running', 'Committing ' + nextVer + ' to ' + projId + '\u2026');
@@ -4302,6 +4315,8 @@
       var semCSS  = buildSemanticCSS(meta);
       var surfCSS = buildSurfacesCSS(meta);
       var cfgJSON = buildConfigJSON(prevCfg, meta);
+      publishedPrimCSS = primCSS;
+      publishedCfgJSON = cfgJSON;
       var versionSnapshot = JSON.stringify({
         meta: meta,
         savedFrom: 'editor-v2',
@@ -4343,6 +4358,16 @@
         refreshDraftStatus('published');
         if (typeof renderActiveTier === 'function') renderActiveTier();
       } catch (e) { /* baseline reset is best-effort */ }
+      // Mirror the just-published files into localStorage so the next
+      // page load reflects them immediately. On file:// the workspace
+      // copy of projects/<id>/primitives.css is stale (only the
+      // GitHub fork was updated), and on Pages it takes ~1min for the
+      // deploy to roll over. Without this, the editor reopens showing
+      // the OLD key color even though publish succeeded.
+      try {
+        if (publishedPrimCSS) localStorage.setItem('dtf-project-primitives-' + projId, publishedPrimCSS);
+        if (publishedCfgJSON) localStorage.setItem('dtf-project-config-' + projId, publishedCfgJSON);
+      } catch (e) { /* quota or disabled storage — non-fatal */ }
       // ── Step 2: notify Figma (best-effort).
       setTimelineStep('figma', 'running', 'Triggering Pages rebuild\u2026');
       return triggerPagesRebuild().then(function () {
@@ -4729,6 +4754,14 @@
   function readProjectConfigSync() {
     var id = getActiveProjectId();
     if (!id) return null;
+    // Prefer localStorage stash for the same reason as
+    // injectProjectPrimitivesSync — publish writes here atomically
+    // so the editor reflects the latest published config without
+    // waiting on the workspace file (file://) or Pages deploy.
+    try {
+      var cached = localStorage.getItem('dtf-project-config-' + id);
+      if (cached) return JSON.parse(cached);
+    } catch (e) { /* corrupt cache, fall through */ }
     var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
     var url = depth + '/projects/' + encodeURIComponent(id) + '/config.json';
     try {
@@ -4739,15 +4772,6 @@
         return JSON.parse(xhr.responseText);
       }
     } catch (e) { /* missing file, parse error, CORS — fall through */ }
-    // Fallback for freshly-onboarded projects on file:// — the real
-    // config.json has been committed to the GitHub fork but the
-    // local workspace doesn't have it yet. Onboard stashed the
-    // canonical config under this key so the editor can hydrate
-    // immediately without waiting for the Pages deploy.
-    try {
-      var cached = localStorage.getItem('dtf-project-config-' + id);
-      if (cached) return JSON.parse(cached);
-    } catch (e) { /* corrupt cache, ignore */ }
     return null;
   }
 
@@ -4764,25 +4788,29 @@
   function injectProjectPrimitivesSync() {
     var id = getActiveProjectId();
     if (!id) return;
-    var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
-    var url = depth + '/projects/' + encodeURIComponent(id) + '/primitives.css';
     var cssText = null;
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', url, /* async */ false);
-      xhr.send(null);
-      if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
-        cssText = xhr.responseText;
-      }
-    } catch (e) { /* fall through */ }
-    // Fallback: a freshly-onboarded project on file:// won't have
-    // primitives.css locally yet. Onboard generates the ladder
-    // client-side via PaletteEngine and stashes it under this key
-    // so the editor reflects the user's chosen keys immediately —
-    // no waiting on the Pages deploy.
+    // Prefer the localStorage stash: it's updated atomically on
+    // every successful publish (and seeded by onboarding) so it's
+    // always at least as fresh as the on-disk file. On file:// the
+    // workspace copy lags GitHub; on Pages it lags by ~1 min after
+    // a deploy. Stash-first guarantees the editor reopens showing
+    // exactly what was last published from this browser.
+    try { cssText = localStorage.getItem('dtf-project-primitives-' + id) || null; }
+    catch (e) { /* ignore */ }
+    // Fall back to the deployed file (HTTP on Pages, workspace copy
+    // on file://) only when the stash is empty — e.g. a different
+    // browser, or a project published from somewhere else.
     if (!cssText) {
-      try { cssText = localStorage.getItem('dtf-project-primitives-' + id) || null; }
-      catch (e) { /* ignore */ }
+      var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
+      var url = depth + '/projects/' + encodeURIComponent(id) + '/primitives.css';
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, /* async */ false);
+        xhr.send(null);
+        if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
+          cssText = xhr.responseText;
+        }
+      } catch (e) { /* fall through */ }
     }
     // Last-ditch synth: if the project has paletteKeys but no
     // primitives.css (older onboards that didn't stash the
