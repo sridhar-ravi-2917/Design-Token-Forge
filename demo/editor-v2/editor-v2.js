@@ -3596,6 +3596,12 @@
     return formatSemver({ major: s.major, minor: s.minor, patch: s.patch + 1 });
   }
   function getProjectCurrentVersion() {
+    // In-session publishes are authoritative — the on-disk
+    // config.json under file:// doesn't refresh after a commit,
+    // so without this check a second Publish in the same session
+    // would bump from the stale baseline and produce a colliding
+    // older version (e.g. v0.0.5 \u2192 v1.0.0, then \u2192 v0.1.0).
+    if (State.lastPublishedVersion) return State.lastPublishedVersion;
     var cfg = readProjectConfigSync();
     return (cfg && cfg.latestVersion && cfg.latestVersion.version) || 'v0.0.0';
   }
@@ -3784,13 +3790,24 @@
   function renderHistoryList(ghUser, snapshots) {
     var body = document.getElementById('ev2HistoryBody');
     if (!body) return;
-    var current = getProjectCurrentVersion();
-    // Sort newest first by semver.
+    // "Live" = the most recently saved snapshot (by savedAt). That
+    // matches what config.latestVersion points at on GitHub after
+    // any sequence of publishes/restores. Semver-max is wrong here
+    // because Restore re-publishes lower numbers and a later
+    // major-bump can leave a higher number that's no longer Live.
+    function tsOf(s) {
+      var t = s && s.json && s.json.meta && s.json.meta.savedAt;
+      return t ? Date.parse(t) || 0 : 0;
+    }
+    // Sort newest first by savedAt; fall back to semver if times tie.
     snapshots.sort(function (a, b) {
+      var ta = tsOf(a), tb = tsOf(b);
+      if (ta !== tb) return tb - ta;
       var av = (a.json && a.json.meta && a.json.meta.version) || a.name;
       var bv = (b.json && b.json.meta && b.json.meta.version) || b.name;
       return cmpSemver(bv, av);
     });
+    var liveName = snapshots.length ? snapshots[0].name : null;
     var rows = snapshots.map(function (s) {
       var meta = (s.json && s.json.meta) || {};
       var ver  = meta.version || s.name.replace(/\.json$/, '');
@@ -3798,7 +3815,7 @@
       var when = meta.savedAt ? timeAgo(meta.savedAt) : '';
       var who  = meta.savedBy || '';
       var desc = meta.description || '';
-      var isCurrent = (ver === current);
+      var isCurrent = (s.name === liveName);
       // Restorable only when the snapshot embeds full file contents
       // (object form), not the legacy array-of-names form.
       var hasInline = s.json && s.json.files && !Array.isArray(s.json.files) && typeof s.json.files === 'object';
