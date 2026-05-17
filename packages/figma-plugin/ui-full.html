@@ -146,30 +146,6 @@
   .status-bar.err  { display: block; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   .status-bar.work { display: block; background: #e8f0fe; color: #1E54B3; border: 1px solid #bfdbfe; }
 
-  /* ── Fallback section ───────────────────────────────── */
-  .fallback {
-    margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;
-  }
-  .fallback summary {
-    font-size: 11px; color: #888; cursor: pointer; user-select: none;
-  }
-  .fallback summary:hover { color: #555; }
-  .fallback-inner { margin-top: 8px; }
-  .fallback textarea {
-    width: 100%; height: 80px;
-    border: 1px solid #d4d4d4; border-radius: 4px;
-    padding: 8px; font-family: 'SF Mono', Monaco, Menlo, monospace;
-    font-size: 10px; resize: vertical; color: #333; background: #fafafa;
-  }
-  .fallback .file-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
-  .fallback .file-btn {
-    padding: 4px 10px; background: #f5f5f5;
-    border: 1px dashed #ccc; border-radius: 4px;
-    font-size: 10px; cursor: pointer; color: #555;
-  }
-  input[type="file"] { display: none; }
-  .file-name { font-size: 10px; color: #888; }
-
   /* ── Project mismatch warning ─────────────────────────── */
   .project-warn {
     display: none; border-radius: 8px; padding: 14px;
@@ -392,19 +368,6 @@
   </div>
 </details>
 
-<!-- Fallback: manual load -->
-<details class="fallback">
-  <summary>Manual sync (if server is offline)</summary>
-  <div class="fallback-inner">
-    <div class="file-row">
-      <label class="file-btn" for="fileInput">Load JSON file&hellip;</label>
-      <input type="file" id="fileInput" accept=".json">
-      <span class="file-name" id="fileName"></span>
-    </div>
-    <textarea id="jsonInput" placeholder="Paste dtf-figma-tokens.json here..."></textarea>
-  </div>
-</details>
-
 <!-- Changelog -->
 <details class="changelog" id="changelogSection" style="display:none">
   <summary>Change history</summary>
@@ -491,9 +454,6 @@
   var statusBar  = document.getElementById('statusBar');
   var figmaStats = document.getElementById('figmaStats');
   var logList    = document.getElementById('logList');
-  var jsonInput  = document.getElementById('jsonInput');
-  var fileInput  = document.getElementById('fileInput');
-  var fileNameEl = document.getElementById('fileName');
 
   var undoWarn   = document.getElementById('undoWarn');
   var autoSyncCb = document.getElementById('autoSyncCb');
@@ -1165,27 +1125,9 @@
 
   };
 
-  /* ── Manual fallback ─────────────────────────────────── */
-  fileInput.addEventListener('change', function(e) {
-    var file = e.target.files[0];
-    if (!file) return;
-    fileNameEl.textContent = file.name;
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      jsonInput.value = ev.target.result;
-      tryManualParse();
-    };
-    reader.readAsText(file);
-  });
-  jsonInput.addEventListener('input', debounce(tryManualParse, 300));
-
-  function tryManualParse() {
-    try {
-      tokenData = filterCollections(JSON.parse(jsonInput.value.trim()));
-      syncBtn.disabled = false;
-      syncBtn.textContent = 'Sync (manual)';
-    } catch(e) {}
-  }
+  /* Manual JSON-paste fallback retired — the plugin now requires
+     the sync server (or a custom server URL via Advanced). Removed
+     UI: paste textarea, file-picker, "Sync (manual)" button label. */
 
   /* ── Utils ───────────────────────────────────────────── */
   function setStatus(text, type) {
