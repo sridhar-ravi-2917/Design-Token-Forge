@@ -1484,12 +1484,26 @@ function requestStaticDiff(){
 function fmtVal(raw){
   if (raw == null) return '';
   if (typeof raw === 'object'){
-    /* Both dump shape {alias:true,id} and tokens.json shape
-       {type:'VARIABLE_ALIAS',name} normalize to '(alias)' — we don't
-       resolve chains yet, so alias↔alias compares as equal. */
+    /* Both dump shape {alias:true,id,name} and tokens.json shape
+       {type:'VARIABLE_ALIAS',name} normalize to the alias target NAME.
+       Without the name field on either side, "(alias)" — these compare
+       equal so we never flag an unchanged alias as updated. */
     if (raw.alias || raw.type === 'VARIABLE_ALIAS') return raw.name ? '(→ ' + raw.name + ')' : '(alias)';
   }
   return String(raw);
+}
+
+/* Cheap normalisation used for equality only — strips hex case +
+   trims trailing zeros so "14" === "14.0" === "14.00" and "#FFF"
+   === "#ffffff" (for 6-vs-3 hex). Real display still uses fmtVal. */
+function normForCompare(s){
+  s = String(s || '').trim().toLowerCase();
+  if (/^#[0-9a-f]+$/.test(s)){
+    if (s.length === 4) s = '#' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3];   /* #abc → #aabbcc */
+    if (s.length === 5) s = '#' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3] + s[4]+s[4]; /* #abcd → #aabbccdd */
+  }
+  if (/^-?\d+\.\d+$/.test(s)) s = String(parseFloat(s));   /* 14.00 → 14 */
+  return s;
 }
 
 function handleStaticDiff(current){
@@ -1535,7 +1549,7 @@ function handleStaticDiff(current){
         var oldRaw = existing.vals[existing.modes[mi]];
         var newStr = fmtVal(newRaw);
         var oldStr = fmtVal(oldRaw);
-        if (newStr.toLowerCase() !== oldStr.toLowerCase()){
+        if (normForCompare(newStr) !== normForCompare(oldStr)){
           firstChange = { tag:'upd', collection: nc.name, name: nv.name, from: oldStr, to: newStr };
           break;
         }

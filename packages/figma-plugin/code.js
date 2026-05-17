@@ -3960,6 +3960,22 @@ figma.ui.onmessage = async function(msg) {
   if (msg.type === 'dump-current-tokens') {
     try {
       var dtfCols = await findDTFCollections();
+      /* Pre-resolve all variable IDs → names so aliases can be encoded
+         as their target NAME (matching tokens.json's alias shape).
+         Without this, an alias dumped as {id:'VariableID:42'} and the
+         same alias in tokens.json as {name:'prim/brand/500'} will
+         compare as different on every single row, flooding the diff. */
+      var idToName = {};
+      for (var pci = 0; pci < dtfCols.length; pci++) {
+        var pcCol = dtfCols[pci];
+        for (var pvi = 0; pvi < pcCol.variableIds.length; pvi++) {
+          var pid = pcCol.variableIds[pvi];
+          try {
+            var pv = await figma.variables.getVariableByIdAsync(pid);
+            if (pv) idToName[pid] = pv.name;
+          } catch (e) { /* ignore */ }
+        }
+      }
       var out = { collections: [] };
       for (var dci = 0; dci < dtfCols.length; dci++) {
         var dcCol = dtfCols[dci];
@@ -3979,7 +3995,7 @@ figma.ui.onmessage = async function(msg) {
             var raw = vv.valuesByMode[mId];
             var modeName = modeIdToName[mId] || mId;
             if (raw && raw.type === 'VARIABLE_ALIAS') {
-              vbm[modeName] = { alias: true, id: raw.id };
+              vbm[modeName] = { alias: true, id: raw.id, name: idToName[raw.id] || '' };
             } else if (vv.resolvedType === 'COLOR' && raw && typeof raw === 'object') {
               vbm[modeName] = rgbToHex(raw);
             } else {
