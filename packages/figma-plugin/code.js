@@ -1516,6 +1516,17 @@ async function generateComponentFromBlueprint(blueprint) {
   }
   await figma.setCurrentPageAsync(page);
 
+  /* W2 — stamp the Components page so renames don't create duplicates
+     on next Build. See docs/architecture/component-builder/
+     component-ledger-and-safe-rebuild.md §11.5. Write-only today;
+     §10/M4 lookup chain will consume it. */
+  try {
+    if (page.setPluginData) {
+      page.setPluginData('dtf-page', 'components');
+      page.setPluginData('dtf-generated', '1');
+    }
+  } catch (e) { /* ignore */ }
+
   /* ── Owner stamp helpers ─────────────────────────────────
      Every node we create gets stamped with pluginData. Cleanup only
      removes nodes carrying our own stamp — protects user-built nodes
@@ -1555,6 +1566,88 @@ async function generateComponentFromBlueprint(blueprint) {
     });
     return !!hit;
   }
+
+  /* W1 — snapshot the prior Build's identity surface BEFORE cleanup
+     destroys it. Captured here, attached to stats, and emitted to the
+     ledger at Step 9 so the timestamp UI / diff engine has a record of
+     what was just invalidated. Read-only; behaviour-neutral.
+     See docs/architecture/component-builder/
+     component-ledger-and-safe-rebuild.md §11.5 (W1). */
+  function snapshotComponentSet(cs) {
+    var snap = {
+      nodeId:     cs.id,
+      name:       cs.name,
+      libraryKey: (cs.key || null),
+      variants:   {},   /* named coordinate → variant nodeId */
+      properties: {}    /* prop name → { defId, type } */
+    };
+    try {
+      var defs = cs.componentPropertyDefinitions || {};
+      var defKeys = Object.keys(defs);
+      for (var di = 0; di < defKeys.length; di++) {
+        var dk = defKeys[di];
+        var def = defs[dk] || {};
+        /* Figma stores defId-with-suffix as the object key (e.g.
+           "Size#1234:0"). The bare prop name is everything before '#'. */
+        var bareName = dk.indexOf('#') >= 0 ? dk.slice(0, dk.indexOf('#')) : dk;
+        snap.properties[bareName] = { defId: dk, type: def.type || 'UNKNOWN' };
+      }
+    } catch (pe) { /* ignore */ }
+    try {
+      var kids = cs.children || [];
+      for (var vi = 0; vi < kids.length; vi++) {
+        var v = kids[vi];
+        if (v && v.type === 'COMPONENT') {
+          /* Variant name is the named coordinate
+             ("Type=primary, State=Default, Rounded=False"). */
+          snap.variants[v.name] = v.id;
+        }
+      }
+    } catch (ve) { /* ignore */ }
+    return snap;
+  }
+
+  var priorSnapshot = {
+    capturedAt: new Date().toISOString(),
+    pageId:     page.id,
+    pageName:   page.name,
+    componentSets: []
+  };
+  try {
+    for (var _psi = 0; _psi < page.children.length; _psi++) {
+      var _psc = page.children[_psi];
+      if (_psc.type === 'COMPONENT_SET' && ownedByThisBP(_psc)) {
+        priorSnapshot.componentSets.push(snapshotComponentSet(_psc));
+      }
+    }
+  } catch (pse) { /* ignore */ }
+
+  /* W3 — emit a single warn line per Build summarising what's about
+     to be invalidated. Free telemetry for the milestone-2 read path. */
+  if (priorSnapshot.componentSets.length > 0) {
+    try {
+      var _invSets    = priorSnapshot.componentSets.length;
+      var _invVars    = 0;
+      var _invProps   = 0;
+      var _invKeys    = 0;
+      for (var _isi = 0; _isi < priorSnapshot.componentSets.length; _isi++) {
+        var _is = priorSnapshot.componentSets[_isi];
+        _invVars  += Object.keys(_is.variants).length;
+        _invProps += Object.keys(_is.properties).length;
+        if (_is.libraryKey) _invKeys++;
+      }
+      console.warn(
+        '[DTF Build] About to invalidate identifiers for "' + BP.name + '":\n' +
+        '  component-sets: ' + _invSets + '\n' +
+        '  variant ids:    ' + _invVars + '\n' +
+        '  property defs:  ' + _invProps + '\n' +
+        '  library keys:   ' + _invKeys + ' (consumers will break)\n' +
+        '  Prior snapshot kept in dtf-component-versions[' +
+        BP.name.toLowerCase() + '].priorSnapshot.'
+      );
+    } catch (we) { /* ignore */ }
+  }
+
   for (var ci2 = page.children.length - 1; ci2 >= 0; ci2--) {
     var child = page.children[ci2];
     /* SHARED PRIMITIVES GUARD — Icon/Placeholder, Icon/Chevron, and the
@@ -3678,7 +3771,23 @@ async function generateComponentFromBlueprint(blueprint) {
   try {
     existingVersions = JSON.parse(figma.root.getPluginData('dtf-component-versions') || '{}');
   } catch (e) { /* ignore */ }
+
+  /* W1 — capture the *new* identity surface so the next Build's diff
+     engine (M5) and the timestamp pill (M3) have something to read.
+     Shape mirrors §6 of docs/architecture/component-builder/
+     component-ledger-and-safe-rebuild.md. */
+  var newComponentSets = [];
+  try {
+    for (var _ns = 0; _ns < allComponentSets.length; _ns++) {
+      newComponentSets.push(snapshotComponentSet(allComponentSets[_ns]));
+    }
+  } catch (nse) { /* ignore */ }
+
+  var savedProject = '';
+  try { savedProject = figma.root.getPluginData('dtf-project') || ''; } catch (e) {}
+
   existingVersions[blueprint.name.toLowerCase()] = {
+    /* Legacy fields (kept for any reader of the old shape) */
     version: '2.0.0',
     nodeIds: allComponentSets.map(function(cs) { return cs.id; }),
     masterFrameId: masterFrame.id,
@@ -3687,7 +3796,25 @@ async function generateComponentFromBlueprint(blueprint) {
     types: (function(){ var n=0; var ks=Object.keys(BP.families||{}); for (var i=0;i<ks.length;i++) { var f=BP.families[ks[i]]; n += (f.types&&f.types.length)||0; } return n; })(),
     states: (function(){ var rs=(BP.states&&BP.states.length)||0; var m=0; var ks=Object.keys(BP.families||{}); for (var i=0;i<ks.length;i++) { var f=BP.families[ks[i]]; var L=(f.states&&f.states.length)||rs; if (L>m) m=L; } return m; })(),
     totalComponents: stats.components,
-    architecture: 'two-tier-master-instance'
+    architecture: 'two-tier-master-instance',
+
+    /* W1 — extended ledger shape (schema v1 from §6). Forward-only;
+       readers must tolerate missing fields. */
+    schemaVersion:  1,
+    writtenAt:      new Date().toISOString(),
+    writtenBy:      'dtf-plugin@code.js',
+    project:        savedProject,
+    pageId:         page.id,
+    pageName:       page.name,
+    bpKind:         BP.kind || 'standalone',
+    componentSets:  newComponentSets,
+    axes: {
+      color:   true,
+      spacing: true,
+      radius:  true,
+      motion:  (stats.reactions > 0)
+    },
+    priorSnapshot:  priorSnapshot   /* W1 — what we just invalidated */
   };
   figma.root.setPluginData('dtf-component-versions', JSON.stringify(existingVersions));
 
