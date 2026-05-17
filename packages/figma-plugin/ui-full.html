@@ -3195,78 +3195,47 @@ function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHas
     if (!totBindings  && typeof v.totalBindings   === 'number') totBindings  = v.totalBindings;
     if (!totReactions && typeof v.totalReactions  === 'number') totReactions = v.totalReactions;
 
-    /* Build pills (order: bindings → structure → proto → drift). */
+    /* V3 — single pill, plain words, no jargon. Either the component
+       needs a rebuild or it doesn't. Components that are clean show
+       no pill at all and no action line — just the name, keeping the
+       Builder calm. Severity priority for "why": drift → bindings
+       broken → structure (new variants) → prototype. */
     var pillsHtml = '';
-    if (bindingsChanged)  pillsHtml += '<span class="pill" data-kind="bindings">bindings</span>';
-    if (structureChanged) pillsHtml += '<span class="pill" data-kind="structure">structure</span>';
-    if (protoChanged)     pillsHtml += '<span class="pill" data-kind="proto">prototype</span>';
-    if (isDrift)          pillsHtml += '<span class="pill" data-kind="drift">wrong project</span>';
+    var why = '';
+    var tint = '';
 
-    /* Tint priority. */
-    var tint = isDrift ? 'drift'
-             : structureChanged ? 'structure'
-             : protoChanged ? 'proto'
-             : bindingsChanged ? 'bindings'
-             : '';
+    if (isDrift) {
+      pillsHtml = '<span class="pill" data-kind="drift">build needed</span>';
+      tint = 'drift';
+      why = 'Re-targeting to <span class="nums">' + esc(projectDisplayName(currentProject)) + '</span> tokens.';
+    } else if (bindingsChanged) {
+      /* V2 path only fires here when a variable Button bound is
+         actually missing — i.e. genuinely broken bindings. */
+      pillsHtml = '<span class="pill" data-kind="bindings">build needed</span>';
+      tint = 'bindings';
+      why = 'Some token bindings are broken and need re-binding.';
+    } else if (structureChanged) {
+      pillsHtml = '<span class="pill" data-kind="structure">build needed</span>';
+      tint = 'structure';
+      why = 'New variants are available in the latest plugin spec.';
+    } else if (protoChanged) {
+      pillsHtml = '<span class="pill" data-kind="proto">build needed</span>';
+      tint = 'proto';
+      why = 'Prototype interactions need re-wiring.';
+    }
+
+    var anyChange = !!pillsHtml;
     row.setAttribute('data-tint', tint);
 
     /* Timestamp. */
     var when = fmtBuiltAgo(v.writtenAt || v.generatedAt);
     whenEl && (whenEl.textContent = when ? ('· ' + when) : '');
 
-    /* Action line copy. Matches demo/mock-builder.html scenarios.
-       Numbers are bolded via .nums. A rebuild REPLACES the existing
-       component set with a fresh one, so verbs are "rebuilds" /
-       "re-binds" — never "adds" (which reads additive). totVariants
-       and totBindings are snapshot totals of the rebuilt set, not
-       deltas. Clauses with a 0 count fall back to a generic phrase. */
-    function N(n, noun){
-      return '<span class="nums">' + (n|0) + ' ' + noun + '</span>';
-    }
-    var anyChange = bindingsChanged || structureChanged || protoChanged || isDrift;
-    var action = '';
-
-    if (isDrift) {
-      action = 'Built against <span class="nums">' + esc(projectDisplayName(ranProject)) +
-        '</span>. Rebuilding re-targets to <span class="nums">' + esc(projectDisplayName(currentProject)) + '</span>.';
-    } else {
-      /* Build clauses in priority order. Skip zero-count ones; if a
-         cause fired without a count (e.g. bindings hash moved but
-         totBindings is 0 in ledger), emit a generic phrase so the
-         row still reads cleanly. */
-      var clauses = [];
-      if (bindingsChanged) {
-        clauses.push(totBindings > 0
-          ? ('Re-binds ' + N(totBindings, 'tokens'))
-          : 'Re-binds tokens');
-      }
-      if (structureChanged) {
-        clauses.push(totVariants > 0
-          ? ('Rebuilds with ' + N(totVariants, 'variants'))
-          : 'Rebuilds variants');
-      }
-      if (protoChanged) {
-        /* Reactions are hardcoded in plugin code, not data-driven,
-           so the magnitude is "what" not "how many". */
-        clauses.push('Re-wires <span class="nums">hover \u2192 pressed</span> reactions');
-      }
-
-      if (clauses.length === 0) {
-        action = 'Up to date.';
-      } else if (clauses.length === 1) {
-        action = clauses[0] + '.';
-      } else {
-        var last = clauses.pop();
-        /* Lower-case the leading verb of the last clause so it joins
-           naturally: "Adds X and re-wires Y." */
-        last = last.charAt(0).toLowerCase() + last.slice(1);
-        action = clauses.join(', ') + ' and ' + last + '.';
-      }
-    }
-
     pillsEl.innerHTML = pillsHtml;
     actEl.classList.toggle('idle', !anyChange);
-    actEl.innerHTML = action;
+    /* Clean rows show NO action line — just name + timestamp.
+       Avoids "Up to date." noise on every quiet component. */
+    actEl.innerHTML = anyChange ? why : '';
     /* data-state drives selection-aware CTA labelling.
        changed = existing build with at least one pill firing
        clean   = existing build, hashes all match
