@@ -111,12 +111,13 @@ body{
 }
 .ev2-proj-row:hover{background:var(--ev2-chrome-subtle)}
 .ev2-proj-row[aria-current="true"]{background:var(--brand-container-bg,#EAF2FF);color:var(--brand-content-default,#286CE5);font-weight:600}
-.ev2-proj-row-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev2-proj-row-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Slug stays muted even when its parent row is selected (the
    parent flips to brand-content-default), so the active row reads
    as one bold name + a quiet identifier, not two competing brand-
-   coloured labels. */
-.ev2-proj-row-id{font-size:10px;color:var(--ev2-chrome-ct-faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+   coloured labels. Slug column shrinks before name does so the
+   project name never gets truncated by a long slug. */
+.ev2-proj-row-id{flex:0 1 auto;min-width:0;font-size:10px;color:var(--ev2-chrome-ct-faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev2-proj-row[aria-current="true"] .ev2-proj-row-id{color:var(--ev2-chrome-ct-subtle);font-weight:400}
 .ev2-proj-row-check{width:14px;height:14px;color:var(--brand-content-default,#286CE5);flex-shrink:0}
 .ev2-proj-empty{padding:14px;text-align:center;font-size:12px;color:var(--ev2-chrome-ct-subtle)}
