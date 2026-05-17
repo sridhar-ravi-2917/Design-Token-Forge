@@ -3949,6 +3949,21 @@ async function generateComponentFromBlueprint(blueprint) {
     existingVersions = JSON.parse(figma.root.getPluginData('dtf-component-versions') || '{}');
   } catch (e) { /* ignore */ }
 
+  /* One-shot migration: prior builds (before this fix) wrote the
+     ledger under "split button" (BP.name lowercased, space intact)
+     instead of the registry key "split-button". Carry the old entry
+     forward under the correct key so users don't see a stale NEW
+     pill after upgrade. Safe to run every build; no-op once moved. */
+  try {
+    var _migMap = { 'split button': 'split-button' };
+    for (var _ok in _migMap){
+      if (existingVersions[_ok] && !existingVersions[_migMap[_ok]]){
+        existingVersions[_migMap[_ok]] = existingVersions[_ok];
+        delete existingVersions[_ok];
+      }
+    }
+  } catch (e) { /* ignore */ }
+
   /* W1 — capture the *new* identity surface so the next Build's diff
      engine (M5) and the timestamp pill (M3) have something to read.
      Shape mirrors §6 of docs/architecture/component-builder/
@@ -4002,9 +4017,15 @@ async function generateComponentFromBlueprint(blueprint) {
 
   /* Preserve prior hashes so the Builder pill can show "changed since
      last build" without needing to recompute on every prereq ping. */
-  var _priorEntry = existingVersions[blueprint.name.toLowerCase()] || {};
+  /* Ledger key MUST match the registry key the UI uses (data-component
+     attribute), not the human-readable BP name. UI looks up
+     versions['split-button']; bare blueprint.name.toLowerCase() would
+     write 'split button' (with space) and the row would forever show
+     NEW even after a successful build. */
+  var ledgerKey = String(blueprint.name || '').toLowerCase().replace(/\s+/g, '-');
+  var _priorEntry = existingVersions[ledgerKey] || {};
 
-  existingVersions[blueprint.name.toLowerCase()] = {
+  existingVersions[ledgerKey] = {
     /* Legacy fields (kept for any reader of the old shape) */
     version: '2.0.0',
     nodeIds: allComponentSets.map(function(cs) { return cs.id; }),
