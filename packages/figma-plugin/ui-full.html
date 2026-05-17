@@ -195,11 +195,17 @@
      is empty. The dot avoids needing a wrapper element. */
   .tb-menu-pop.signed-out .connected-only { display: none; }
   .tb-menu-sep { height: 1px; background: var(--dtf-border); margin: 4px 0; }
+  /* tb-menu-label was a <div>; now a <button> so it can carry
+     the click handler that opens the GitHub profile. Reset the
+     default button chrome so it looks identical to the old label. */
   .tb-menu-label {
     font-size: var(--dtf-fs-9); font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.08em; color: var(--dtf-fg-faint);
     padding: 6px 10px 2px;
+    background: transparent; border: 0; text-align: left;
+    font-family: inherit; width: 100%;
   }
+  .tb-menu-label:hover { color: var(--dtf-fg-subtle); }
   .tb-menu-item kbd {
     margin-left: auto; font-size: var(--dtf-fs-10);
     color: var(--dtf-fg-faint); font-family: var(--dtf-font-mono);
@@ -711,6 +717,19 @@
   .debug-panel.visible { display: block; }
   .debug-panel strong { color: var(--dtf-fg-strong); font-weight: 600; }
   .debug-panel .row { display: flex; gap: 10px; margin-bottom: 2px; }
+  /* Copy-to-clipboard footer for support tickets. Plain-text
+     dump of all key/value pairs so the user can paste into an issue. */
+  .debug-panel .copy-row {
+    display: flex; justify-content: flex-end; margin-top: 6px;
+    border-top: 1px solid var(--dtf-border); padding-top: 6px;
+  }
+  .debug-panel .copy-btn {
+    background: var(--dtf-surface); border: 1px solid var(--dtf-border-strong);
+    color: var(--dtf-fg-subtle); border-radius: var(--dtf-radius-sm);
+    padding: 3px 8px; font: 500 var(--dtf-fs-10) inherit; cursor: pointer;
+  }
+  .debug-panel .copy-btn:hover { color: var(--dtf-fg-strong); border-color: var(--dtf-fg-faint); }
+  .debug-panel .copy-btn.ok { color: var(--dtf-success-content); border-color: var(--dtf-success-content); }
 
   /* ── Hero spinner ────────────────────────────────
      Inline SVG ring that pairs with the glyph circle. Used when
@@ -752,23 +771,29 @@
     <details class="tb-menu" id="tbMenu">
       <summary class="tb-avatar disconnected" id="tbAvatar" title="Account menu" aria-label="Account menu">?</summary>
       <div class="tb-menu-pop">
-        <div class="tb-menu-label" id="tbMenuIdentity">Not connected</div>
+        <!-- Identity label: clickable when connected so users can
+             verify which GitHub account is bound (important when
+             multiple work accounts share a machine). -->
+        <button class="tb-menu-label" id="tbMenuIdentity" type="button">Not connected</button>
         <label class="tb-menu-item connected-only">
           <input type="checkbox" id="autoSyncCb">
           <span>Auto-sync when tokens change</span>
         </label>
-        <!-- Version history lives on the DTF web app, not in the
-             plugin. The plugin only knows the latest deployed hash;
-             the editor knows the full per-token authoring history.
-             Opens externally so the user gets the full dialog. -->
+        <!-- Web handoffs: the plugin only holds the latest deployed
+             snapshot. The web app has full per-commit history and the
+             token editor. Both open externally via figma.openExternal. -->
+        <button class="tb-menu-item connected-only" id="menuOpenWeb">
+          <span>Open project on web ↗</span>
+        </button>
         <button class="tb-menu-item connected-only" id="menuChangelog">
           <span>Version history ↗</span>
         </button>
+        <div class="tb-menu-sep connected-only"></div>
         <button class="tb-menu-item connected-only" id="menuDebug">
           <span>Debug info</span>
         </button>
         <button class="tb-menu-item" id="menuServer">
-          <span>Server URL…</span>
+          <span id="menuServerLabel">Server URL…</span>
         </button>
         <div class="tb-menu-sep connected-only"></div>
         <button class="tb-menu-item danger connected-only" id="menuDisconnect">
@@ -794,6 +819,7 @@
     <div class="row"><span>Collections:</span><strong id="dbgCols">—</strong></div>
     <div class="row"><span>Hash:</span><strong id="dbgHash">—</strong></div>
     <div class="row"><span>Server:</span><strong id="dbgServer">—</strong></div>
+    <div class="copy-row"><button class="copy-btn" id="dbgCopyBtn" type="button">Copy for support</button></div>
   </div>
 
   <!-- ─── Tabs ─────────────────────────────────────── -->
@@ -1088,7 +1114,7 @@ var openGroups = new Set();      /* expanded group keys */
 /* Build stamp — bump on every UI-affecting change so you can confirm
    the Figma plugin sandbox isn't serving a cached old copy. Shown in
    the empty-state footer + logged once to the plugin console. */
-var BUILD_VERSION = '2026-05-17-p10';
+var BUILD_VERSION = '2026-05-17-p11';
 function log(msg){ console.log('[DTF] ' + msg); }
 log('plugin UI build ' + BUILD_VERSION);
 
@@ -1130,6 +1156,8 @@ function render(){
     tbAvatar.textContent = '?';
     tbAvatar.title = 'Not connected';
     tbMenuIdentity.textContent = 'Not connected';
+    tbMenuIdentity.title = '';
+    tbMenuIdentity.style.cursor = 'default';
     if (tbMenuPop) tbMenuPop.classList.add('signed-out');
     if (tbRefresh) tbRefresh.hidden = true;
     setSyncBadge(0);
@@ -1140,6 +1168,16 @@ function render(){
   tbAvatar.textContent = (GH_USERNAME[0] || '?').toUpperCase();
   tbAvatar.title = 'Connected as ' + GH_USERNAME;
   tbMenuIdentity.textContent = 'Connected as ' + GH_USERNAME;
+  tbMenuIdentity.title = 'Open github.com/' + GH_USERNAME;
+  tbMenuIdentity.style.cursor = 'pointer';
+  /* Server URL label reflects the current target so the user knows
+     where they'd be switching from. */
+  var menuServerLabel = document.getElementById('menuServerLabel');
+  if (menuServerLabel){
+    if (SERVER.indexOf('localhost') !== -1) menuServerLabel.textContent = 'Using local dev server…';
+    else if (SERVER === DEFAULT_SERVER)     menuServerLabel.textContent = 'Server URL…';
+    else                                    menuServerLabel.textContent = 'Custom server…';
+  }
   if (tbMenuPop) tbMenuPop.classList.remove('signed-out');
   if (tbRefresh) tbRefresh.hidden = false;
 
@@ -1768,12 +1806,58 @@ menuChangelog.addEventListener('click', function(){
   else                 url += '/#history';
   parent.postMessage({ pluginMessage:{ type:'open-external', url:url } }, '*');
 });
+
+/* Open the current project on the DTF web app. Mirrors the Version
+   history handoff but lands on the project's editor (no hash). */
+var menuOpenWeb = document.getElementById('menuOpenWeb');
+if (menuOpenWeb) menuOpenWeb.addEventListener('click', function(){
+  closeMenu();
+  var url = SERVER.replace(/\/$/, '');
+  if (CURRENT_PROJECT) url += '/?project=' + encodeURIComponent(CURRENT_PROJECT);
+  else                 url += '/';
+  parent.postMessage({ pluginMessage:{ type:'open-external', url:url } }, '*');
+});
+
+/* Identity label opens the connected GitHub profile so the user can
+   confirm which account is bound. Useful on shared / multi-account
+   machines where the wrong account quietly drives a sync. */
+tbMenuIdentity.addEventListener('click', function(){
+  if (!GH_USERNAME) return;
+  closeMenu();
+  parent.postMessage({ pluginMessage:{ type:'open-external', url:'https://github.com/' + GH_USERNAME } }, '*');
+});
+
 menuDebug.addEventListener('click', function(){
   closeMenu();
   serverPanel.classList.remove('visible');
   debugPanel.classList.toggle('visible');
   dbgServer.textContent = SERVER;
 });
+
+/* Copy debug info to clipboard as plain text. Real users hit this
+   when filing a support issue ("paste your debug info"). Without
+   this, they were screenshotting the panel \u2014 lossy and slow. */
+var dbgCopyBtn = document.getElementById('dbgCopyBtn');
+if (dbgCopyBtn) dbgCopyBtn.addEventListener('click', function(){
+  var lines = [
+    'DTF build: '   + BUILD_VERSION,
+    'Project: '     + (CURRENT_PROJECT || '(none)'),
+    'File bound to: ' + (documentProject || '(none)'),
+    'GitHub user: ' + (GH_USERNAME || '(none)'),
+    'Figma vars: '  + (dbgVars.textContent || '\u2014'),
+    'Collections: ' + (dbgCols.textContent || '\u2014'),
+    'Hash: '        + (dbgHash.textContent || '\u2014'),
+    'Server: '      + SERVER
+  ].join('\n');
+  try {
+    navigator.clipboard.writeText(lines).then(function(){
+      dbgCopyBtn.classList.add('ok');
+      dbgCopyBtn.textContent = 'Copied';
+      setTimeout(function(){ dbgCopyBtn.classList.remove('ok'); dbgCopyBtn.textContent = 'Copy for support'; }, 1500);
+    });
+  } catch (e) { /* sandboxed; user can still screenshot */ }
+});
+
 menuServer.addEventListener('click', function(){
   closeMenu();
   debugPanel.classList.remove('visible');
