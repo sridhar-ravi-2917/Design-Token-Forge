@@ -427,6 +427,23 @@ body[data-pane-dragging="true"] .ev2-preview-frame{pointer-events:none}
 .ev2-draft-status[data-state="error"] .ev2-draft-dot{background:var(--danger-component-bg-default,#D61D20)}
 @keyframes ev2-pulse{50%{opacity:.4}}
 
+/* "Version history" link sitting next to the draft-status pill in
+   the tier rail. Reads as a regular text link (blue, underline-on-
+   hover) so it's clearly tappable but doesn't carry the visual
+   weight of a button. */
+.ev2-tierbar-link{
+  appearance:none;border:0;background:transparent;padding:0;margin:0;
+  font:inherit;font-size:11px;font-weight:600;
+  color:var(--brand-content-default,#2253CC);
+  cursor:pointer;
+  text-decoration:underline;
+  text-decoration-color:color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset:3px;
+  transition:text-decoration-color 120ms ease, color 120ms ease;
+}
+.ev2-tierbar-link:hover{text-decoration-color:currentColor}
+.ev2-tierbar-link:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:3px;border-radius:2px}
+
 
 /* ── CENTER: token list ───────────────────────────────── */
 .ev2-list{

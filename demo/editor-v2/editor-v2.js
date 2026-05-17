@@ -1044,8 +1044,10 @@
 
   function refreshChangeBar() {
     var n = totalChanges();
-    // Single, plain-English status. "No changes" / "7 unsaved changes".
-    $changeCt.textContent = n === 0 ? 'No changes' : (n + ' unsaved change' + (n === 1 ? '' : 's'));
+    // Topbar-side counter retired — the canonical change/backup
+    // readout is now the second-row #draftStatus pill. Leave the
+    // guard so old markup keeps working if anyone restores it.
+    if ($changeCt) $changeCt.textContent = n === 0 ? 'No changes' : (n + ' unsaved change' + (n === 1 ? '' : 's'));
     $discard.disabled = n === 0;
     $deploy.disabled  = n === 0;
     // The badge bubble retired — count is folded into the button label.
@@ -1108,32 +1110,15 @@
   }
 
   function refreshAutosaveLabel() {
-    // Sub-label lives next to the change count. Stays empty when
-    // there are no changes (count IS the status); shows a backup
-    // hint when there are unsaved changes.
+    // Legacy hook — the topbar autosave chip was retired in favour of
+    // the single #draftStatus pill in the tier rail (which already
+    // says "N unsaved changes · backed up Xs ago"). Kept as a no-op
+    // so old call sites don't crash; if $autosave is ever restored,
+    // it will still show the same text the pill shows.
+    if (!$autosave) return;
     var n = totalChanges();
-    var sep = document.querySelector('.ev2-savebar-sep');
-    if (n === 0) {
-      $autosave.textContent = '';
-      $autosave.removeAttribute('data-tip');
-      if (sep) sep.hidden = true;
-      return;
-    }
-    if (sep) sep.hidden = false;
-    if (!State.lastSavedAt) {
-      $autosave.textContent = 'backing up\u2026';
-      $autosave.setAttribute('data-tip', 'Saving your edits to this browser as a local draft. Nothing has been published to GitHub yet — use Publish to commit.');
-      return;
-    }
+    if (n === 0 || !State.lastSavedAt) { $autosave.textContent = ''; return; }
     $autosave.textContent = 'backed up ' + relTime(State.lastSavedAt);
-    var d = new Date(State.lastSavedAt);
-    var hh = String(d.getHours()).padStart(2,'0');
-    var mm = String(d.getMinutes()).padStart(2,'0');
-    var ss = String(d.getSeconds()).padStart(2,'0');
-    $autosave.setAttribute('data-tip',
-      'Auto-saved to this browser at ' + hh + ':' + mm + ':' + ss +
-      '. This is a local draft only — it has not been published to GitHub. ' +
-      'Use Publish to commit a snapshot every collaborator can pull.');
   }
 
   function relTime(ts) {
@@ -1281,6 +1266,21 @@
       if (n > 0) label.textContent = n + ' unsaved change' + (n === 1 ? '' : 's');
       else if (State.lastPublishedVersion) label.textContent = 'Published ' + State.lastPublishedVersion;
       else label.textContent = 'No changes yet';
+    }
+    // Tooltip explains what "backed up" actually means — local draft
+    // in this browser, not pushed to GitHub. Includes the exact
+    // wall-clock time so the user can cross-check.
+    if (n > 0 && State.lastSavedAt) {
+      var d = new Date(State.lastSavedAt);
+      var hh = String(d.getHours()).padStart(2,'0');
+      var mm = String(d.getMinutes()).padStart(2,'0');
+      var ss = String(d.getSeconds()).padStart(2,'0');
+      draftStatus.setAttribute('data-tip',
+        'Saved to this browser at ' + hh + ':' + mm + ':' + ss +
+        '. Local draft only \u2014 not yet published to GitHub. ' +
+        'Use Publish to release a version every collaborator can pull.');
+    } else {
+      draftStatus.removeAttribute('data-tip');
     }
   }
 
@@ -3841,7 +3841,7 @@
         return e && e.type === 'file' && /\.json$/i.test(e.name);
       });
       if (!jsonFiles.length) {
-        body.innerHTML = '<div class="ev2-history-empty">No published versions yet. Use <strong>Publish</strong> to create your first snapshot.</div>';
+        body.innerHTML = '<div class="ev2-history-empty">No published versions yet. Use <strong>Publish</strong> to create your first release.</div>';
         return;
       }
       // Fetch all snapshot bodies in parallel (each is tiny).
