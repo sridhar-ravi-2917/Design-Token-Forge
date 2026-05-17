@@ -2501,15 +2501,24 @@
      the stepper, and the reset chip all dispatch through one shape. */
 
   // Step name currently rendered for a given derived id.
+  // onComponent override now accepts white/black OR any palette
+  // step that AA-passes worst-case (see onComponentAllowedSteps).
+  // Default is computed against the worst of the 3 fill states to
+  // stay in lockstep with the solver + sync server.
   function t1DerivedStep(roleId, derivedId, mode) {
     var t = State.t1[mode][roleId];
     if (derivedId === 'border')      return t.borderStep ? t.borderStep : stepRelToward(t.container, 6, mode);
     if (derivedId === 'separator')   return t.separatorStep ? t.separatorStep : stepRelToward(t.container, 2, mode);
     if (derivedId === 'onComponent') {
-      if (t.onComponent === 'white' || t.onComponent === 'black') return t.onComponent;
-      var fillHex = stepHexByName(roleId, t.fill) || '#000';
-      var deriv   = DTFSolver.deriveOnComponent(fillHex);
-      return deriv === '#FFFFFF' ? 'white' : 'black';
+      var allowed = onComponentAllowedSteps(roleId, mode);
+      if (t.onComponent && allowed.indexOf(t.onComponent) >= 0) return t.onComponent;
+      var fills = [
+        stepHexByName(roleId, t.fill),
+        stepHexByName(roleId, stepRel(t.fill, 1)),
+        stepHexByName(roleId, stepRel(t.fill, 2))
+      ].filter(Boolean);
+      if (!fills.length) fills = ['#000'];
+      return DTFSolver.deriveOnComponent(fills) === '#FFFFFF' ? 'white' : 'black';
     }
     if (derivedId === 'onContainer') return onContainerStepName(roleId, mode);
     return null;
@@ -2520,8 +2529,13 @@
     if (derivedId === 'border')    return stepRelToward(t.container, 6, mode);
     if (derivedId === 'separator') return stepRelToward(t.container, 2, mode);
     if (derivedId === 'onComponent') {
-      var fillHex = stepHexByName(roleId, t.fill) || '#000';
-      return DTFSolver.deriveOnComponent(fillHex) === '#FFFFFF' ? 'white' : 'black';
+      var fills = [
+        stepHexByName(roleId, t.fill),
+        stepHexByName(roleId, stepRel(t.fill, 1)),
+        stepHexByName(roleId, stepRel(t.fill, 2))
+      ].filter(Boolean);
+      if (!fills.length) fills = ['#000'];
+      return DTFSolver.deriveOnComponent(fills) === '#FFFFFF' ? 'white' : 'black';
     }
     if (derivedId === 'onContainer') {
       var ladder = ladderFor(roleId);
@@ -2531,18 +2545,27 @@
     return null;
   }
   // True when user has overridden this derived value.
+  // onComponent detached iff t.onComponent is set AND is still in
+  // the allowed-set for the current fills (a fill-step change can
+  // make a previously-valid palette pick no longer AA-safe; we
+  // treat that as not-detached so the auto-derivation takes over
+  // and the unsafe value is dropped on next save).
   function t1DerivedIsDetached(roleId, derivedId, mode) {
     var t = State.t1[mode][roleId];
     if (derivedId === 'border')      return !!t.borderStep;
     if (derivedId === 'separator')   return !!t.separatorStep;
-    if (derivedId === 'onComponent') return t.onComponent === 'white' || t.onComponent === 'black';
+    if (derivedId === 'onComponent') {
+      if (!t.onComponent) return false;
+      var allowed = onComponentAllowedSteps(roleId, mode);
+      return allowed.indexOf(t.onComponent) >= 0;
+    }
     if (derivedId === 'onContainer') return !!t.onContainerStep;
     return false;
   }
   // Hex currently painted by a derived id.
   function t1DerivedHex(roleId, derivedId, mode) {
     var step = t1DerivedStep(roleId, derivedId, mode);
-    if (derivedId === 'onComponent') return step === 'white' ? '#FFFFFF' : '#0A0A0A';
+    if (derivedId === 'onComponent') return onComponentHexFor(roleId, step) || '#000';
     var ladder = ladderFor(roleId);
     return ladder[step] || '#000';
   }
