@@ -2662,9 +2662,19 @@ window.onmessage = function(event){
   if (msg.type === 'gen-error'){
     generateBtn.disabled = !genReady;
     generateBtn.textContent = 'Generate components';
-    genStatus.textContent = 'Error: ' + msg.error;
+    /* Stack trace is included after the em-dash on the plugin side.
+       Show on two lines so the user can copy/paste back to us. */
+    var em  = String(msg.error || '');
+    var dash = em.indexOf(' \u2014 ');
+    var head = dash > -1 ? em.slice(0, dash) : em;
+    var tail = dash > -1 ? em.slice(dash + 3) : '';
+    genStatus.innerHTML =
+      '<div>Error: ' + esc(head) + '</div>' +
+      (tail
+        ? '<div style="font-family:ui-monospace,Menlo,monospace;font-size:10px;opacity:0.75;margin-top:4px;word-break:break-all">' +
+          esc(tail) + '</div>'
+        : '');
     genStatus.style.color = 'var(--dtf-danger-content)';
-    setTimeout(function(){ genStatus.style.color = ''; }, 5000);
   }
   if (msg.type === 'gen-prereqs') updateGenPrereqs(msg);
   if (msg.type === 'safe-rebuild-state'){

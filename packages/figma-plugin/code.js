@@ -1636,23 +1636,27 @@ async function generateComponentFromBlueprint(blueprint) {
 
   /* M4 — resolve which prior COMPONENT_SETs are still alive so we can
      reuse them. Keyed by set name (which is also setDisplayName at
-     rebuild time). Only populated when SAFE_REBUILD is on. */
+     rebuild time). Only populated when SAFE_REBUILD is on. Any failure
+     during lookup downgrades that specific entry to "not reusable" —
+     never blocks the build. */
   var reuseSetByName = {};
   if (SAFE_REBUILD) {
-    try {
-      for (var _rsi = 0; _rsi < priorSnapshot.componentSets.length; _rsi++) {
-        var _rs = priorSnapshot.componentSets[_rsi];
-        if (!_rs || !_rs.nodeId) continue;
+    for (var _rsi = 0; _rsi < priorSnapshot.componentSets.length; _rsi++) {
+      var _rs = priorSnapshot.componentSets[_rsi];
+      if (!_rs || !_rs.nodeId) continue;
+      try {
         var _resolved = await figma.getNodeByIdAsync(_rs.nodeId);
-        if (_resolved &&
-            !_resolved.removed &&
-            _resolved.type === 'COMPONENT_SET' &&
-            ownedByThisBP(_resolved)) {
-          reuseSetByName[_rs.name] = _resolved;
-        }
+        if (!_resolved || _resolved.removed) continue;
+        if (_resolved.type !== 'COMPONENT_SET') continue;
+        /* Owner check is wrapped because getPluginData can throw on
+           rare proxy/orphan handles. */
+        var _owns = false;
+        try { _owns = ownedByThisBP(_resolved); } catch (_oe) { _owns = false; }
+        if (!_owns) continue;
+        reuseSetByName[_rs.name] = _resolved;
+      } catch (rse) {
+        log('SAFE_REBUILD lookup of ' + _rs.nodeId + ' failed: ' + rse.message);
       }
-    } catch (rse) {
-      log('SAFE_REBUILD lookup failed: ' + rse.message);
     }
     log('SAFE_REBUILD reusable sets: ' + Object.keys(reuseSetByName).length);
   }
@@ -4309,8 +4313,9 @@ figma.ui.onmessage = async function(msg) {
         (allStats.errors.length > 0 ? ' (' + allStats.errors.length + ' errors)' : '')
       );
     } catch (e) {
-      figma.ui.postMessage({ type: 'gen-error', error: e.message });
-      log('Component gen error: ' + e.message);
+      var detail = e && e.stack ? (e.message + ' \u2014 ' + e.stack.split('\n').slice(0,3).join(' \u2192 ')) : (e && e.message) || String(e);
+      figma.ui.postMessage({ type: 'gen-error', error: detail });
+      log('Component gen error: ' + detail);
     }
   }
 
