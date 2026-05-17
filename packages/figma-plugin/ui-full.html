@@ -3,18 +3,19 @@
 <head>
 <style>
   /* ════════════════════════════════════════════════════════
-     DTF Plugin design tokens
+     DTF Plugin — minimal UI
      ────────────────────────────────────────────────────────
-     The Figma plugin iframe is sandboxed and can't reliably
-     `@import` the editor's CSS files, so we inline a slim
-     mirror of DTF's --demo-* tokens here. Names and intent
-     match `demo/shared.css` so the plugin and the editor read
-     as one product. When the editor's brand or neutral palette
-     changes, update both — this is a static deploy, not a live
-     subscription, but the contract is "same names, same intent".
+     One screen, one state at a time. Three big ideas:
+       1. A small top bar (project + identity + overflow menu)
+          replaces the magenta header strip + project gradient.
+       2. Two tabs (Sync · Builder) replace the three stacked
+          zones. Each tab shows ONE state hero (idle / pending /
+          mismatch / undo / disconnected).
+       3. Change list is grouped by component, filterable, with
+          a sticky footer for the action — scales from 3 changes
+          to 3000 without restructuring.
      ════════════════════════════════════════════════════════ */
   :root{
-    /* Neutral surface + content (matches --demo-* in shared.css) */
     --dtf-bg:#FFFFFF;
     --dtf-surface:#FFFFFF;
     --dtf-surface-alt:#F7F7F8;
@@ -27,12 +28,10 @@
     --dtf-fg-faint:#A1A1AA;
     --dtf-fg-on-brand:#FFFFFF;
 
-    /* Brand — matches the editor's Publish CTA (teal-green). */
     --dtf-brand-bg:#3366F0;
     --dtf-brand-bg-hover:#2952D9;
     --dtf-brand-content:#3366F0;
 
-    /* Status colors — matches DTF semantic roles */
     --dtf-success-bg:#0B8D28;
     --dtf-success-bg-soft:#DCFCE7;
     --dtf-success-content:#166534;
@@ -52,1583 +51,1684 @@
     --dtf-info-content:#1E54B3;
     --dtf-info-border:#BFDBFE;
 
-    /* Identity gradient — teal-on-teal so the plugin's hero strip
-       reads as the same brand as the editor's Publish CTA. The
-       logo keeps its magenta gradient (DTF wordmark color) so it
-       still pops as the product identity. */
-    --dtf-project-grad:linear-gradient(135deg,#3366F0 0%,#2952D9 100%);
-    --dtf-logo-grad:linear-gradient(135deg,#BD22AB,#FF70E0);
-    --dtf-builder-grad:linear-gradient(135deg,#3366F0,#5C8AF5);
-
-    /* Shape + spacing — mirrors --radius-* / --space-* */
     --dtf-radius-sm:4px;
     --dtf-radius-md:6px;
     --dtf-radius-lg:8px;
     --dtf-radius-pill:999px;
 
-    /* Type */
     --dtf-font:Inter, -apple-system, BlinkMacSystemFont, sans-serif;
     --dtf-font-mono:'SF Mono', Monaco, Menlo, monospace;
     --dtf-fs-9:9px;
     --dtf-fs-10:10px;
     --dtf-fs-11:11px;
     --dtf-fs-12:12px;
+    --dtf-fs-13:13px;
     --dtf-fs-14:14px;
+    --dtf-fs-16:16px;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: var(--dtf-font);
-    font-size: var(--dtf-fs-12); color: var(--dtf-fg); background: var(--dtf-bg); padding: 16px;
-    overflow-y: auto;
+    font-size: var(--dtf-fs-12);
+    color: var(--dtf-fg);
+    background: var(--dtf-bg);
+    /* Sticky footer needs a flex column body — no overall scroll;
+       only the .scroll region scrolls so the action bar stays pinned. */
+    display: flex; flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
   }
+  a { color: var(--dtf-brand-content); }
 
-  /* ── Header ─────────────────────────────────────────── */
-  .header {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 12px; padding-bottom: 10px;
-    border-bottom: 1px solid var(--dtf-border);
-  }
-  .logo {
-    width: 28px; height: 28px; border-radius: var(--dtf-radius-md);
-    background: var(--dtf-logo-grad);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .logo svg { width: 16px; height: 16px; }
-  .header h1 { font-size: var(--dtf-fs-14); font-weight: 600; color: var(--dtf-fg-strong); }
-  .header p  { font-size: var(--dtf-fs-10); color: var(--dtf-fg-subtle); margin-top: 1px; }
-
-  /* ── Project bar (top-most element) ────────────────── */
-  .project-bar {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 12px; margin: -16px -16px 12px -16px;
-    background: var(--dtf-project-grad);
-    color: var(--dtf-fg-on-brand);
-  }
-  .project-bar-label {
-    font-size: var(--dtf-fs-9); font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; opacity: 0.7; white-space: nowrap;
-  }
-  .project-bar select {
-    flex: 1; padding: 5px 8px; border-radius: var(--dtf-radius-sm);
-    border: 1px solid rgba(255,255,255,0.3);
-    background: rgba(255,255,255,0.15); color: var(--dtf-fg-on-brand);
-    font-size: var(--dtf-fs-12); font-weight: 600;
-    font-family: inherit; cursor: pointer;
-    -webkit-appearance: none; appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 8px center;
-    padding-right: 24px;
-  }
-  .project-bar select:focus { outline: none; border-color: rgba(255,255,255,0.6); }
-  .project-bar select option { color: var(--dtf-fg-strong); background: var(--dtf-bg); }
-
-
-  /* ── Connection bar ─────────────────────────────────── */
-  .conn-bar {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 12px; border-radius: var(--dtf-radius-md);
-    margin-bottom: 12px; font-size: var(--dtf-fs-11);
-    background: var(--dtf-surface-alt); border: 1px solid var(--dtf-border); color: var(--dtf-fg-subtle);
-  }
-  .conn-bar.live { background: var(--dtf-success-bg-soft); border-color: var(--dtf-success-border); color: var(--dtf-success-content); }
-  .conn-bar.error { background: var(--dtf-danger-bg-soft); border-color: var(--dtf-danger-border); color: var(--dtf-danger-content); }
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-    background: var(--dtf-fg-faint);
-  }
-  .conn-bar.live .dot { background: var(--dtf-success-bg); animation: pulse 2s infinite; }
-  .conn-bar.error .dot { background: var(--dtf-danger-bg); }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .conn-meta { margin-left: auto; font-size: var(--dtf-fs-10); opacity: 0.7; }
-
-  /* ── Notification card ──────────────────────────────── */
-  .notif {
-    border-radius: var(--dtf-radius-lg); padding: 14px; margin-bottom: 12px;
-    border: 1px solid var(--dtf-border); background: var(--dtf-surface-alt);
-    display: none;
-  }
-  .notif.visible { display: block; }
-  .notif.has-changes {
-    background: #FFF7ED; border-color: var(--dtf-warning-border);
-    animation: slideIn 0.3s ease;
-  }
-  .notif.synced { background: var(--dtf-success-bg-soft); border-color: var(--dtf-success-border); }
-  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-  .notif-header {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 8px; font-weight: 600; font-size: var(--dtf-fs-12);
-    color: var(--dtf-fg-strong);
-  }
-  .notif-icon { font-size: 16px; }
-  .notif-badge {
-    margin-left: auto; padding: 2px 8px; border-radius: var(--dtf-radius-pill);
-    font-size: var(--dtf-fs-10); font-weight: 700; background: var(--dtf-warning-bg); color: var(--dtf-fg-on-brand);
-  }
-  .notif.synced .notif-badge { background: var(--dtf-success-bg); }
-  .notif-body { font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); line-height: 1.5; }
-  .notif-body strong { color: var(--dtf-fg-strong); }
-
-  /* ── Change list ────────────────────────────────────── */
-  .changes {
-    margin-top: 10px; max-height: 140px; overflow-y: auto;
-    border: 1px solid var(--dtf-border); border-radius: var(--dtf-radius-sm); background: var(--dtf-bg);
-  }
-  .change-item {
-    display: flex; align-items: center; gap: 6px;
-    padding: 5px 8px; font-size: var(--dtf-fs-10); border-bottom: 1px solid var(--dtf-surface-alt);
-    font-family: var(--dtf-font-mono);
-  }
-  .change-item:last-child { border-bottom: none; }
-  .ch-tag {
-    font-size: var(--dtf-fs-9); font-weight: 700; padding: 1px 4px;
-    border-radius: 2px; flex-shrink: 0;
-  }
-  .ch-tag.add { background: var(--dtf-success-bg-soft); color: var(--dtf-success-content); }
-  .ch-tag.upd { background: var(--dtf-warning-bg-soft); color: var(--dtf-warning-content); }
-  .ch-tag.rem { background: var(--dtf-danger-bg-soft); color: var(--dtf-danger-content); }
-  .ch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ch-val { color: var(--dtf-fg-faint); font-size: var(--dtf-fs-9); }
-
-  /* ── Stats row ──────────────────────────────────────── */
-  .stats-row {
-    display: flex; gap: 12px; padding: 8px 0;
-    font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle);
-  }
-  .stats-row strong { color: var(--dtf-fg-strong); }
-
-  /* ── Actions ────────────────────────────────────────── */
-  .actions { display: flex; gap: 8px; margin-top: 12px; }
-  button {
-    flex: 1; padding: 10px 16px; border-radius: var(--dtf-radius-md);
-    font-size: var(--dtf-fs-12); font-weight: 600; cursor: pointer;
-    border: none; transition: all 120ms ease;
-    font-family: inherit;
-  }
-  /* Universal focus ring — every interactive surface in the plugin
-     gets the same 2px brand outline at 2px offset, matching the
-     editor's .ev2-deploy / .ev2-topbar-icon-btn focus style. */
-  button:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  select:focus-visible,
+  /* Universal focus ring — same on every interactive surface. */
+  button:focus-visible, a:focus-visible,
+  input:focus-visible, select:focus-visible,
   summary:focus-visible {
     outline: 2px solid var(--dtf-brand-bg);
     outline-offset: 2px;
     border-radius: var(--dtf-radius-sm);
   }
-  .btn-sync { background: var(--dtf-brand-bg); color: var(--dtf-fg-on-brand); }
-  .btn-sync:hover { background: var(--dtf-brand-bg-hover); }
-  /* Terminal success state is neutral, not a CTA — nothing left to do, no green call-to-action needed. */
-  .btn-sync.ready,
-  .btn-sync.ready:disabled {
-    background: var(--dtf-surface-alt);
-    color: var(--dtf-fg);
-    border: 1px solid var(--dtf-border-strong);
-    font-weight: 500;
-    opacity: 1;
-  }
-  .btn-sync:disabled { background: var(--dtf-surface-deep); color: var(--dtf-fg-faint); }
-  .btn-cancel { background: var(--dtf-surface-alt); color: var(--dtf-fg); border: 1px solid var(--dtf-border-strong); flex: 0 0 auto; padding: 10px 14px; }
-  .btn-cancel:hover { background: var(--dtf-surface-deep); border-color: var(--dtf-fg-faint); color: var(--dtf-fg-strong); }
 
-  /* ── Status bar ─────────────────────────────────────── */
-  .status-bar {
-    margin-top: 10px; padding: 8px 10px; border-radius: var(--dtf-radius-md);
-    font-size: var(--dtf-fs-11); display: none;
-  }
-  .status-bar.ok   { display: block; background: var(--dtf-success-bg-soft); color: var(--dtf-success-content); border: 1px solid var(--dtf-success-border); }
-  .status-bar.err  { display: block; background: var(--dtf-danger-bg-soft); color: var(--dtf-danger-content); border: 1px solid var(--dtf-danger-border); }
-  .status-bar.work { display: block; background: var(--dtf-info-bg-soft); color: var(--dtf-info-content); border: 1px solid var(--dtf-info-border); }
-
-  /* ── Project mismatch warning ─────────────────────────── */
-  .project-warn {
-    display: none; border-radius: var(--dtf-radius-lg); padding: 14px;
-    margin-bottom: 12px; background: #FFF7ED; border: 1px solid var(--dtf-warning-border);
-    animation: slideIn 0.3s ease;
-  }
-  .project-warn.visible { display: block; }
-  .project-warn-header {
+  /* ── Top bar ─────────────────────────────────────────
+     Compact chrome: project switcher + identity + overflow.
+     Replaces the magenta logo strip + teal project bar. */
+  .topbar {
     display: flex; align-items: center; gap: 8px;
-    font-weight: 600; font-size: var(--dtf-fs-12); margin-bottom: 8px;
+    height: 38px; padding: 0 12px;
+    background: var(--dtf-surface);
+    border-bottom: 1px solid var(--dtf-border);
+    flex-shrink: 0;
+  }
+  .tb-project {
+    flex: 1; min-width: 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tb-project select {
+    flex: 1; min-width: 0;
+    appearance: none; -webkit-appearance: none;
+    background: transparent; border: 0;
+    font: 600 var(--dtf-fs-13)/1 var(--dtf-font);
     color: var(--dtf-fg-strong);
+    padding: 4px 18px 4px 6px;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2371717A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 4px center;
+    border-radius: var(--dtf-radius-sm);
+    cursor: pointer;
   }
-  .project-warn-icon { font-size: 16px; }
-  .project-warn-body { font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); line-height: 1.5; margin-bottom: 10px; }
-  .project-warn-body strong { color: var(--dtf-fg-strong); }
-  .project-warn-actions { display: flex; gap: 8px; }
-  .project-warn-actions button {
-    padding: 6px 14px; border-radius: var(--dtf-radius-sm); font-size: var(--dtf-fs-11);
-    font-weight: 600; cursor: pointer; border: none;
+  .tb-project select:hover { background-color: var(--dtf-surface-alt); }
+  .tb-project select option { color: var(--dtf-fg-strong); background: var(--dtf-bg); }
+  .tb-status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--dtf-fg-faint); flex-shrink: 0;
+    transition: background 200ms ease;
   }
-  .btn-switch { background: var(--dtf-brand-bg); color: var(--dtf-fg-on-brand); }
-  .btn-switch:hover { background: var(--dtf-brand-bg-hover); }
-  .btn-keep { background: var(--dtf-surface-alt); color: var(--dtf-fg); border: 1px solid var(--dtf-border-strong); }
-  .btn-keep:hover { background: var(--dtf-surface-deep); }
-  .project-bar-lock {
-    font-size: var(--dtf-fs-12); cursor: default; opacity: 0.6; flex-shrink: 0;
-  }
+  body[data-conn="live"]  .tb-status-dot { background: var(--dtf-success-bg); }
+  body[data-conn="error"] .tb-status-dot { background: var(--dtf-danger-bg); }
+  body[data-conn="work"]  .tb-status-dot { background: var(--dtf-warning-bg); }
 
-  /* ── Undo warning ────────────────────────────────────── */
-  .undo-warn {
-    display: none; border-radius: var(--dtf-radius-lg); padding: 12px 14px;
-    margin-bottom: 12px; background: var(--dtf-danger-bg-soft); border: 1px solid var(--dtf-danger-border);
-    animation: shake 0.4s ease;
+  .tb-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--dtf-surface-deep); color: var(--dtf-fg-strong);
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--dtf-fs-10); font-weight: 700;
+    flex-shrink: 0;
   }
-  .undo-warn.visible { display: flex; align-items: center; gap: 10px; }
-  .undo-warn-icon { font-size: 18px; flex-shrink: 0; }
-  .undo-warn-text { font-size: var(--dtf-fs-11); color: var(--dtf-danger-content); line-height: 1.4; }
-  .undo-warn-text strong { font-weight: 600; }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    20% { transform: translateX(-4px); }
-    40% { transform: translateX(4px); }
-    60% { transform: translateX(-3px); }
-    80% { transform: translateX(2px); }
-  }
+  .tb-avatar.disconnected { background: var(--dtf-surface-alt); color: var(--dtf-fg-faint); }
 
-  /* ── Auto-sync toggle ───────────────────────────────── */
-  .auto-sync-row {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 8px; padding: 6px 0;
-    font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle);
+  .tb-menu-btn {
+    width: 28px; height: 28px; border-radius: var(--dtf-radius-sm);
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--dtf-fg-subtle);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; line-height: 1;
+    flex-shrink: 0;
   }
-  .auto-sync-row label { cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  .auto-sync-row input[type="checkbox"] { cursor: pointer; accent-color: var(--dtf-brand-bg); }
+  .tb-menu-btn:hover { background: var(--dtf-surface-alt); color: var(--dtf-fg-strong); }
 
-  /* ── Server URL config ──────────────────────────────── */
-  .server-config {
-    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--dtf-border);
+  /* ── Overflow menu (uses native <details>) ──────────── */
+  .tb-menu { position: relative; }
+  .tb-menu[open] > summary::before {
+    content: ''; position: fixed; inset: 0; z-index: 5;
   }
-  .server-config summary {
-    font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); cursor: pointer; user-select: none;
+  .tb-menu summary {
+    list-style: none; cursor: pointer;
   }
-  .server-config summary:hover { color: var(--dtf-fg); }
-  .server-config-inner { margin-top: 8px; }
-  .server-url-row {
-    display: flex; gap: 6px; align-items: center;
-  }
-  .server-url-row input[type="text"],
-  .server-url-row input[type="password"] {
-    flex: 1; padding: 6px 8px; border: 1px solid var(--dtf-border-strong); border-radius: var(--dtf-radius-sm);
-    font-size: var(--dtf-fs-11); font-family: var(--dtf-font-mono);
-    color: var(--dtf-fg-strong); background: var(--dtf-surface-alt);
-  }
-  .server-url-row input:focus { outline: none; border-color: var(--dtf-brand-bg); }
-  .btn-url-save {
-    padding: 6px 10px; background: var(--dtf-surface-alt); border: 1px solid var(--dtf-border-strong);
-    border-radius: var(--dtf-radius-sm); font-size: var(--dtf-fs-10); cursor: pointer; color: var(--dtf-fg);
-    white-space: nowrap; font-family: inherit; font-weight: 600;
-  }
-  .btn-url-save:hover { background: var(--dtf-surface-deep); }
-  .server-presets { margin-top: 6px; font-size: var(--dtf-fs-10); color: var(--dtf-fg-faint); }
-  .server-presets button {
-    color: var(--dtf-brand-content); text-decoration: none; cursor: pointer; margin-right: 10px;
-    background: none; border: none; padding: 0; font: inherit; font-size: var(--dtf-fs-10);
-  }
-  .server-presets button:hover { text-decoration: underline; }
-
-  /* ── Change notification pulse ───────────────────────── */
-  .notif.has-changes { animation: slideIn 0.3s ease, ringPulse 1s ease 0.3s; }
-  @keyframes ringPulse {
-    0% { box-shadow: 0 0 0 0 rgba(166,98,8,0.35); }
-    70% { box-shadow: 0 0 0 8px rgba(166,98,8,0); }
-    100% { box-shadow: 0 0 0 0 rgba(166,98,8,0); }
-  }
-
-  /* ── Changelog ──────────────────────────────────────── */
-  .changelog { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--dtf-border); }
-  .changelog summary { font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); cursor: pointer; }
-  .log-list { margin-top: 6px; max-height: 120px; overflow-y: auto; }
-  .log-entry {
-    padding: 4px 0; font-size: var(--dtf-fs-10); color: var(--dtf-fg-subtle);
-    border-bottom: 1px solid var(--dtf-surface-alt);
-  }
-  .log-time { color: var(--dtf-fg-faint); }
-
-  /* ── Setup / PAT flow ───────────────────────────────── */
-  .setup-wrap { margin: 12px 0; }
-  .setup-title { font-size: var(--dtf-fs-12); font-weight: 600; margin-bottom: 8px; color: var(--dtf-fg-strong); }
-  .setup-error { display: none; font-size: var(--dtf-fs-10); color: var(--dtf-danger-content); margin-top: 4px; }
-  .setup-hint { font-size: var(--dtf-fs-10); color: var(--dtf-fg-subtle); margin-top: 6px; }
-  .setup-hint a { color: var(--dtf-brand-content); text-decoration: none; }
-  .setup-hint a:hover { text-decoration: underline; }
-  .setup-hint code { font-family: var(--dtf-font-mono); background: var(--dtf-surface-alt); padding: 1px 4px; border-radius: 3px; font-size: var(--dtf-fs-10); }
-  .setup-done {
-    display: none; margin: 8px 0; align-items: center; gap: 8px;
-    padding: 6px 10px; background: var(--dtf-success-bg-soft); border-radius: var(--dtf-radius-md);
-    font-size: var(--dtf-fs-11);
-  }
-  .setup-done .who { color: var(--dtf-success-content); font-weight: 600; }
-  .setup-done .spacer { flex: 1; }
-  .setup-done .disconnect {
-    flex: 0 0 auto;
-    font-size: var(--dtf-fs-10); padding: 2px 8px; border-radius: var(--dtf-radius-sm);
-    border: 1px solid var(--dtf-border-strong); background: var(--dtf-bg);
-    cursor: pointer; color: var(--dtf-fg-subtle); font-family: inherit; font-weight: 600;
-  }
-  .setup-done .disconnect:hover { color: var(--dtf-fg-strong); border-color: var(--dtf-fg-faint); }
-
-  /* ── Builder section (Phase 3 zone) — kept distinct because
-     it's a separate verb (generate), but lifted into the same
-     card shell as the other zones for visual rhythm. */
-  .builder-section {
-    margin-top: 0; padding: 12px 14px; border-top: 0;
+  .tb-menu summary::-webkit-details-marker { display: none; }
+  .tb-menu-pop {
+    position: absolute; top: 32px; right: 0; z-index: 10;
+    min-width: 180px; padding: 4px;
     background: var(--dtf-surface);
     border: 1px solid var(--dtf-border);
-    border-radius: var(--dtf-radius-lg);
+    border-radius: var(--dtf-radius-md);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
   }
-  .builder-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .builder-mark {
-    width: 22px; height: 22px; border-radius: 5px;
-    background: var(--dtf-builder-grad);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  .tb-menu-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; font-size: var(--dtf-fs-12); color: var(--dtf-fg);
+    background: transparent; border: 0; width: 100%;
+    text-align: left; cursor: pointer; border-radius: var(--dtf-radius-sm);
+    font-family: inherit;
   }
-  .builder-title { font-size: var(--dtf-fs-12); font-weight: 700; color: var(--dtf-fg-strong); }
-  .builder-sub { font-size: var(--dtf-fs-10); color: var(--dtf-fg-subtle); }
+  .tb-menu-item:hover { background: var(--dtf-surface-alt); color: var(--dtf-fg-strong); }
+  .tb-menu-item.danger { color: var(--dtf-danger-content); }
+  .tb-menu-item input[type="checkbox"] { accent-color: var(--dtf-brand-bg); }
+  .tb-menu-sep { height: 1px; background: var(--dtf-border); margin: 4px 0; }
+  .tb-menu-label {
+    font-size: var(--dtf-fs-9); font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--dtf-fg-faint);
+    padding: 6px 10px 2px;
+  }
+  .tb-menu-item kbd {
+    margin-left: auto; font-size: var(--dtf-fs-10);
+    color: var(--dtf-fg-faint); font-family: var(--dtf-font-mono);
+  }
 
-  .prereqs {
-    font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); margin-bottom: 10px;
-    padding: 8px 10px; background: var(--dtf-surface-alt); border-radius: var(--dtf-radius-md);
+  /* ── Tabs ─────────────────────────────────────────── */
+  .tabs {
+    display: flex; gap: 0;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--dtf-border);
+    background: var(--dtf-surface);
+    flex-shrink: 0;
+  }
+  .tab {
+    background: transparent; border: 0;
+    padding: 10px 12px;
+    font: 600 var(--dtf-fs-12)/1 var(--dtf-font);
+    color: var(--dtf-fg-subtle);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    position: relative;
+  }
+  .tab:hover { color: var(--dtf-fg-strong); }
+  .tab[aria-selected="true"] {
+    color: var(--dtf-fg-strong);
+    border-bottom-color: var(--dtf-brand-bg);
+  }
+  .tab-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 5px; min-width: 16px;
+    background: var(--dtf-warning-bg); color: var(--dtf-fg-on-brand);
+    border-radius: var(--dtf-radius-pill);
+    font-size: var(--dtf-fs-9); font-weight: 700;
+    line-height: 14px;
+    vertical-align: 1px;
+  }
+  .tab[hidden] { display: none; }
+
+  /* ── Scroll region + sticky footer ──────────────────
+     Footer pins below the scroll area so the action button
+     is reachable even with 300 change rows. */
+  .scroll {
+    flex: 1; overflow-y: auto;
+    padding: 16px 12px;
+  }
+  .footer {
+    flex-shrink: 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--dtf-border);
+    background: var(--dtf-surface);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .footer[hidden] { display: none; }
+
+  /* ── Hero (idle / pending / mismatch / undo / setup) ── */
+  .hero {
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+    padding: 28px 16px 20px;
+    gap: 6px;
+  }
+  .hero-glyph {
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    font-size: 22px; line-height: 1;
+    margin-bottom: 6px;
+  }
+  .hero-glyph.ok      { background: var(--dtf-success-bg-soft); color: var(--dtf-success-content); }
+  .hero-glyph.work    { background: var(--dtf-info-bg-soft);    color: var(--dtf-info-content); }
+  .hero-glyph.warn    { background: var(--dtf-warning-bg-soft); color: var(--dtf-warning-content); }
+  .hero-glyph.danger  { background: var(--dtf-danger-bg-soft);  color: var(--dtf-danger-content); }
+  .hero-glyph.brand   { background: var(--dtf-info-bg-soft);    color: var(--dtf-brand-content); }
+  .hero-glyph.neutral { background: var(--dtf-surface-alt);     color: var(--dtf-fg-subtle); }
+  .hero-title {
+    font-size: var(--dtf-fs-16); font-weight: 600;
+    color: var(--dtf-fg-strong);
+  }
+  .hero-sub {
+    font-size: var(--dtf-fs-12); color: var(--dtf-fg-subtle);
+    line-height: 1.5; max-width: 280px;
+  }
+  .hero-actions {
+    margin-top: 12px;
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  }
+  .hero-link {
+    font-size: var(--dtf-fs-11); color: var(--dtf-fg-faint);
+    text-decoration: none; margin-top: 4px;
+  }
+  .hero-link:hover { color: var(--dtf-fg-subtle); text-decoration: underline; }
+
+  /* ── Buttons ─────────────────────────────────────── */
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  .btn {
+    padding: 9px 16px; border-radius: var(--dtf-radius-md);
+    font-size: var(--dtf-fs-12); font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--dtf-brand-bg); color: var(--dtf-fg-on-brand);
+  }
+  .btn-primary:hover { background: var(--dtf-brand-bg-hover); }
+  .btn-primary:disabled { background: var(--dtf-surface-deep); color: var(--dtf-fg-faint); }
+  .btn-ghost {
+    background: var(--dtf-surface-alt); color: var(--dtf-fg);
+    border-color: var(--dtf-border-strong);
+  }
+  .btn-ghost:hover { background: var(--dtf-surface-deep); color: var(--dtf-fg-strong); }
+  .btn-full { flex: 1; }
+  .footer .btn-primary { flex: 1; }
+
+  /* ── Change list (grouped, filterable, scalable) ──── */
+  .changes-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .changes-count {
+    font-size: var(--dtf-fs-12); font-weight: 600; color: var(--dtf-fg-strong);
+  }
+  .changes-count-icon {
+    color: var(--dtf-brand-content); margin-right: 4px;
+  }
+
+  .filter-chips {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .chip {
+    background: var(--dtf-surface-alt); border: 1px solid var(--dtf-border);
+    color: var(--dtf-fg-subtle);
+    padding: 3px 9px; border-radius: var(--dtf-radius-pill);
+    font-size: var(--dtf-fs-11); font-weight: 500;
+    cursor: pointer;
+  }
+  .chip:hover { color: var(--dtf-fg-strong); border-color: var(--dtf-border-strong); }
+  .chip[aria-pressed="true"] {
+    background: var(--dtf-brand-bg); border-color: var(--dtf-brand-bg);
+    color: var(--dtf-fg-on-brand);
+  }
+  .chip-count {
+    margin-left: 4px; opacity: 0.7; font-weight: 400;
+  }
+
+  .filter-search {
+    width: 100%;
+    padding: 6px 10px; border-radius: var(--dtf-radius-md);
+    border: 1px solid var(--dtf-border-strong); background: var(--dtf-surface);
+    font: 400 var(--dtf-fs-11)/1.4 var(--dtf-font);
+    color: var(--dtf-fg-strong);
+    margin-bottom: 10px;
+  }
+  .filter-search:focus { outline: none; border-color: var(--dtf-brand-bg); }
+
+  .change-group {
+    margin-bottom: 8px;
     border: 1px solid var(--dtf-border);
+    border-radius: var(--dtf-radius-md);
+    overflow: hidden;
   }
-  .prereqs-label {
-    font-weight: 600; margin-bottom: 4px; font-size: var(--dtf-fs-10);
-    text-transform: uppercase; letter-spacing: 0.05em; color: var(--dtf-fg-faint);
+  .change-group-head {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 10px;
+    background: var(--dtf-surface-alt);
+    font: 600 var(--dtf-fs-11)/1 var(--dtf-font);
+    color: var(--dtf-fg-strong);
+    cursor: pointer;
+    border: 0; width: 100%; text-align: left;
   }
-  .prereqs-list { display: flex; gap: 12px; flex-wrap: wrap; }
+  .change-group-head:hover { background: var(--dtf-surface-deep); }
+  .change-group-caret {
+    width: 10px; transition: transform 150ms ease;
+    color: var(--dtf-fg-subtle);
+  }
+  .change-group[data-open="true"] .change-group-caret { transform: rotate(90deg); }
+  .change-group-count {
+    margin-left: auto; color: var(--dtf-fg-faint); font-weight: 400;
+  }
+  .change-group-body {
+    display: none;
+    background: var(--dtf-surface);
+  }
+  .change-group[data-open="true"] .change-group-body { display: block; }
+  .change-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    font-family: var(--dtf-font-mono);
+    font-size: var(--dtf-fs-10);
+    border-top: 1px solid var(--dtf-surface-alt);
+  }
+  .change-row:first-child { border-top: 0; }
+  .ch-tag {
+    display: inline-block; padding: 1px 5px;
+    font-size: var(--dtf-fs-9); font-weight: 700;
+    border-radius: 2px; flex-shrink: 0;
+  }
+  .ch-tag.add { background: var(--dtf-success-bg-soft); color: var(--dtf-success-content); }
+  .ch-tag.upd { background: var(--dtf-warning-bg-soft); color: var(--dtf-warning-content); }
+  .ch-tag.rem { background: var(--dtf-danger-bg-soft); color: var(--dtf-danger-content); }
+  .ch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dtf-fg-strong); }
+  .ch-from, .ch-to { color: var(--dtf-fg-subtle); }
+  .ch-arrow { color: var(--dtf-fg-faint); margin: 0 2px; }
+  .ch-swatch {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px; border: 1px solid var(--dtf-border-strong);
+    vertical-align: middle; margin-right: 3px;
+  }
+  .change-more {
+    padding: 6px 10px;
+    background: var(--dtf-surface);
+    color: var(--dtf-brand-content);
+    font-size: var(--dtf-fs-11); cursor: pointer; border: 0; width: 100%; text-align: left;
+    border-top: 1px solid var(--dtf-surface-alt);
+  }
+  .change-more:hover { background: var(--dtf-surface-alt); }
 
-  .comp-pick { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-  .comp-pick label {
-    display: flex; align-items: center; gap: 4px;
-    font-size: var(--dtf-fs-11); cursor: pointer;
-    padding: 4px 8px; border: 1px solid var(--dtf-border); border-radius: var(--dtf-radius-sm);
-    background: var(--dtf-bg); color: var(--dtf-fg);
-    transition: all 120ms ease;
+  /* ── Builder tab ─────────────────────────────────── */
+  .builder-intro {
+    font-size: var(--dtf-fs-12); color: var(--dtf-fg-subtle);
+    line-height: 1.5; margin-bottom: 16px;
   }
-  .comp-pick label:hover { border-color: var(--dtf-border-strong); }
+  .comp-pick {
+    display: flex; flex-direction: column; gap: 0;
+    margin-bottom: 12px;
+    border: 1px solid var(--dtf-border);
+    border-radius: var(--dtf-radius-md);
+    overflow: hidden;
+  }
+  .comp-pick label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    font-size: var(--dtf-fs-12); color: var(--dtf-fg-strong);
+    cursor: pointer;
+    border-top: 1px solid var(--dtf-border);
+  }
+  .comp-pick label:first-child { border-top: 0; }
+  .comp-pick label:hover { background: var(--dtf-surface-alt); }
   .comp-pick input[type="checkbox"] { accent-color: var(--dtf-brand-bg); }
 
-  .btn-generate {
-    width: 100%; padding: 10px 16px; border: none; border-radius: var(--dtf-radius-md);
-    cursor: pointer; font-size: var(--dtf-fs-12); font-weight: 600; font-family: inherit;
-    color: var(--dtf-fg-on-brand);
-    background: var(--dtf-builder-grad);
-    opacity: 0.5; transition: opacity 200ms ease, transform 100ms ease;
+  /* Prereqs: only visible when not met. Tiny disclosure. */
+  .prereqs-bar {
+    display: none;
+    padding: 8px 10px; margin-bottom: 10px;
+    border-radius: var(--dtf-radius-md);
+    background: var(--dtf-warning-bg-soft);
+    border: 1px solid var(--dtf-warning-border);
+    color: var(--dtf-warning-content);
+    font-size: var(--dtf-fs-11);
   }
-  .btn-generate:not(:disabled) { opacity: 1; }
-  .btn-generate:not(:disabled):hover { transform: translateY(-1px); }
-  /* No cursor:not-allowed — Figma's plugin iframe suppresses tooltips on
-     elements with not-allowed cursors, so disabled buttons lose their
-     'why is this disabled?' hint. Opacity already telegraphs the state. */
+  .prereqs-bar.visible { display: block; }
+  .prereqs-bar strong { font-weight: 600; }
+  .prereqs-list { margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .prereqs-list span { font-size: var(--dtf-fs-10); }
+  .prereqs-list span.ok { color: var(--dtf-success-content); opacity: 0.7; }
 
-  .gen-status { font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); margin-top: 8px; min-height: 16px; }
   .gen-info {
-    display: none; margin-top: 8px; padding: 8px 10px;
+    display: none; margin-top: 10px; padding: 8px 10px;
     background: var(--dtf-success-bg-soft); border: 1px solid var(--dtf-success-border);
     border-radius: var(--dtf-radius-md); font-size: var(--dtf-fs-11); color: var(--dtf-success-content);
   }
+  .gen-info.visible { display: block; }
+  .gen-status { font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); margin-top: 6px; min-height: 14px; }
 
-  /* ════════════════════════════════════════════════════════
-     Phase 3 — IA grouping
-     ────────────────────────────────────────────────────────
-     The plugin body is divided into three vertical zones, each
-     a rounded card:
-       1. Sync — status + change card + Update Variables CTA
-       2. Connection — GitHub PAT + Advanced server URL
-       3. Builder — component generation
-     Cards share a single surface treatment so the rhythm reads
-     as "three things, each scannable" instead of one long scroll.
-     The shell normalises padding so child elements (.conn-bar,
-     .notif, .actions) lose their own margins inside cards.
-     ════════════════════════════════════════════════════════ */
-  .zone {
-    background: var(--dtf-surface);
-    border: 1px solid var(--dtf-border);
-    border-radius: var(--dtf-radius-lg);
-    padding: 12px 14px;
-    margin-bottom: 12px;
+  /* ── Inline status (for sync progress, errors) ───── */
+  .status-line {
+    display: none;
+    padding: 8px 10px; border-radius: var(--dtf-radius-md);
+    font-size: var(--dtf-fs-11); margin-bottom: 10px;
   }
-  .zone-label {
-    display: block;
-    font-size: var(--dtf-fs-9); font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--dtf-fg-faint);
-    margin-bottom: 10px;
+  .status-line.ok   { display: block; background: var(--dtf-success-bg-soft); color: var(--dtf-success-content); border: 1px solid var(--dtf-success-border); }
+  .status-line.err  { display: block; background: var(--dtf-danger-bg-soft);  color: var(--dtf-danger-content);  border: 1px solid var(--dtf-danger-border); }
+  .status-line.work { display: block; background: var(--dtf-info-bg-soft);    color: var(--dtf-info-content);    border: 1px solid var(--dtf-info-border); }
+
+  /* ── Setup screen (GitHub PAT) ───────────────────── */
+  .setup-form {
+    max-width: 320px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 8px;
   }
-  /* Inside a zone, kill the standalone margins on the original
-     atomic widgets so they pack cleanly. */
-  .zone .conn-bar,
-  .zone .notif,
-  .zone .project-warn,
-  .zone .undo-warn,
-  .zone .status-bar { margin-bottom: 10px; }
-  .zone > *:last-child { margin-bottom: 0; }
-  .zone .actions { margin-top: 0; }
-  .zone .auto-sync-row { margin-top: 8px; padding-bottom: 0; }
-  .zone .stats-row { padding: 4px 0 8px; }
-  .zone .server-config { margin-top: 4px; padding-top: 0; border-top: 0; }
-  .zone .setup-wrap { margin: 0; }
+  .setup-form input[type="password"], .setup-form input[type="text"] {
+    width: 100%;
+    padding: 8px 10px; border-radius: var(--dtf-radius-md);
+    border: 1px solid var(--dtf-border-strong); background: var(--dtf-surface);
+    font: 400 var(--dtf-fs-12) var(--dtf-font-mono);
+    color: var(--dtf-fg-strong);
+  }
+  .setup-form input:focus { outline: none; border-color: var(--dtf-brand-bg); }
+  .setup-error { display: none; font-size: var(--dtf-fs-11); color: var(--dtf-danger-content); }
+  .setup-error.visible { display: block; }
+
+  /* ── Server URL section (in menu, rare) ──────────── */
+  .server-panel {
+    padding: 8px 10px;
+    background: var(--dtf-surface-alt);
+    border-top: 1px solid var(--dtf-border);
+    border-bottom: 1px solid var(--dtf-border);
+    display: none;
+  }
+  .server-panel.visible { display: block; }
+  .server-panel input {
+    width: 100%;
+    padding: 6px 8px; border-radius: var(--dtf-radius-sm);
+    border: 1px solid var(--dtf-border-strong);
+    font: 400 var(--dtf-fs-11) var(--dtf-font-mono);
+    color: var(--dtf-fg-strong); background: var(--dtf-surface);
+    margin-bottom: 6px;
+  }
+  .server-panel .row { display: flex; gap: 6px; align-items: center; }
+  .server-panel .preset {
+    background: transparent; border: 0; padding: 0;
+    color: var(--dtf-brand-content); font-size: var(--dtf-fs-10);
+    cursor: pointer; font-family: inherit; text-decoration: underline;
+  }
+
+  /* ── Debug panel (rare; in menu) ──────────────────── */
+  .debug-panel {
+    display: none;
+    padding: 8px 10px;
+    background: var(--dtf-surface-alt);
+    border-top: 1px solid var(--dtf-border);
+    border-bottom: 1px solid var(--dtf-border);
+    font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle);
+    font-family: var(--dtf-font-mono);
+  }
+  .debug-panel.visible { display: block; }
+  .debug-panel strong { color: var(--dtf-fg-strong); font-weight: 600; }
+  .debug-panel .row { display: flex; gap: 10px; margin-bottom: 2px; }
+
+  /* ── Changelog (rare; in menu) ────────────────────── */
+  .changelog-panel {
+    display: none;
+    padding: 8px 10px;
+    background: var(--dtf-surface-alt);
+    border-top: 1px solid var(--dtf-border);
+    border-bottom: 1px solid var(--dtf-border);
+    max-height: 160px; overflow-y: auto;
+    font-size: var(--dtf-fs-10); color: var(--dtf-fg-subtle);
+  }
+  .changelog-panel.visible { display: block; }
+  .changelog-panel .log-entry {
+    padding: 3px 0; border-bottom: 1px solid var(--dtf-border);
+  }
+  .changelog-panel .log-time { color: var(--dtf-fg-faint); font-family: var(--dtf-font-mono); }
+  .changelog-panel .empty { padding: 8px 0; color: var(--dtf-fg-faint); }
 </style>
 </head>
-<body>
+<body data-screen="loading" data-tab="sync" data-conn="off">
 
-<!-- Project bar (top-most) -->
-<div class="project-bar" id="projectBar">
-  <span class="project-bar-label">Project</span>
-  <select id="projectSelect"><option value="">Loading&hellip;</option></select>
-</div>
-
-<!-- Header -->
-<div class="header">
-  <div class="logo">
-    <svg viewBox="0 0 18 18" fill="none">
-      <path d="M3 9h12M9 3v12M5 5l8 8M13 5L5 13" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  </div>
-  <div>
-    <h1>Design Token Forge</h1>
-    <p>Live sync &mdash; token changes appear here automatically</p>
-  </div>
-</div>
-
-<!-- ─── ZONE 1 / SYNC ────────────────────────────────────
-     Live server status, change card, Update Variables CTA,
-     auto-sync toggle. Everything related to the act of
-     pushing tokens from DTF → Figma lives here. -->
-<section class="zone" aria-label="Sync">
-  <span class="zone-label">Sync</span>
-
-  <!-- Connection status -->
-  <div class="conn-bar" id="connBar">
-    <span class="dot"></span>
-    <span id="connText">Connecting to sync server&hellip;</span>
-    <span class="conn-meta" id="connMeta"></span>
-  </div>
-
-  <!-- Project mismatch warning -->
-  <div class="project-warn" id="projectWarn">
-    <div class="project-warn-header">
-      <span class="project-warn-icon">&#9888;</span>
-      <span id="projectWarnTitle">Project mismatch</span>
+  <!-- ─── Top bar ──────────────────────────────────── -->
+  <div class="topbar">
+    <div class="tb-project">
+      <span class="tb-status-dot" id="tbStatusDot" title="Server status"></span>
+      <select id="projectSelect" aria-label="Project">
+        <option value="">Loading…</option>
+      </select>
     </div>
-    <div class="project-warn-body" id="projectWarnBody"></div>
-    <div class="project-warn-actions">
-      <button class="btn-switch" id="projectSwitchBtn">Switch &amp; Sync</button>
-      <button class="btn-keep" id="projectKeepBtn">Keep current</button>
-    </div>
-  </div>
-
-  <!-- Undo warning -->
-  <div class="undo-warn" id="undoWarn">
-    <span class="undo-warn-icon">&#9888;</span>
-    <div class="undo-warn-text">
-      <strong>Variables removed (undo detected)</strong><br>
-      Figma variables were removed — likely by Cmd+Z. Hit <strong>Re-sync</strong> to restore them.
-    </div>
-  </div>
-
-  <!-- Notification card -->
-  <div class="notif" id="notif">
-    <div class="notif-header">
-      <span class="notif-icon" id="notifIcon">&#9889;</span>
-      <span id="notifTitle">Token changes available</span>
-      <span class="notif-badge" id="notifBadge">0</span>
-    </div>
-    <div class="notif-body" id="notifBody"></div>
-    <div class="changes" id="changeList" style="display:none"></div>
-  </div>
-
-  <!-- Figma state -->
-  <div class="stats-row" id="figmaStats" style="display:none">
-    <span>Figma: <strong id="fVars">0</strong> vars</span>
-    <span>in <strong id="fCols">0</strong> collections</span>
-    <span>Hash: <strong id="fHash">-</strong></span>
-  </div>
-
-  <!-- Actions -->
-  <div class="actions">
-    <button class="btn-cancel" id="cancelBtn">Close</button>
-    <button class="btn-sync" id="syncBtn" disabled>Waiting for server&hellip;</button>
-  </div>
-
-  <div class="status-bar" id="statusBar"></div>
-
-  <!-- Auto-sync toggle -->
-  <div class="auto-sync-row">
-    <label><input type="checkbox" id="autoSyncCb"> Auto-sync when tokens change</label>
-  </div>
-</section>
-
-<!-- ─── ZONE 2 / CONNECTION ──────────────────────────────
-     GitHub identity + Advanced server URL. One-time setup
-     that the user touches rarely; lives below Sync so the
-     daily action (Update Variables) stays above the fold. -->
-<section class="zone" aria-label="Connection">
-  <span class="zone-label">Connection</span>
-
-  <!-- Setup: PAT-first flow -->
-  <div id="setupSection">
-    <div id="setupAuth" class="setup-wrap">
-      <div class="setup-title">Connect your GitHub account</div>
-      <div class="server-url-row">
-        <input type="password" id="ghPatInput" placeholder="Paste your GitHub PAT (ghp_...)" spellcheck="false">
-        <button class="btn-url-save" id="ghVerifyBtn">Connect</button>
+    <div class="tb-avatar disconnected" id="tbAvatar" title="Not connected">?</div>
+    <details class="tb-menu" id="tbMenu">
+      <summary class="tb-menu-btn" aria-label="More options" title="More options">⋯</summary>
+      <div class="tb-menu-pop">
+        <div class="tb-menu-label" id="tbMenuIdentity">Not connected</div>
+        <label class="tb-menu-item">
+          <input type="checkbox" id="autoSyncCb">
+          <span>Auto-sync when tokens change</span>
+        </label>
+        <button class="tb-menu-item" id="menuChangelog">
+          <span>Change history</span>
+        </button>
+        <button class="tb-menu-item" id="menuDebug">
+          <span>Debug info</span>
+        </button>
+        <button class="tb-menu-item" id="menuServer">
+          <span>Server URL…</span>
+        </button>
+        <div class="tb-menu-sep"></div>
+        <button class="tb-menu-item danger" id="menuDisconnect">
+          <span>Disconnect GitHub</span>
+        </button>
       </div>
-      <div id="ghIdentityError" class="setup-error"></div>
-      <div class="setup-hint">
-        One-time setup. Needs <code>repo</code> scope.
-        <a href="https://github.com/settings/tokens/new?scopes=repo&description=DTF+Figma+Plugin" target="_blank" rel="noopener">Get a token &rarr;</a>
+    </details>
+  </div>
+
+  <!-- ─── Server URL panel (toggled from menu) ─────── -->
+  <div class="server-panel" id="serverPanel">
+    <input type="text" id="serverUrlOverride" placeholder="Custom server URL" spellcheck="false">
+    <div class="row">
+      <button class="btn btn-ghost" id="saveUrlBtn" style="padding:6px 12px;font-size:var(--dtf-fs-11)">Save</button>
+      <button class="preset" id="presetLocal">Use local (localhost:9500)</button>
+      <button class="preset" id="presetDefault" style="margin-left:auto">Reset to default</button>
+    </div>
+  </div>
+
+  <!-- ─── Debug panel (toggled from menu) ──────────── -->
+  <div class="debug-panel" id="debugPanel">
+    <div class="row"><span>Figma vars:</span><strong id="dbgVars">—</strong></div>
+    <div class="row"><span>Collections:</span><strong id="dbgCols">—</strong></div>
+    <div class="row"><span>Hash:</span><strong id="dbgHash">—</strong></div>
+    <div class="row"><span>Server:</span><strong id="dbgServer">—</strong></div>
+  </div>
+
+  <!-- ─── Changelog panel (toggled from menu) ──────── -->
+  <div class="changelog-panel" id="changelogPanel">
+    <div id="changelogList" class="empty">No change history available.</div>
+  </div>
+
+  <!-- ─── Tabs ─────────────────────────────────────── -->
+  <div class="tabs" id="tabs">
+    <button class="tab" id="tabSync" aria-selected="true" data-tab="sync">Sync<span class="tab-badge" id="syncBadge" hidden>0</span></button>
+    <button class="tab" id="tabBuilder" aria-selected="false" data-tab="builder">Builder</button>
+  </div>
+
+  <!-- ─── Scroll region ────────────────────────────── -->
+  <div class="scroll">
+
+    <!-- Inline status (sync progress / errors) -->
+    <div class="status-line" id="statusBar"></div>
+
+    <!-- ─── Sync tab content ───────────────────────── -->
+    <div id="paneSync">
+
+      <!-- Hero: idle / disconnected / mismatch / undo -->
+      <div class="hero" id="syncHero">
+        <div class="hero-glyph neutral" id="heroGlyph">●</div>
+        <div class="hero-title" id="heroTitle">Connecting…</div>
+        <div class="hero-sub" id="heroSub">Reaching the sync server.</div>
+        <div class="hero-actions" id="heroActions"></div>
       </div>
-    </div>
-    <div id="setupDone" class="setup-done">
-      <span class="who" id="ghIdentityName"></span>
-      <span class="spacer"></span>
-      <button type="button" id="ghIdentityReset" class="disconnect">Disconnect</button>
-    </div>
-  </div>
-  <input type="hidden" id="serverUrlInput" value="">
 
-  <!-- Advanced: manual server URL override -->
-  <details class="server-config">
-    <summary>Advanced</summary>
-    <div class="server-config-inner">
-      <div class="server-url-row">
-        <input type="text" id="serverUrlOverride" placeholder="Custom server URL (leave blank for default)" spellcheck="false">
-        <button class="btn-url-save" id="saveUrlBtn">Save</button>
+      <!-- Setup form: shown when not connected -->
+      <div class="setup-form" id="setupForm" hidden>
+        <input type="password" id="ghPatInput" placeholder="ghp_…" spellcheck="false">
+        <button class="btn btn-primary" id="ghVerifyBtn">Connect</button>
+        <div class="setup-error" id="ghIdentityError"></div>
+        <a class="hero-link" id="ghTokenHelp" href="https://github.com/settings/tokens/new?scopes=repo&description=DTF+Figma+Plugin" target="_blank" rel="noopener" style="text-align:center">Generate a token →</a>
       </div>
-      <div class="server-presets">
-        <button type="button" id="presetLocal">Local</button>
+
+      <!-- Change list: shown when changes pending -->
+      <div id="changesPanel" hidden>
+        <div class="changes-head">
+          <span class="changes-count">
+            <span class="changes-count-icon">⚡</span>
+            <span id="changesCountText">0 changes</span>
+          </span>
+        </div>
+        <input type="search" class="filter-search" id="filterSearch" placeholder="Filter by token name…" hidden>
+        <div class="filter-chips" id="filterChips" hidden></div>
+        <div id="changeGroups"></div>
       </div>
-    </div>
-  </details>
-</section>
 
-<!-- Changelog (kept outside zones — debug-only, hidden by default) -->
-<details class="changelog" id="changelogSection" style="display:none">
-  <summary>Change history</summary>
-  <div class="log-list" id="logList"></div>
-</details>
+    </div>
 
-<!-- ── Component Builder Section ─────────────────────────
-     Visible to all plugin users. The legacy `display:none` +
-     `user-info.authorized` gate was removed — the builder is now
-     a first-class feature of the plugin, not an owner-only tool. -->
-<div id="componentBuilderSection" class="builder-section">
-  <span class="zone-label">Build</span>
-  <div class="builder-head">
-    <div class="builder-mark">
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="#fff" stroke-width="1.5"/></svg>
+    <!-- ─── Builder tab content ────────────────────── -->
+    <div id="paneBuilder" hidden>
+      <p class="builder-intro">
+        Generate Figma components bound to your token variables. Components share the same variable IDs your tokens use, so brand changes in DTF propagate automatically.
+      </p>
+
+      <div class="prereqs-bar" id="prereqsBar">
+        <strong id="prereqsTitle">Set up collections first</strong>
+        <div class="prereqs-list" id="prereqsList"></div>
+      </div>
+
+      <div class="comp-pick">
+        <label>
+          <input type="checkbox" class="comp-check" value="button">
+          <span>Button</span>
+        </label>
+        <label>
+          <input type="checkbox" class="comp-check" value="split-button">
+          <span>Split Button</span>
+        </label>
+      </div>
+
+      <div class="gen-status" id="genStatus"></div>
+      <div class="gen-info" id="genInfo"></div>
     </div>
-    <div>
-      <div class="builder-title">Component Builder</div>
-      <div class="builder-sub">Generate Figma components bound to token variables</div>
-    </div>
+
   </div>
 
-  <!-- Prerequisites -->
-  <div id="genPrereqs" class="prereqs">
-    <div class="prereqs-label">Prerequisites</div>
-    <div class="prereqs-list">
-      <span id="prereqCS">&#9744; comp-size</span>
-      <span id="prereqT2">&#9744; T2 Surface Context</span>
-      <span id="prereqT3">&#9744; T3 Status Context</span>
-    </div>
+  <!-- ─── Sticky footer ────────────────────────────── -->
+  <div class="footer" id="footerSync" hidden>
+    <button class="btn btn-ghost" id="cancelBtn">Close</button>
+    <button class="btn btn-primary btn-full" id="syncBtn">Update variables in Figma</button>
   </div>
-
-  <!-- Component picker -->
-  <div class="comp-pick">
-    <label>
-      <input type="checkbox" class="comp-check" value="button"> Button
-    </label>
-    <label title="Requires Button to be generated first (or in same run)">
-      <input type="checkbox" class="comp-check" value="split-button"> Split Button
-    </label>
-    <!-- Future components added here -->
+  <div class="footer" id="footerBuilder" hidden>
+    <button class="btn btn-primary btn-full" id="generateBtn" disabled>Generate components</button>
   </div>
-
-  <!-- Generate button -->
-  <button id="generateBtn" class="btn-generate" disabled>
-    &#9881; Generate Components
-  </button>
-
-  <!-- Status -->
-  <div id="genStatus" class="gen-status"></div>
-
-  <!-- Generated components info -->
-  <div id="genInfo" class="gen-info"></div>
-
-  <!-- Note: prototype hover/press interactions are wired automatically
-       at the end of every generation pass. No manual action needed. -->
-</div>
 
 <script>
-  /* ── Global error handler — shows JS errors in the UI ── */
-  window.onerror = function(msg, src, line, col, err) {
-    var el = document.createElement('div');
-    el.style.cssText = 'background:#fef2f2;color:#991b1b;border:2px solid red;padding:10px;margin:8px 0;font-size:11px;font-family:monospace;word-break:break-all;border-radius:6px;';
-    el.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
-    document.body.insertBefore(el, document.body.firstChild);
-  };
+/* ════════════════════════════════════════════════════════
+   PLUGIN LOGIC
+   ────────────────────────────────────────────────────────
+   Same business logic as v1; restructured around a single
+   render() that paints the hero based on (connected, syncing,
+   undoDetected, mismatch, pendingChanges, isFirstRun, isReady).
+   The old element IDs (syncBtn, autoSyncCb, etc.) survived the
+   rewrite so the message-handling code is unchanged.
+   ════════════════════════════════════════════════════════ */
 
-  /* ── Elements ────────────────────────────────────────── */
-  var connBar    = document.getElementById('connBar');
-  var connText   = document.getElementById('connText');
-  var connMeta   = document.getElementById('connMeta');
-  var notif      = document.getElementById('notif');
-  var notifIcon  = document.getElementById('notifIcon');
-  var notifTitle = document.getElementById('notifTitle');
-  var notifBadge = document.getElementById('notifBadge');
-  var notifBody  = document.getElementById('notifBody');
-  var changeList = document.getElementById('changeList');
-  var syncBtn    = document.getElementById('syncBtn');
-  var cancelBtn  = document.getElementById('cancelBtn');
-  var statusBar  = document.getElementById('statusBar');
-  var figmaStats = document.getElementById('figmaStats');
-  var logList    = document.getElementById('logList');
+window.onerror = function(msg, src, line) {
+  var el = document.createElement('div');
+  el.className = 'status-line err visible';
+  el.style.cssText = 'display:block;margin:8px;';
+  el.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
+  document.body.insertBefore(el, document.body.firstChild);
+};
 
-  var undoWarn   = document.getElementById('undoWarn');
-  var autoSyncCb = document.getElementById('autoSyncCb');
-  var serverUrlInput = document.getElementById('serverUrlInput');
-  var projectSelect = document.getElementById('projectSelect');
+/* ── Element handles ──────────────────────────────── */
+var body         = document.body;
+var projectSelect = document.getElementById('projectSelect');
+var tbAvatar     = document.getElementById('tbAvatar');
+var tbMenu       = document.getElementById('tbMenu');
+var tbMenuIdentity = document.getElementById('tbMenuIdentity');
+var autoSyncCb   = document.getElementById('autoSyncCb');
+var menuChangelog = document.getElementById('menuChangelog');
+var menuDebug    = document.getElementById('menuDebug');
+var menuServer   = document.getElementById('menuServer');
+var menuDisconnect = document.getElementById('menuDisconnect');
+var serverPanel  = document.getElementById('serverPanel');
+var debugPanel   = document.getElementById('debugPanel');
+var changelogPanel = document.getElementById('changelogPanel');
+var changelogList  = document.getElementById('changelogList');
+var dbgVars = document.getElementById('dbgVars');
+var dbgCols = document.getElementById('dbgCols');
+var dbgHash = document.getElementById('dbgHash');
+var dbgServer = document.getElementById('dbgServer');
 
-  var saveUrlBtn = document.getElementById('saveUrlBtn');
+var tabSync      = document.getElementById('tabSync');
+var tabBuilder   = document.getElementById('tabBuilder');
+var paneSync     = document.getElementById('paneSync');
+var paneBuilder  = document.getElementById('paneBuilder');
+var syncBadge    = document.getElementById('syncBadge');
 
-  /* Safe storage — Figma plugin iframes block localStorage */
-  var _mem = {};
-  function storageGet(k) { try { return localStorage.getItem(k); } catch(e) { return _mem[k] || null; } }
-  function storageSet(k,v) { try { localStorage.setItem(k,v); } catch(e) { _mem[k]=v; } }
+var heroEl       = document.getElementById('syncHero');
+var heroGlyph    = document.getElementById('heroGlyph');
+var heroTitle    = document.getElementById('heroTitle');
+var heroSub      = document.getElementById('heroSub');
+var heroActions  = document.getElementById('heroActions');
 
-  var DEFAULT_SERVER = 'https://sridhar-ravi-2917.github.io/Design-Token-Forge';
-  var SERVER = storageGet('dtf-server-url') || DEFAULT_SERVER;
+var setupForm    = document.getElementById('setupForm');
+var ghPatInput   = document.getElementById('ghPatInput');
+var ghVerifyBtn  = document.getElementById('ghVerifyBtn');
+var ghIdentityError = document.getElementById('ghIdentityError');
 
-  serverUrlInput.value = SERVER;
+var changesPanel = document.getElementById('changesPanel');
+var changesCountText = document.getElementById('changesCountText');
+var filterSearch = document.getElementById('filterSearch');
+var filterChips  = document.getElementById('filterChips');
+var changeGroups = document.getElementById('changeGroups');
 
-  var CURRENT_PROJECT = storageGet('dtf-project-id') || '';
-  var GH_USERNAME = storageGet('dtf-gh-username') || '';
-  var ADMIN_USER = 'sridhar-ravi-2917';
-  var COLOR_ONLY_COLLECTIONS = ['T0 Primitive Colors', 'T1 Color Tokens', 'T2 Surface Context Tokens', 'T3 Status Context Tokens'];
+var prereqsBar   = document.getElementById('prereqsBar');
+var prereqsList  = document.getElementById('prereqsList');
+var genStatus    = document.getElementById('genStatus');
+var genInfo      = document.getElementById('genInfo');
+var generateBtn  = document.getElementById('generateBtn');
 
-  function filterCollections(data) {
-    if (!data || !data.collections) return data;
-    if (!GH_USERNAME || GH_USERNAME.toLowerCase() === ADMIN_USER.toLowerCase()) return data;
-    var filtered = JSON.parse(JSON.stringify(data));
-    filtered.collections = filtered.collections.filter(function(c) {
-      return COLOR_ONLY_COLLECTIONS.indexOf(c.name) !== -1;
+var footerSync   = document.getElementById('footerSync');
+var footerBuilder = document.getElementById('footerBuilder');
+var syncBtn      = document.getElementById('syncBtn');
+var cancelBtn    = document.getElementById('cancelBtn');
+var statusBar    = document.getElementById('statusBar');
+
+var saveUrlBtn   = document.getElementById('saveUrlBtn');
+var serverUrlOverride = document.getElementById('serverUrlOverride');
+
+/* ── Safe storage (Figma iframe blocks localStorage) ── */
+var _mem = {};
+function storageGet(k){ try { return localStorage.getItem(k); } catch(e){ return _mem[k]||null; } }
+function storageSet(k,v){ try { localStorage.setItem(k,v); } catch(e){ _mem[k]=v; } }
+
+var DEFAULT_SERVER = 'https://sridhar-ravi-2917.github.io/Design-Token-Forge';
+var SERVER        = storageGet('dtf-server-url') || DEFAULT_SERVER;
+var CURRENT_PROJECT = storageGet('dtf-project-id') || '';
+var GH_USERNAME   = storageGet('dtf-gh-username') || '';
+var ADMIN_USER    = 'sridhar-ravi-2917';
+var COLOR_ONLY_COLLECTIONS = ['T0 Primitive Colors','T1 Color Tokens','T2 Surface Context Tokens','T3 Status Context Tokens'];
+var AUTO_SYNC     = storageGet('dtf-auto-sync') === '1';
+autoSyncCb.checked = AUTO_SYNC;
+
+function filterCollections(data){
+  if (!data || !data.collections) return data;
+  if (!GH_USERNAME || GH_USERNAME.toLowerCase() === ADMIN_USER.toLowerCase()) return data;
+  var filtered = JSON.parse(JSON.stringify(data));
+  filtered.collections = filtered.collections.filter(function(c){ return COLOR_ONLY_COLLECTIONS.indexOf(c.name) !== -1; });
+  var total = 0;
+  for (var i=0; i<filtered.collections.length; i++) total += filtered.collections[i].variables.length;
+  filtered.stats.totalVariables = total;
+  filtered.stats.totalCollections = filtered.collections.length;
+  return filtered;
+}
+
+/* ── State ───────────────────────────────────────── */
+var POLL_MS = 3000;
+var VERIFY_MS = 2000;
+var pollTimer = null, verifyTimer = null;
+var serverStatus = null;
+var tokenData = null;
+var figmaHash = '';
+var lastSyncedVarCount = 0;
+var syncing = false, connected = false;
+var hasExistingVars = false, undoDetected = false;
+var pendingResync = false;
+var lastSeenHash = '', hashStableCount = 0;
+var HASH_SETTLE_POLLS = 2;
+var deploySettling = false;
+var documentProject = '', pendingSwitchProject = '';
+var projectList = [], projectsFetched = false;
+var fetchRetries = 0, MAX_FETCH_RETRIES = 2;
+var syncVerifyAttempts = 0, MAX_SYNC_VERIFY = 5;
+
+var changeData = null;   /* { entries: [...] } from changelog */
+var activeFilters = new Set();   /* selected chip keys, empty = all */
+var searchTerm = '';
+var openGroups = new Set();      /* expanded group keys */
+
+function log(msg){ console.log('[DTF] ' + msg); }
+
+function isStaticHost(){ return SERVER.indexOf('github.io') !== -1 || SERVER.indexOf('.pages.dev') !== -1; }
+function apiUrl(endpoint){
+  if (isStaticHost()){
+    var cb = '_cb=' + Date.now();
+    var base = CURRENT_PROJECT ? SERVER + '/' + CURRENT_PROJECT : SERVER;
+    if (endpoint === '/status')  return base + '/status.json?' + cb;
+    if (endpoint === '/tokens')  return base + '/tokens.json?' + cb;
+    if (endpoint === '/projects') return SERVER + '/projects.json?' + cb;
+    return null;
+  }
+  return SERVER + endpoint;
+}
+
+/* ════════════════════════════════════════════════════
+   RENDER — single source of truth for the Sync hero
+   ════════════════════════════════════════════════════ */
+function render(){
+  if (!GH_USERNAME){
+    setHero({ glyph:'⚙', glyphClass:'neutral', title:'Connect your GitHub', sub:'DTF needs a personal access token to sync tokens with this file.' });
+    setupForm.hidden = false;
+    heroEl.style.display = 'flex';
+    changesPanel.hidden = true;
+    footerSync.hidden = true;
+    body.dataset.conn = 'off';
+    tbAvatar.classList.add('disconnected');
+    tbAvatar.textContent = '?';
+    tbAvatar.title = 'Not connected';
+    tbMenuIdentity.textContent = 'Not connected';
+    setSyncBadge(0);
+    return;
+  }
+  setupForm.hidden = true;
+  tbAvatar.classList.remove('disconnected');
+  tbAvatar.textContent = (GH_USERNAME[0] || '?').toUpperCase();
+  tbAvatar.title = 'Connected as ' + GH_USERNAME;
+  tbMenuIdentity.textContent = 'Connected as ' + GH_USERNAME;
+
+  /* Project mismatch — high priority warning */
+  if (pendingSwitchProject && documentProject && pendingSwitchProject !== documentProject){
+    setHero({
+      glyph:'⚠', glyphClass:'warn',
+      title:'Project mismatch',
+      sub:'This Figma file is linked to <strong>' + esc(projectDisplayName(documentProject)) + '</strong>. You\'re about to sync <strong>' + esc(projectDisplayName(pendingSwitchProject)) + '</strong> instead.',
+      actions:[
+        { label:'Switch & sync', kind:'primary', id:'heroSwitchBtn' },
+        { label:'Keep current',  kind:'ghost',   id:'heroKeepBtn' }
+      ]
     });
-    var total = 0;
-    for (var i = 0; i < filtered.collections.length; i++) total += filtered.collections[i].variables.length;
-    filtered.stats.totalVariables = total;
-    filtered.stats.totalCollections = filtered.collections.length;
-    return filtered;
-  }
-  var projectList = [];
-  var documentProject = '';       /* project stored in this Figma file */
-  var pendingSwitchProject = '';  /* project user wants to switch to */
-
-  var projectWarn = document.getElementById('projectWarn');
-  var projectWarnBody = document.getElementById('projectWarnBody');
-  var projectSwitchBtn = document.getElementById('projectSwitchBtn');
-  var projectKeepBtn = document.getElementById('projectKeepBtn');
-
-  /* Detect if server is static (GitHub Pages) or live (localhost/API) */
-  function isStaticHost() {
-    return SERVER.indexOf('github.io') !== -1 || SERVER.indexOf('.pages.dev') !== -1;
-  }
-  function apiUrl(endpoint) {
-    /* Static hosts serve .json files; live server uses clean paths */
-    if (isStaticHost()) {
-      var cb = '_cb=' + Date.now();  /* cache-bust GitHub Pages CDN */
-      var base = CURRENT_PROJECT ? SERVER + '/' + CURRENT_PROJECT : SERVER;
-      if (endpoint === '/status')  return base + '/status.json?' + cb;
-      if (endpoint === '/tokens')  return base + '/tokens.json?' + cb;
-      if (endpoint === '/projects') return SERVER + '/projects.json?' + cb;
-      return null; /* changelog, ack not available on static */
-    }
-    return SERVER + endpoint;
-  }
-  var POLL_MS = 3000;
-  function log(msg) { console.log('[DTF] ' + msg); }
-  var VERIFY_MS = 2000;
-  var pollTimer = null;
-  var verifyTimer = null;
-  var serverStatus = null;
-  var tokenData = null;
-  var figmaHash = '';
-  var lastSyncedVarCount = 0;
-  var syncing = false;
-  var connected = false;
-  var hasExistingVars = false;
-  var undoDetected = false;
-  var pendingResync = false;  /* true after Reset ID map / Force re-sync — pauses poll UI updates */
-
-  /* ── Deploy-in-flight detection (GitHub Pages) ───────── */
-  var lastSeenHash = '';          /* hash from previous poll */
-  var hashStableCount = 0;       /* consecutive polls with same hash */
-  var HASH_SETTLE_POLLS = 2;     /* require 2 stable polls before enabling sync */
-  var deploySettling = false;     /* true while hash is still changing */
-
-  /* ── Scan Figma on load ──────────────────────────────── */
-  parent.postMessage({ pluginMessage: { type: 'scan' } }, '*');
-  /* Request user info for component builder gate */
-  parent.postMessage({ pluginMessage: { type: 'get-user-info' } }, '*');
-
-  /* ── Polling ─────────────────────────────────────────── */
-  function startPolling() {
-    if (!SERVER) {
-      connected = false;
-      connBar.className = 'conn-bar disconnected';
-      connText.textContent = 'Enter your GitHub Pages URL above to connect';
-      return;
-    }
-    poll();
-    pollTimer = setInterval(poll, POLL_MS);
+    changesPanel.hidden = true;
+    footerSync.hidden = true;
+    bindMismatchActions();
+    return;
   }
 
-  function poll() {
-    var url = apiUrl('/status');
-    fetch(url, { cache: 'no-store' })
-      .then(function(r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function(data) {
-        if (!connected) {
-          connected = true;
-          if (!projectsFetched) fetchProjects();
-          if (!isStaticHost()) fetchChangelog();
-        }
-        serverStatus = data;
-
-        /* Deploy-in-flight detection (static hosts only) */
-        if (isStaticHost() && data.hash) {
-          if (lastSeenHash && data.hash !== lastSeenHash) {
-            /* Hash just changed — deploy may be mid-flight */
-            hashStableCount = 0;
-            deploySettling = true;
-            log('Hash changed (' + lastSeenHash + ' → ' + data.hash + ') — waiting for deploy to settle');
-          } else if (data.hash === lastSeenHash) {
-            hashStableCount++;
-          }
-          lastSeenHash = data.hash;
-
-          if (deploySettling && hashStableCount >= HASH_SETTLE_POLLS) {
-            deploySettling = false;
-            log('Deploy settled on hash ' + data.hash);
-          }
-        }
-
-        updateConnectionUI(true, data);
-        checkForChanges(data);
-      })
-      .catch(function(err) {
-        connected = false;
-        updateConnectionUI(false, null);
-        log('Poll failed: ' + (err.message || err));
-      });
+  /* Undo detected */
+  if (undoDetected){
+    setHero({
+      glyph:'⚠', glyphClass:'danger',
+      title:'Variables removed',
+      sub:'Looks like a Cmd+Z undid the sync. Re-sync to restore them.',
+      actions:[{ label:'Re-sync variables', kind:'primary', id:'heroResyncBtn' }]
+    });
+    changesPanel.hidden = true;
+    footerSync.hidden = true;
+    document.getElementById('heroResyncBtn').addEventListener('click', function(){
+      pendingResync = true;
+      figmaHash = '';
+      if (!tokenData) fetchTokenData();
+      startSync();
+    });
+    return;
   }
 
-  function updateConnectionUI(ok, data) {
-    if (ok) {
-      connBar.className = 'conn-bar live';
-      var src = isStaticHost() ? 'GitHub Pages' : 'Live server';
-      connText.textContent = src + ' — ' + (data.totalVariables || 0) + ' tokens';
-      connMeta.textContent = data.hash || '';
-
-    } else {
-      connBar.className = 'conn-bar error';
-      connText.textContent = 'Cannot reach server — check Server URL setting';
-      connMeta.textContent = '';
-      notif.className = 'notif';
-      notif.style.display = 'none';
-      if (!syncing) {
-        syncBtn.disabled = !tokenData;
-        syncBtn.textContent = tokenData ? 'Sync (manual)' : 'Server offline';
-        syncBtn.className = 'btn-sync';
-      }
-    }
+  /* Disconnected from server */
+  if (!connected){
+    setHero({
+      glyph:'⏻', glyphClass:'neutral',
+      title:'Reconnecting…',
+      sub:'Waiting for the sync server. Check your network or set a custom server URL in the menu.'
+    });
+    changesPanel.hidden = true;
+    footerSync.hidden = true;
+    body.dataset.conn = 'error';
+    return;
   }
 
-  function checkForChanges(data) {
-    if (syncing || pendingResync) return;
+  body.dataset.conn = deploySettling ? 'work' : 'live';
 
-    /* Block sync while deploy is mid-flight */
-    if (deploySettling) {
-      notif.className = 'notif visible has-changes';
-      notifIcon.textContent = '\u23F3';
-      notifTitle.textContent = 'Deployment in progress\u2026';
-      notifBadge.style.display = 'none';
-      notifBody.innerHTML = 'Waiting for GitHub Pages to finish deploying. This will auto-resolve in a few seconds.';
-      syncBtn.disabled = true;
-      syncBtn.textContent = 'Deploying\u2026';
-      syncBtn.className = 'btn-sync';
-      return;
-    }
-
-    var serverHash = data.hash;
-    var hasPending = serverHash !== figmaHash && figmaHash !== '';
-    var isFirstRun = figmaHash === '' && data.totalVariables > 0;
-
-    if (hasPending) {
-      fetchTokenData();
-      notif.className = 'notif visible has-changes';
-      notifIcon.textContent = '\u26A1';
-      notifTitle.textContent = 'Token changes detected';
-      notifBadge.textContent = data.pendingChanges || '!';
-      notifBadge.style.display = '';
-      notifBody.innerHTML = '<strong>' + data.totalVariables + '</strong> variables ready. '
-        + 'Server hash: <strong>' + serverHash + '</strong>';
-      syncBtn.disabled = false;
-      syncBtn.textContent = 'Update Variables';
-      syncBtn.className = 'btn-sync';
-
-      /* Auto-sync if enabled */
-      if (autoSyncCb.checked && tokenData && !syncing) {
-        setTimeout(function() { syncBtn.click(); }, 500);
-      }
-    } else if (isFirstRun) {
-      fetchTokenData();
-      notif.className = 'notif visible' + (hasExistingVars ? ' has-changes' : '');
-      notifIcon.textContent = hasExistingVars ? '\u26A1' : '\u2728';
-      notifTitle.textContent = hasExistingVars ? 'Token update available' : 'Ready to sync';
-      notifBadge.style.display = 'none';
-      notifBody.innerHTML = '<strong>' + data.totalVariables + '</strong> variables available in <strong>' + data.totalCollections + '</strong> collections.';
-      syncBtn.disabled = false;
-      syncBtn.textContent = hasExistingVars ? 'Update Variables' : 'Create Variables';
-      syncBtn.className = 'btn-sync' + (hasExistingVars ? '' : ' ready');
-    } else if (figmaHash === serverHash) {
-      notif.className = 'notif visible synced';
-      notifIcon.textContent = '\u2713';
-      notifTitle.textContent = 'Variables are up to date';
-      notifBadge.style.display = 'none';
-      notifBody.innerHTML = 'Figma variables match the source of truth. <a href="#" id="forceResyncLink" style="color:var(--accent);cursor:pointer">Force re-sync</a> · <a href="#" id="resetIdMapLink" style="color:#888;cursor:pointer;font-size:10px">Reset ID map</a>';
-      syncBtn.disabled = true;
-      syncBtn.textContent = 'Variables are up to date';
-      syncBtn.className = 'btn-sync ready';
-    }
+  /* Deploy in flight */
+  if (deploySettling){
+    setHero({
+      glyph:'⏳', glyphClass:'work',
+      title:'Deployment in progress',
+      sub:'Waiting for GitHub Pages to finish deploying. This auto-resolves in a few seconds.'
+    });
+    changesPanel.hidden = true;
+    footerSync.hidden = true;
+    return;
   }
 
-  var fetchRetries = 0;
-  var MAX_FETCH_RETRIES = 2;
-
-  function fetchTokenData() {
-    fetch(apiUrl('/tokens'), { cache: 'no-store' })
-      .then(function(r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function(data) {
-        /* Verify fetched data hash matches the server status hash.
-           If not, the CDN served a stale tokens.json — retry up to 2 times. */
-        if (serverStatus && data.contentHash && data.contentHash !== serverStatus.hash) {
-          fetchRetries++;
-          if (fetchRetries <= MAX_FETCH_RETRIES) {
-            log('Stale tokens.json (got ' + data.contentHash + ', expected ' + serverStatus.hash + ') — retry ' + fetchRetries);
-            setTimeout(fetchTokenData, 1500);
-            return;
-          }
-          log('Stale tokens.json after ' + fetchRetries + ' retries — using what we have');
-        }
-        fetchRetries = 0;
-        tokenData = filterCollections(data);
-        showChangeDetails(tokenData);
-      })
-      .catch(function(err) {
-        log('fetchTokenData failed: ' + (err.message || err));
-        setStatus('Failed to fetch tokens — check connection', 'err');
-      });
+  /* Syncing in progress */
+  if (syncing){
+    setHero({
+      glyph:'↻', glyphClass:'work',
+      title:'Syncing…',
+      sub:'Updating variables in this Figma file.'
+    });
+    changesPanel.hidden = true;
+    footerSync.hidden = true;
+    return;
   }
 
-  function fetchChangelog() {
-    if (isStaticHost()) return;
-    fetch(SERVER + '/changelog')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.entries && data.entries.length > 0) {
-          document.getElementById('changelogSection').style.display = '';
-          var html = '';
-          for (var i = 0; i < data.entries.length; i++) {
-            var e = data.entries[i];
-            var t = new Date(e.time).toLocaleTimeString();
-            html += '<div class="log-entry"><span class="log-time">' + t + '</span> '
-              + esc(e.summary.detail) + ' <span class="log-time">(' + e.newHash + ')</span></div>';
-          }
-          logList.innerHTML = html;
-        }
-      })
-      .catch(function() {});
-  }
+  var serverHash  = serverStatus ? serverStatus.hash : '';
+  var hasPending  = serverHash && serverHash !== figmaHash && figmaHash !== '';
+  var isFirstRun  = figmaHash === '' && serverStatus && serverStatus.totalVariables > 0;
 
-  function showChangeDetails(data) {
-    if (isStaticHost()) { changeList.style.display = 'none'; return; }
-    /* Fetch latest changelog for details */
-    fetch(SERVER + '/changelog')
-      .then(function(r) { return r.json(); })
-      .then(function(log) {
-        if (!log.entries || log.entries.length === 0) { changeList.style.display = 'none'; return; }
-        var latest = log.entries[0];
-        if (!latest.summary.changedVars || latest.summary.changedVars.length === 0) {
-          changeList.style.display = 'none';
-          return;
-        }
-        var html = '';
-        var vars = latest.summary.changedVars;
-        for (var i = 0; i < vars.length; i++) {
-          var v = vars[i];
-          html += '<div class="change-item">'
-            + '<span class="ch-tag upd">UPD</span>'
-            + '<span class="ch-name">' + esc(v.name) + '</span>'
-            + '<span class="ch-val">' + esc(v.from) + ' \u2192 ' + esc(v.to) + '</span>'
-            + '</div>';
-        }
-        if (latest.summary.added > 0) {
-          html += '<div class="change-item"><span class="ch-tag add">NEW</span>'
-            + '<span class="ch-name">+' + latest.summary.added + ' new variables</span></div>';
-        }
-        if (latest.summary.removed > 0) {
-          html += '<div class="change-item"><span class="ch-tag rem">DEL</span>'
-            + '<span class="ch-name">-' + latest.summary.removed + ' removed</span></div>';
-        }
-        changeList.innerHTML = html;
-        changeList.style.display = '';
-      })
-      .catch(function() { changeList.style.display = 'none'; });
-  }
-
-  /* ── Sync ────────────────────────────────────────────── */
-  var syncVerifyAttempts = 0;
-  var MAX_SYNC_VERIFY = 5;
-
-  syncBtn.addEventListener('click', function() {
-    if (syncing) return;
-    if (!tokenData) {
-      /* tokenData may be null if file was already in-sync and tokens were never fetched */
-      syncBtn.textContent = 'Fetching tokens\u2026';
-      syncBtn.disabled = true;
-      fetchTokenData();
-      setTimeout(function() {
-        syncBtn.disabled = false;
-        if (tokenData) {
-          syncBtn.click();
-        } else {
-          syncBtn.textContent = 'Re-sync Variables';
-          setStatus('Could not fetch tokens — try again', 'err');
-        }
-      }, 2000);
-      return;
-    }
-
-    /* On static hosts, always re-verify that status & tokens hashes match
-       to prevent syncing stale CDN data during a deploy */
-    if (isStaticHost()) {
-      syncBtn.textContent = 'Verifying deployment\u2026';
-      syncBtn.disabled = true;
-      fetch(apiUrl('/status'), { cache: 'no-store' })
-        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function(freshStatus) {
-          serverStatus = freshStatus;
-          /* Now fetch tokens and compare hashes */
-          return fetch(apiUrl('/tokens'), { cache: 'no-store' })
-            .then(function(r2) { if (!r2.ok) throw new Error('HTTP ' + r2.status); return r2.json(); })
-            .then(function(freshTokens) {
-              if (freshTokens.contentHash !== freshStatus.hash) {
-                /* Deploy mid-flight: tokens.json and status.json disagree */
-                syncVerifyAttempts++;
-                if (syncVerifyAttempts >= MAX_SYNC_VERIFY) {
-                  syncVerifyAttempts = 0;
-                  syncBtn.disabled = false;
-                  syncBtn.textContent = 'Update Variables';
-                  setStatus('Deploy may still be in progress \u2014 try again shortly', 'err');
-                  return;
-                }
-                log('Deploy in-flight: status=' + freshStatus.hash + ' tokens=' + freshTokens.contentHash + ' (attempt ' + syncVerifyAttempts + ')');
-                syncBtn.textContent = 'Waiting for deploy\u2026';
-                setTimeout(function() { syncBtn.disabled = false; syncBtn.click(); }, 3000);
-                return;
-              }
-              /* Hashes match — safe to sync */
-              syncVerifyAttempts = 0;
-              tokenData = filterCollections(freshTokens);
-              startSync();
-            });
-        })
-        .catch(function(err) {
-          syncBtn.disabled = false;
-          syncBtn.textContent = 'Update Variables';
-          setStatus('Verification failed: ' + (err.message || err), 'err');
-        });
-      return;
-    }
-
-    /* Live server: check tokenData hash matches server */
-    if (serverStatus && tokenData.contentHash && tokenData.contentHash !== serverStatus.hash) {
-      syncBtn.textContent = 'Fetching latest tokens\u2026';
-      syncBtn.disabled = true;
-      fetchTokenData();
-      setTimeout(function() {
-        syncBtn.disabled = false;
-        if (tokenData && tokenData.contentHash === serverStatus.hash) {
-          syncBtn.click();
-        } else {
-          syncBtn.textContent = 'Update Variables';
-          setStatus('Waited for fresh tokens \u2014 try again', 'err');
-        }
-      }, 3000);
-      return;
-    }
-
-    startSync();
-  });
-
-  function startSync() {
-    /* Guard: if file is linked to a different project, show warning */
-    if (documentProject && CURRENT_PROJECT !== documentProject) {
-      showProjectMismatchWarning();
-      return;
-    }
-    doSync();
-  }
-
-  function doSync() {
-    syncing = true;
-    pendingResync = false;
-    syncBtn.disabled = true;
-    syncBtn.textContent = 'Syncing\u2026';
-    setStatus('Updating variables in-place\u2026', 'work');
-    parent.postMessage({
-      pluginMessage: {
-        type: 'sync',
-        data: tokenData,
-        hash: tokenData.contentHash || '',
-        project: CURRENT_PROJECT
-      }
-    }, '*');
-  }
-
-  function showProjectMismatchWarning() {
-    var fromName = projectDisplayName(documentProject);
-    var toName = projectDisplayName(CURRENT_PROJECT);
-    projectWarnBody.innerHTML =
-      'This file is linked to <strong>' + esc(fromName) + '</strong>. '
-      + 'You are about to sync <strong>' + esc(toName) + '</strong> instead.<br>'
-      + 'This will replace all existing token variables with the new project\u2019s tokens.';
-    pendingSwitchProject = CURRENT_PROJECT;
-    projectWarn.className = 'project-warn visible';
-    syncBtn.disabled = true;
-  }
-
-  projectSwitchBtn.addEventListener('click', function() {
-    projectWarn.className = 'project-warn';
-    documentProject = pendingSwitchProject;
+  if (hasPending || isFirstRun){
+    /* Change list mode */
+    heroEl.style.display = 'none';
+    changesPanel.hidden = false;
+    footerSync.hidden = false;
     syncBtn.disabled = false;
+    syncBtn.textContent = hasExistingVars ? 'Update variables in Figma' : 'Create variables in Figma';
+    renderChangeList();
+    setSyncBadge(changeData ? totalChangeCount() : '!');
+    return;
+  }
+
+  /* Up to date */
+  setHero({
+    glyph:'✓', glyphClass:'ok',
+    title:'You\'re up to date',
+    sub: serverStatus ? '<strong>' + serverStatus.totalVariables + '</strong> variables in <strong>' + serverStatus.totalCollections + '</strong> collections.' : 'Figma matches the source of truth.'
+  });
+  changesPanel.hidden = true;
+  footerSync.hidden = true;
+  setSyncBadge(0);
+}
+
+function setHero(opts){
+  heroEl.style.display = 'flex';
+  heroGlyph.className = 'hero-glyph ' + (opts.glyphClass || 'neutral');
+  heroGlyph.textContent = opts.glyph || '●';
+  heroTitle.textContent = opts.title || '';
+  heroSub.innerHTML = opts.sub || '';
+  heroActions.innerHTML = '';
+  if (opts.actions && opts.actions.length){
+    for (var i=0; i<opts.actions.length; i++){
+      var a = opts.actions[i];
+      var b = document.createElement('button');
+      b.className = 'btn ' + (a.kind === 'primary' ? 'btn-primary' : 'btn-ghost');
+      b.id = a.id;
+      b.textContent = a.label;
+      heroActions.appendChild(b);
+    }
+  }
+}
+
+function setSyncBadge(n){
+  if (!n || n === 0){
+    syncBadge.hidden = true;
+    syncBadge.textContent = '0';
+  } else {
+    syncBadge.hidden = false;
+    syncBadge.textContent = n;
+  }
+}
+
+function bindMismatchActions(){
+  var sw = document.getElementById('heroSwitchBtn');
+  var kp = document.getElementById('heroKeepBtn');
+  if (sw) sw.addEventListener('click', function(){
+    documentProject = pendingSwitchProject;
+    pendingSwitchProject = '';
     doSync();
   });
-
-  projectKeepBtn.addEventListener('click', function() {
-    projectWarn.className = 'project-warn';
-    /* Revert dropdown to the document's linked project */
+  if (kp) kp.addEventListener('click', function(){
     CURRENT_PROJECT = documentProject;
+    pendingSwitchProject = '';
     storageSet('dtf-project-id', CURRENT_PROJECT);
     selectProjectInDropdown(CURRENT_PROJECT);
-    syncBtn.disabled = false;
-    /* Re-poll for the correct project */
-    connected = false;
-    tokenData = null;
-    serverStatus = null;
+    connected = false; tokenData = null; serverStatus = null;
     lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
     if (pollTimer) clearInterval(pollTimer);
     startPolling();
+    render();
   });
+}
 
-  /* Force re-sync link handler (delegated since the link is created dynamically) */
-  document.addEventListener('click', function(e) {
-    if (e.target && e.target.id === 'forceResyncLink') {
-      e.preventDefault();
-      figmaHash = '';
-      pendingResync = true;
-      syncBtn.disabled = false;
-      syncBtn.textContent = 'Re-sync Variables';
-      syncBtn.className = 'btn-sync';
-      notifTitle.textContent = 'Force re-sync';
-      notifBody.innerHTML = 'Click <strong>Re-sync Variables</strong> to re-apply all tokens and clean up orphans.';
-      notif.className = 'notif visible has-changes';
-      /* Ensure tokenData is loaded (may be null if file was already in-sync) */
-      if (!tokenData) fetchTokenData();
-    }
-    if (e.target && e.target.id === 'resetIdMapLink') {
-      e.preventDefault();
-      parent.postMessage({ pluginMessage: { type: 'reset-idmap' } }, '*');
-      figmaHash = '';
-      pendingResync = true;
-      syncBtn.disabled = false;
-      syncBtn.textContent = 'Re-sync Variables (fresh)';
-      syncBtn.className = 'btn-sync';
-      notifTitle.textContent = 'ID Map Reset';
-      notifBody.innerHTML = 'Internal mapping cleared. Click <strong>Re-sync Variables (fresh)</strong> to apply — renames will use name matching.';
-      notif.className = 'notif visible has-changes';
-      /* Ensure tokenData is loaded (may be null if file was already in-sync) */
-      if (!tokenData) fetchTokenData();
-    }
-  });
+/* ════════════════════════════════════════════════════
+   CHANGE LIST — grouped + filterable + scalable
+   ════════════════════════════════════════════════════ */
+function totalChangeCount(){
+  if (!changeData || !changeData.entries || !changeData.entries[0]) return 0;
+  var e = changeData.entries[0].summary || {};
+  return (e.changedVars ? e.changedVars.length : 0) + (e.added || 0) + (e.removed || 0);
+}
 
-  function projectDisplayName(id) {
-    for (var i = 0; i < projectList.length; i++) {
-      if (projectList[i].id === id) return projectList[i].name;
+/* Derive a group key from token name. "btn-bg-default" → "Button". */
+function groupKey(name){
+  var n = (name || '').toLowerCase();
+  if (/^btn-|^button-/.test(n)) return 'Button';
+  if (/^split-/.test(n))         return 'Split Button';
+  if (/^input-/.test(n))         return 'Input';
+  if (/^select-/.test(n))        return 'Select';
+  if (/^checkbox-/.test(n))      return 'Checkbox';
+  if (/^radio-/.test(n))         return 'Radio';
+  if (/^toggle-/.test(n))        return 'Toggle';
+  if (/^slider-/.test(n))        return 'Slider';
+  if (/^datepicker-/.test(n))    return 'Date picker';
+  if (/^badge-/.test(n))         return 'Badge';
+  if (/^alert-/.test(n))         return 'Alert';
+  if (/^toast-/.test(n))         return 'Toast';
+  if (/^tooltip-/.test(n))       return 'Tooltip';
+  if (/^menu-|^menubtn-/.test(n)) return 'Menu';
+  if (/^avatar-/.test(n))        return 'Avatar';
+  if (/^icon-btn|^iconbtn/.test(n)) return 'Icon Button';
+  if (/^progress-/.test(n))      return 'Progress';
+  if (/^nav-/.test(n))           return 'Nav';
+  if (/^topbar-/.test(n))        return 'Topbar';
+  if (/^brand-|^prim-brand|^success-|^warning-|^danger-|^info-|^neutral-|color/.test(n)) return 'Colors';
+  if (/^space|^gap-|^padding-|^margin-/.test(n)) return 'Spacing';
+  if (/^radius/.test(n))         return 'Radius';
+  if (/^font|^type|^text-/.test(n)) return 'Typography';
+  if (/^shadow/.test(n))         return 'Shadow';
+  if (/^motion-|^easing-|^duration-/.test(n)) return 'Motion';
+  if (/^z-/.test(n))             return 'Z-index';
+  return 'Other';
+}
+
+/* Order: components first (alpha), then global token categories. */
+var GLOBAL_GROUPS = ['Colors','Spacing','Radius','Typography','Shadow','Motion','Z-index','Other'];
+function groupSort(a, b){
+  var ai = GLOBAL_GROUPS.indexOf(a), bi = GLOBAL_GROUPS.indexOf(b);
+  if (ai === -1 && bi === -1) return a.localeCompare(b);
+  if (ai === -1) return -1;   /* a is component, comes first */
+  if (bi === -1) return 1;
+  return ai - bi;
+}
+
+function buildGroups(){
+  if (!changeData || !changeData.entries || !changeData.entries[0]) return [];
+  var summary = changeData.entries[0].summary || {};
+  var vars = summary.changedVars || [];
+  var groups = {};
+  for (var i=0; i<vars.length; i++){
+    var v = vars[i];
+    var k = groupKey(v.name);
+    (groups[k] = groups[k] || []).push({ tag:'upd', name:v.name, from:v.from, to:v.to });
+  }
+  /* additions / removals get bucketed into a generic group */
+  if (summary.added > 0)   (groups['Other'] = groups['Other'] || []).push({ tag:'add', name:'+ ' + summary.added + ' new variables', from:'', to:'' });
+  if (summary.removed > 0) (groups['Other'] = groups['Other'] || []).push({ tag:'rem', name:'– ' + summary.removed + ' removed', from:'', to:'' });
+  var keys = Object.keys(groups).sort(groupSort);
+  return keys.map(function(k){ return { key:k, rows:groups[k] }; });
+}
+
+function applyFilters(allGroups){
+  if (activeFilters.size === 0 && !searchTerm) return allGroups;
+  var out = [];
+  for (var i=0; i<allGroups.length; i++){
+    var g = allGroups[i];
+    if (activeFilters.size && !activeFilters.has(g.key)) continue;
+    if (!searchTerm){ out.push(g); continue; }
+    var filtered = g.rows.filter(function(r){ return r.name.toLowerCase().indexOf(searchTerm) !== -1; });
+    if (filtered.length) out.push({ key:g.key, rows:filtered });
+  }
+  return out;
+}
+
+function isColor(v){ return /^#[0-9a-f]{3,8}$/i.test(String(v || '').trim()); }
+
+function rowHTML(r){
+  var fromSwatch = isColor(r.from) ? '<span class="ch-swatch" style="background:' + r.from + '"></span>' : '';
+  var toSwatch   = isColor(r.to)   ? '<span class="ch-swatch" style="background:' + r.to + '"></span>'   : '';
+  var fromHtml = r.from ? '<span class="ch-from">' + fromSwatch + esc(r.from) + '</span>' : '';
+  var toHtml   = r.to   ? '<span class="ch-to">'   + toSwatch   + esc(r.to)   + '</span>' : '';
+  var arrow    = (r.from && r.to) ? '<span class="ch-arrow">→</span>' : '';
+  return '<div class="change-row">'
+       + '<span class="ch-tag ' + r.tag + '">' + r.tag.toUpperCase() + '</span>'
+       + '<span class="ch-name" title="' + esc(r.name) + '">' + esc(r.name) + '</span>'
+       + fromHtml + arrow + toHtml
+       + '</div>';
+}
+
+var ROW_CAP = 50;   /* max rows rendered per group; "show more" expands */
+var groupRowLimit = {};   /* per-group render limit (mutable when "show more" clicked) */
+
+function renderChangeList(){
+  var allGroups = buildGroups();
+  var total = 0;
+  for (var i=0; i<allGroups.length; i++) total += allGroups[i].rows.length;
+  changesCountText.textContent = total + (total === 1 ? ' change' : ' changes');
+
+  /* Show search field once we cross 50 total */
+  filterSearch.hidden = total < 50;
+
+  /* Filter chips: visible when > 20 changes; otherwise the user can just eyeball */
+  if (total >= 20){
+    filterChips.hidden = false;
+    var chipsHTML = '<button class="chip" data-key="" aria-pressed="' + (activeFilters.size === 0 ? 'true' : 'false') + '">All<span class="chip-count">' + total + '</span></button>';
+    for (var j=0; j<allGroups.length; j++){
+      var g = allGroups[j];
+      var pressed = activeFilters.has(g.key) ? 'true' : 'false';
+      chipsHTML += '<button class="chip" data-key="' + esc(g.key) + '" aria-pressed="' + pressed + '">' + esc(g.key) + '<span class="chip-count">' + g.rows.length + '</span></button>';
     }
-    return id; /* fallback to raw id */
+    filterChips.innerHTML = chipsHTML;
+  } else {
+    filterChips.hidden = true;
+    activeFilters.clear();
   }
 
-  function selectProjectInDropdown(id) {
-    for (var i = 0; i < projectSelect.options.length; i++) {
-      if (projectSelect.options[i].value === id) {
-        projectSelect.selectedIndex = i;
-        return;
-      }
+  /* Auto-expand heuristic: <=30 expand all; otherwise expand only the smallest. */
+  var visible = applyFilters(allGroups);
+  if (openGroups.size === 0){
+    if (total <= 30){
+      visible.forEach(function(g){ openGroups.add(g.key); });
+    } else {
+      var smallest = null;
+      visible.forEach(function(g){ if (!smallest || g.rows.length < smallest.rows.length) smallest = g; });
+      if (smallest) openGroups.add(smallest.key);
     }
   }
 
-  cancelBtn.addEventListener('click', function() {
-    parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
-  });
+  var html = '';
+  for (var i2=0; i2<visible.length; i2++){
+    var g2 = visible[i2];
+    var open = openGroups.has(g2.key);
+    var limit = groupRowLimit[g2.key] || ROW_CAP;
+    var rows = g2.rows.slice(0, limit);
+    var rowsHTML = rows.map(rowHTML).join('');
+    var more = g2.rows.length > limit
+      ? '<button class="change-more" data-more="' + esc(g2.key) + '">+ ' + (g2.rows.length - limit) + ' more</button>'
+      : '';
+    html += '<section class="change-group" data-key="' + esc(g2.key) + '" data-open="' + (open ? 'true' : 'false') + '">'
+          + '<button class="change-group-head" data-toggle="' + esc(g2.key) + '">'
+          +   '<svg class="change-group-caret" viewBox="0 0 10 10" width="10" height="10" fill="none"><path d="M3 2l4 3-4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+          +   '<span>' + esc(g2.key) + '</span>'
+          +   '<span class="change-group-count">' + g2.rows.length + '</span>'
+          + '</button>'
+          + '<div class="change-group-body">' + rowsHTML + more + '</div>'
+          + '</section>';
+  }
+  if (!visible.length){
+    html = '<div style="padding:20px;text-align:center;color:var(--dtf-fg-faint);font-size:var(--dtf-fs-11)">No changes match your filters.</div>';
+  }
+  changeGroups.innerHTML = html;
+}
 
-  /* ── Messages from code.js ──────────────────────────── */
-  window.onmessage = function(event) {
-    var msg = event.data.pluginMessage;
-    if (!msg) return;
+/* Delegated change-list interactions */
+changeGroups.addEventListener('click', function(e){
+  var t = e.target.closest('[data-toggle]');
+  if (t){
+    var k = t.getAttribute('data-toggle');
+    if (openGroups.has(k)) openGroups.delete(k); else openGroups.add(k);
+    renderChangeList();
+    return;
+  }
+  var m = e.target.closest('[data-more]');
+  if (m){
+    var key = m.getAttribute('data-more');
+    groupRowLimit[key] = (groupRowLimit[key] || ROW_CAP) + ROW_CAP;
+    renderChangeList();
+  }
+});
+filterChips.addEventListener('click', function(e){
+  var c = e.target.closest('.chip');
+  if (!c) return;
+  var key = c.getAttribute('data-key');
+  if (!key){ activeFilters.clear(); }
+  else if (activeFilters.has(key)) activeFilters.delete(key);
+  else activeFilters.add(key);
+  openGroups.clear();
+  renderChangeList();
+});
+filterSearch.addEventListener('input', function(){
+  searchTerm = filterSearch.value.trim().toLowerCase();
+  openGroups.clear();
+  renderChangeList();
+});
 
-    if (msg.type === 'scan-result') {
-      hasExistingVars = msg.found;
-      /* Restore per-document sync state */
-      if (msg.savedHash && figmaHash === '') {
-        figmaHash = msg.savedHash;
-        lastSyncedVarCount = msg.savedVarCount || 0;
+/* ════════════════════════════════════════════════════
+   TABS
+   ════════════════════════════════════════════════════ */
+function setTab(name){
+  body.dataset.tab = name;
+  tabSync.setAttribute('aria-selected', name === 'sync' ? 'true' : 'false');
+  tabBuilder.setAttribute('aria-selected', name === 'builder' ? 'true' : 'false');
+  paneSync.hidden = name !== 'sync';
+  paneBuilder.hidden = name !== 'builder';
+  footerSync.hidden = (name !== 'sync') || footerSync.hidden;
+  if (name === 'sync')    { footerBuilder.hidden = true; render(); }
+  if (name === 'builder') { footerSync.hidden = true; footerBuilder.hidden = false; }
+}
+tabSync.addEventListener('click', function(){ setTab('sync'); });
+tabBuilder.addEventListener('click', function(){ setTab('builder'); });
+
+/* ════════════════════════════════════════════════════
+   MENU
+   ════════════════════════════════════════════════════ */
+function closeMenu(){ tbMenu.removeAttribute('open'); }
+document.addEventListener('click', function(e){
+  if (!tbMenu.contains(e.target) && tbMenu.hasAttribute('open')) closeMenu();
+});
+autoSyncCb.addEventListener('change', function(){
+  AUTO_SYNC = autoSyncCb.checked;
+  storageSet('dtf-auto-sync', AUTO_SYNC ? '1' : '0');
+});
+menuChangelog.addEventListener('click', function(){
+  closeMenu();
+  serverPanel.classList.remove('visible');
+  debugPanel.classList.remove('visible');
+  changelogPanel.classList.toggle('visible');
+  if (changelogPanel.classList.contains('visible') && !isStaticHost()) fetchChangelog();
+});
+menuDebug.addEventListener('click', function(){
+  closeMenu();
+  serverPanel.classList.remove('visible');
+  changelogPanel.classList.remove('visible');
+  debugPanel.classList.toggle('visible');
+  dbgServer.textContent = SERVER;
+});
+menuServer.addEventListener('click', function(){
+  closeMenu();
+  debugPanel.classList.remove('visible');
+  changelogPanel.classList.remove('visible');
+  serverPanel.classList.toggle('visible');
+  serverUrlOverride.value = SERVER;
+});
+menuDisconnect.addEventListener('click', function(){
+  closeMenu();
+  GH_USERNAME = '';
+  storageSet('dtf-gh-username', '');
+  projectsFetched = false;
+  fetchProjects();
+  render();
+});
+
+/* ════════════════════════════════════════════════════
+   POLLING + SYNC (logic preserved from v1)
+   ════════════════════════════════════════════════════ */
+function startPolling(){
+  if (!SERVER){
+    connected = false;
+    render();
+    return;
+  }
+  poll();
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(poll, POLL_MS);
+}
+
+function poll(){
+  var url = apiUrl('/status');
+  fetch(url, { cache:'no-store' })
+    .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data){
+      if (!connected){
+        connected = true;
+        if (!projectsFetched) fetchProjects();
+        if (!isStaticHost()) fetchChangelog();
       }
-      /* Restore per-document project link */
-      if (msg.savedProject) {
-        documentProject = msg.savedProject;
-        CURRENT_PROJECT = msg.savedProject;
-        storageSet('dtf-project-id', CURRENT_PROJECT);
-        selectProjectInDropdown(CURRENT_PROJECT);
-        /* Restart polling with the correct project */
-        if (pollTimer) clearInterval(pollTimer);
-        connected = false;
-        tokenData = null;
-        serverStatus = null;
-        lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
-        startPolling();
-      }
-      if (msg.found) {
-        figmaStats.style.display = 'flex';
-        document.getElementById('fVars').textContent = msg.varCount;
-        document.getElementById('fCols').textContent = msg.colNames.length;
-        document.getElementById('fHash').textContent = figmaHash || 'unknown';
-        /* Start verify loop if we have synced vars — covers crash-recovery */
-        if (lastSyncedVarCount > 0) startVerifyLoop();
+      serverStatus = data;
+
+      if (isStaticHost() && data.hash){
+        if (lastSeenHash && data.hash !== lastSeenHash){
+          hashStableCount = 0;
+          deploySettling = true;
+          log('Hash changed (' + lastSeenHash + ' → ' + data.hash + ') — waiting');
+        } else if (data.hash === lastSeenHash) {
+          hashStableCount++;
+        }
+        lastSeenHash = data.hash;
+        if (deploySettling && hashStableCount >= HASH_SETTLE_POLLS){
+          deploySettling = false;
+          log('Deploy settled on hash ' + data.hash);
+        }
       }
 
-      /* Undo detection: if we had synced vars but now count is 0 */
-      if (lastSyncedVarCount > 0 && msg.varCount === 0) {
-        onUndoDetected();
-      } else if (msg.varCount > 0) {
+      checkForChanges(data);
+      render();
+    })
+    .catch(function(err){
+      connected = false;
+      log('Poll failed: ' + (err.message || err));
+      render();
+    });
+}
+
+function checkForChanges(data){
+  if (syncing || pendingResync) return;
+  if (deploySettling) return;
+  var serverHash = data.hash;
+  var hasPending = serverHash !== figmaHash && figmaHash !== '';
+  var isFirstRun = figmaHash === '' && data.totalVariables > 0;
+  if (hasPending || isFirstRun){
+    fetchTokenData();
+    if (AUTO_SYNC && tokenData && !syncing) setTimeout(function(){ startSync(); }, 500);
+  }
+}
+
+function fetchTokenData(){
+  fetch(apiUrl('/tokens'), { cache:'no-store' })
+    .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data){
+      if (serverStatus && data.contentHash && data.contentHash !== serverStatus.hash){
+        fetchRetries++;
+        if (fetchRetries <= MAX_FETCH_RETRIES){
+          log('Stale tokens.json — retry ' + fetchRetries);
+          setTimeout(fetchTokenData, 1500);
+          return;
+        }
+      }
+      fetchRetries = 0;
+      tokenData = filterCollections(data);
+      fetchChangelog();    /* keeps changeData fresh so renderChangeList has rows */
+    })
+    .catch(function(err){
+      log('fetchTokenData failed: ' + (err.message || err));
+      setStatus('Failed to fetch tokens — check connection', 'err');
+    });
+}
+
+function fetchChangelog(){
+  if (isStaticHost()) return;
+  fetch(SERVER + '/changelog')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      changeData = data;
+      if (data.entries && data.entries.length > 0){
+        var html = '';
+        for (var i=0; i<data.entries.length; i++){
+          var e = data.entries[i];
+          var t = new Date(e.time).toLocaleTimeString();
+          html += '<div class="log-entry"><span class="log-time">' + t + '</span> ' + esc(e.summary.detail) + ' <span class="log-time">(' + e.newHash + ')</span></div>';
+        }
+        changelogList.innerHTML = html;
+        changelogList.classList.remove('empty');
+      }
+      if (!changesPanel.hidden) renderChangeList();
+    })
+    .catch(function(){});
+}
+
+/* Sync */
+syncBtn.addEventListener('click', function(){
+  if (syncing) return;
+  if (!tokenData){
+    setStatus('Fetching tokens…', 'work');
+    fetchTokenData();
+    setTimeout(function(){ if (tokenData) startSync(); else setStatus('Could not fetch tokens — try again', 'err'); }, 2000);
+    return;
+  }
+  if (isStaticHost()){
+    setStatus('Verifying deployment…', 'work');
+    fetch(apiUrl('/status'), { cache:'no-store' })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(freshStatus){
+        serverStatus = freshStatus;
+        return fetch(apiUrl('/tokens'), { cache:'no-store' })
+          .then(function(r2){ if (!r2.ok) throw new Error('HTTP ' + r2.status); return r2.json(); })
+          .then(function(freshTokens){
+            if (freshTokens.contentHash !== freshStatus.hash){
+              syncVerifyAttempts++;
+              if (syncVerifyAttempts >= MAX_SYNC_VERIFY){
+                syncVerifyAttempts = 0;
+                setStatus('Deploy may still be in progress — try again shortly', 'err');
+                return;
+              }
+              setStatus('Waiting for deploy…', 'work');
+              setTimeout(function(){ syncBtn.click(); }, 3000);
+              return;
+            }
+            syncVerifyAttempts = 0;
+            tokenData = filterCollections(freshTokens);
+            startSync();
+          });
+      })
+      .catch(function(err){ setStatus('Verification failed: ' + (err.message || err), 'err'); });
+    return;
+  }
+  if (serverStatus && tokenData.contentHash && tokenData.contentHash !== serverStatus.hash){
+    setStatus('Fetching latest tokens…', 'work');
+    fetchTokenData();
+    setTimeout(function(){ if (tokenData && tokenData.contentHash === serverStatus.hash) startSync(); else setStatus('Try again', 'err'); }, 3000);
+    return;
+  }
+  startSync();
+});
+
+function startSync(){
+  if (documentProject && CURRENT_PROJECT !== documentProject){
+    pendingSwitchProject = CURRENT_PROJECT;
+    render();
+    return;
+  }
+  doSync();
+}
+
+function doSync(){
+  syncing = true;
+  pendingResync = false;
+  setStatus('Updating variables in-place…', 'work');
+  render();
+  parent.postMessage({ pluginMessage:{ type:'sync', data:tokenData, hash:tokenData.contentHash || '', project:CURRENT_PROJECT } }, '*');
+}
+
+cancelBtn.addEventListener('click', function(){
+  parent.postMessage({ pluginMessage:{ type:'cancel' } }, '*');
+});
+
+/* ════════════════════════════════════════════════════
+   MESSAGES FROM code.js (logic preserved)
+   ════════════════════════════════════════════════════ */
+parent.postMessage({ pluginMessage:{ type:'scan' } }, '*');
+parent.postMessage({ pluginMessage:{ type:'get-user-info' } }, '*');
+parent.postMessage({ pluginMessage:{ type:'check-gen-prereqs' } }, '*');
+
+window.onmessage = function(event){
+  var msg = event.data.pluginMessage;
+  if (!msg) return;
+
+  if (msg.type === 'scan-result'){
+    hasExistingVars = msg.found;
+    if (msg.savedHash && figmaHash === ''){
+      figmaHash = msg.savedHash;
+      lastSyncedVarCount = msg.savedVarCount || 0;
+    }
+    if (msg.savedProject){
+      documentProject = msg.savedProject;
+      CURRENT_PROJECT = msg.savedProject;
+      storageSet('dtf-project-id', CURRENT_PROJECT);
+      selectProjectInDropdown(CURRENT_PROJECT);
+      if (pollTimer) clearInterval(pollTimer);
+      connected = false; tokenData = null; serverStatus = null;
+      lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
+      startPolling();
+    }
+    if (msg.found){
+      dbgVars.textContent = msg.varCount;
+      dbgCols.textContent = msg.colNames.length;
+      dbgHash.textContent = figmaHash || 'unknown';
+      if (lastSyncedVarCount > 0) startVerifyLoop();
+    }
+    if (lastSyncedVarCount > 0 && msg.varCount === 0) onUndoDetected();
+    else if (msg.varCount > 0){ undoDetected = false; }
+    render();
+  }
+
+  if (msg.type === 'verify-result'){
+    if (msg.varCount >= 0){
+      if (msg.varCount === 0 && lastSyncedVarCount > 0) onUndoDetected();
+      else if (msg.varCount > 0 && undoDetected){
         undoDetected = false;
-        undoWarn.className = 'undo-warn';
+        lastSyncedVarCount = msg.varCount;
+        dbgVars.textContent = msg.varCount;
+        render();
       }
     }
-
-    if (msg.type === 'verify-result') {
-      /* varCount === -1 means the verify errored (e.g. after crash).
-         Ignore it — don't trigger false undo detection. */
-      if (msg.varCount >= 0) {
-        if (msg.varCount === 0 && lastSyncedVarCount > 0) {
-          onUndoDetected();
-        } else if (msg.varCount > 0 && undoDetected) {
-          undoDetected = false;
-          undoWarn.className = 'undo-warn';
-          lastSyncedVarCount = msg.varCount;
-          figmaStats.style.display = 'flex';
-          document.getElementById('fVars').textContent = msg.varCount;
-        }
-      }
-    }
-
-    if (msg.type === 'progress') {
-      setStatus(msg.text, 'work');
-    }
-
-    /* URL migration from code.js clientStorage */
-    if (msg.type === 'set-server-url') {
-      setServerUrl(msg.url);
-    }
-
-    if (msg.type === 'done') {
-      syncing = false;
-      var s = msg.stats;
-      figmaHash = msg.hash || (tokenData ? tokenData.contentHash : '');
-      var text = '';
-      if (s.renamed > 0) text += s.renamed + ' renamed. ';
-      if (s.orphansRemoved > 0) text += s.orphansRemoved + ' orphans removed. ';
-      if (s.updated > 0) text += s.updated + ' updated in-place. ';
-      if (s.created > 0) text += s.created + ' created. ';
-      text += s.variables + ' variables in ' + s.collections + ' collections.'
-        + (s.aliases > 0 ? ' ' + s.aliases + ' aliases linked.' : '');
-      setStatus(text, s.errors.length > 0 ? 'err' : 'ok');
-
-      /* Immediately show Up to date state */
-      notif.className = 'notif visible synced';
-      notifIcon.textContent = '\u2713';
-      notifTitle.textContent = 'Variables are up to date';
-      notifBadge.style.display = 'none';
-      notifBody.innerHTML = text;
-      syncBtn.disabled = true;
-      syncBtn.textContent = 'Variables are up to date';
-      syncBtn.className = 'btn-sync ready';
-      hasExistingVars = true;
-
-      /* Acknowledge to server */
-      if (figmaHash) {
-        if (!isStaticHost()) {
-          fetch(SERVER + '/ack', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hash: figmaHash })
-          }).catch(function() {});
-        }
-      }
-
-      /* Update Figma stats */
-      figmaStats.style.display = 'flex';
-      document.getElementById('fVars').textContent = s.variables;
-      document.getElementById('fCols').textContent = s.collections;
-      document.getElementById('fHash').textContent = figmaHash;
-
-      /* Track synced count for undo detection */
-      lastSyncedVarCount = s.variables;
-
-      /* Update document-linked project */
-      documentProject = CURRENT_PROJECT;
-
-      /* Start verify timer to detect undo */
-      startVerifyLoop();
-
-      /* Re-scan */
-      parent.postMessage({ pluginMessage: { type: 'scan' } }, '*');
-      fetchChangelog();
-    }
-
-    if (msg.type === 'error') {
-      syncing = false;
-      setStatus('Error: ' + msg.error, 'err');
-      syncBtn.disabled = false;
-      syncBtn.textContent = 'Retry Sync';
-    }
-
-    /* ── Component Builder messages ──────────────────────
-       The builder is always visible (see section markup). We keep
-       the user-info hook so a future gate could re-hide it without
-       a UI-structural change. */
-    if (msg.type === 'user-info') {
-      /* no-op: builder is always shown */
-    }
-    if (msg.type === 'gen-progress') {
-      genStatus.textContent = msg.text;
-    }
-    if (msg.type === 'gen-done') {
-      var gs = msg.stats;
-      generateBtn.disabled = false;
-      generateBtn.innerHTML = '&#9881; Generate Components';
-      generateBtn.style.opacity = '1';
-      genStatus.textContent = gs.components + ' variants, ' + gs.bindings + ' bindings, ' + gs.reactions + ' reactions' +
-        (gs.errors.length > 0 ? ' — ' + gs.errors.length + ' errors' : '');
-      genInfo.style.display = 'block';
-      genInfo.innerHTML = '&#9989; Component generation complete!';
-      parent.postMessage({ pluginMessage: { type: 'check-gen-prereqs' } }, '*');
-    }
-    if (msg.type === 'gen-error') {
-      generateBtn.disabled = false;
-      generateBtn.innerHTML = '&#9881; Generate Components';
-      generateBtn.style.opacity = genReady ? '1' : '0.5';
-      genStatus.textContent = 'Error: ' + msg.error;
-      genStatus.style.color = '#DC2626';
-      setTimeout(function() { genStatus.style.color = '#666'; }, 5000);
-    }
-    if (msg.type === 'gen-prereqs') {
-      updateGenPrereqs(msg);
-    }
-
-  };
-
-  /* Manual JSON-paste fallback retired — the plugin now requires
-     the sync server (or a custom server URL via Advanced). Removed
-     UI: paste textarea, file-picker, "Sync (manual)" button label. */
-
-  /* ── Utils ───────────────────────────────────────────── */
-  function setStatus(text, type) {
-    statusBar.className = 'status-bar' + (type ? ' ' + type : '');
-    statusBar.textContent = text;
-    statusBar.style.display = text ? 'block' : 'none';
-  }
-  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-  function debounce(fn, ms) {
-    var t; return function() { clearTimeout(t); var a = arguments, c = this;
-      t = setTimeout(function() { fn.apply(c, a); }, ms); };
   }
 
-  /* ── Undo detection ──────────────────────────────────── */
-  function startVerifyLoop() {
-    if (verifyTimer) clearInterval(verifyTimer);
-    verifyTimer = setInterval(function() {
-      parent.postMessage({ pluginMessage: { type: 'verify' } }, '*');
-    }, VERIFY_MS);
+  if (msg.type === 'progress') setStatus(msg.text, 'work');
+
+  if (msg.type === 'set-server-url') setServerUrl(msg.url);
+
+  if (msg.type === 'done'){
+    syncing = false;
+    var s = msg.stats;
+    figmaHash = msg.hash || (tokenData ? tokenData.contentHash : '');
+    var text = '';
+    if (s.renamed > 0)        text += s.renamed + ' renamed. ';
+    if (s.orphansRemoved > 0) text += s.orphansRemoved + ' orphans removed. ';
+    if (s.updated > 0)        text += s.updated + ' updated. ';
+    if (s.created > 0)        text += s.created + ' created. ';
+    text += s.variables + ' variables · ' + s.collections + ' collections' + (s.aliases > 0 ? ' · ' + s.aliases + ' aliases' : '') + '.';
+    setStatus(text, s.errors.length > 0 ? 'err' : 'ok');
+    setTimeout(function(){ setStatus('', ''); }, 6000);
+
+    hasExistingVars = true;
+    lastSyncedVarCount = s.variables;
+    documentProject = CURRENT_PROJECT;
+    dbgVars.textContent = s.variables;
+    dbgCols.textContent = s.collections;
+    dbgHash.textContent = figmaHash;
+    startVerifyLoop();
+    parent.postMessage({ pluginMessage:{ type:'scan' } }, '*');
+    fetchChangelog();
+    if (figmaHash && !isStaticHost()){
+      fetch(SERVER + '/ack', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ hash:figmaHash }) }).catch(function(){});
+    }
+    render();
   }
 
-  function onUndoDetected() {
-    undoDetected = true;
-    figmaHash = '';
-    /* Keep lastSyncedVarCount so verify loop can self-correct
-       if variables reappear (e.g. Cmd+Z was re-done) */
-    undoWarn.className = 'undo-warn visible';
-    syncBtn.disabled = false;
-    syncBtn.textContent = 'Re-sync Variables';
-    syncBtn.className = 'btn-sync';
-    figmaStats.style.display = 'none';
-    notif.className = 'notif';
-    notif.style.display = 'none';
+  if (msg.type === 'error'){
+    syncing = false;
+    setStatus('Error: ' + msg.error, 'err');
+    render();
   }
 
-  /* ── Start ───────────────────────────────────────────── */
+  if (msg.type === 'gen-progress')  genStatus.textContent = msg.text;
+  if (msg.type === 'gen-done'){
+    var gs = msg.stats;
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Generate components';
+    genStatus.textContent = gs.components + ' variants · ' + gs.bindings + ' bindings · ' + gs.reactions + ' reactions' + (gs.errors.length > 0 ? ' — ' + gs.errors.length + ' errors' : '');
+    genInfo.classList.add('visible');
+    genInfo.textContent = '✓ Components generated.';
+    parent.postMessage({ pluginMessage:{ type:'check-gen-prereqs' } }, '*');
+  }
+  if (msg.type === 'gen-error'){
+    generateBtn.disabled = !genReady;
+    generateBtn.textContent = 'Generate components';
+    genStatus.textContent = 'Error: ' + msg.error;
+    genStatus.style.color = 'var(--dtf-danger-content)';
+    setTimeout(function(){ genStatus.style.color = ''; }, 5000);
+  }
+  if (msg.type === 'gen-prereqs') updateGenPrereqs(msg);
+};
+
+/* Status line */
+function setStatus(text, type){
+  statusBar.className = 'status-line' + (type ? ' ' + type : '');
+  statusBar.textContent = text || '';
+  statusBar.style.display = text ? 'block' : 'none';
+}
+function esc(s){ var d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
+
+/* ════════════════════════════════════════════════════
+   UNDO DETECTION
+   ════════════════════════════════════════════════════ */
+function startVerifyLoop(){
+  if (verifyTimer) clearInterval(verifyTimer);
+  verifyTimer = setInterval(function(){ parent.postMessage({ pluginMessage:{ type:'verify' } }, '*'); }, VERIFY_MS);
+}
+function onUndoDetected(){
+  undoDetected = true;
+  figmaHash = '';
+  render();
+}
+
+/* ════════════════════════════════════════════════════
+   SERVER URL + PROJECTS + GITHUB IDENTITY
+   ════════════════════════════════════════════════════ */
+function setServerUrl(url){
+  url = url.replace(/\/+$/, '');
+  SERVER = url;
+  storageSet('dtf-server-url', url);
+  parent.postMessage({ pluginMessage:{ type:'save-server-url', url:url } }, '*');
+  dbgServer.textContent = SERVER;
+  connected = false; projectsFetched = false; figmaHash = '';
+  lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
+  if (pollTimer) clearInterval(pollTimer);
+  parent.postMessage({ pluginMessage:{ type:'scan' } }, '*');
   fetchProjects();
   startPolling();
+}
+saveUrlBtn.addEventListener('click', function(){
+  var u = serverUrlOverride.value.trim();
+  if (u) setServerUrl(u);
+  serverPanel.classList.remove('visible');
+});
+document.getElementById('presetLocal').addEventListener('click', function(){
+  setServerUrl('http://localhost:9500');
+  serverPanel.classList.remove('visible');
+});
+document.getElementById('presetDefault').addEventListener('click', function(){
+  setServerUrl(DEFAULT_SERVER);
+  serverPanel.classList.remove('visible');
+});
 
-  /* ── Server URL config ──────────────────────────────── */
-  function setServerUrl(url) {
-    url = url.replace(/\/+$/, ''); /* strip trailing slash */
-    SERVER = url;
-    storageSet('dtf-server-url', url);
-    /* Also persist via Figma clientStorage (more reliable than iframe localStorage) */
-    parent.postMessage({ pluginMessage: { type: 'save-server-url', url: url } }, '*');
-    serverUrlInput.value = url;
-    /* Reset state and reconnect */
-    connected = false;
-    projectsFetched = false;
-    figmaHash = '';
-    lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
-    if (pollTimer) clearInterval(pollTimer);
-    /* Re-scan so saved dtf-hash is restored into figmaHash before the
-       first poll — otherwise poll sees figmaHash='' and falsely shows
-       'Token update available' even when Figma is in sync. */
-    parent.postMessage({ pluginMessage: { type: 'scan' } }, '*');
-    fetchProjects();
-    startPolling();
-  }
-
-  saveUrlBtn.addEventListener('click', function() {
-    var el = document.getElementById('serverUrlOverride');
-    var url = el.value.trim();
-    if (url) setServerUrl(url);
-  });
-
-  /* Presets */
-  document.getElementById('presetLocal').addEventListener('click', function() {
-    setServerUrl('http://localhost:9500');
-    document.getElementById('serverUrlOverride').value = 'http://localhost:9500';
-  });
-
-  /* ── GitHub identity verification ──────────────────── */
-  var ghPatInput = document.getElementById('ghPatInput');
-  var ghVerifyBtn = document.getElementById('ghVerifyBtn');
-  var setupAuth = document.getElementById('setupAuth');
-  var setupDone = document.getElementById('setupDone');
-  var ghIdentityName = document.getElementById('ghIdentityName');
-  var ghIdentityError = document.getElementById('ghIdentityError');
-  var ghIdentityReset = document.getElementById('ghIdentityReset');
-
-  function showIdentityState() {
-    if (GH_USERNAME) {
-      setupAuth.style.display = 'none';
-      setupDone.style.display = 'flex';
-      ghIdentityName.textContent = '\u2713 ' + GH_USERNAME;
-      ghIdentityError.style.display = 'none';
-    } else {
-      setupAuth.style.display = 'block';
-      setupDone.style.display = 'none';
-    }
-  }
-  showIdentityState();
-
-  ghVerifyBtn.addEventListener('click', function() {
-    var token = ghPatInput.value.trim();
-    if (!token) { ghPatInput.focus(); return; }
-    ghVerifyBtn.disabled = true;
-    ghVerifyBtn.textContent = 'Verifying...';
-    ghIdentityError.style.display = 'none';
-    fetch('https://api.github.com/user', {
-      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
-    }).then(function(r) {
-      if (!r.ok) throw new Error(r.status === 401 ? 'Invalid token — needs repo scope' : 'HTTP ' + r.status);
-      return r.json();
-    }).then(function(user) {
-      GH_USERNAME = user.login;
-      storageSet('dtf-gh-username', GH_USERNAME);
-      ghPatInput.value = '';
-      /* Always ensure server URL points to the shared Pages site.
-         setServerUrl already re-scans + restarts polling \u2014 don't
-         start a SECOND poll timer or you'll race two pollers. */
-      setServerUrl(DEFAULT_SERVER);
-      projectsFetched = false;
-      fetchProjects();
-      showIdentityState();
-    }).catch(function(e) {
-      ghIdentityError.textContent = '\u2717 ' + e.message;
-      ghIdentityError.style.display = 'block';
-    }).finally(function() {
-      ghVerifyBtn.disabled = false;
-      ghVerifyBtn.textContent = 'Connect';
-    });
-  });
-  ghPatInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); ghVerifyBtn.click(); }
-  });
-
-  ghIdentityReset.addEventListener('click', function() {
-    GH_USERNAME = '';
-    storageSet('dtf-gh-username', '');
-    setupAuth.style.display = 'block';
-    setupDone.style.display = 'none';
+ghVerifyBtn.addEventListener('click', function(){
+  var token = ghPatInput.value.trim();
+  if (!token){ ghPatInput.focus(); return; }
+  ghVerifyBtn.disabled = true;
+  ghVerifyBtn.textContent = 'Verifying…';
+  ghIdentityError.classList.remove('visible');
+  fetch('https://api.github.com/user', {
+    headers:{ 'Authorization':'Bearer ' + token, 'Accept':'application/vnd.github+json' }
+  })
+  .then(function(r){
+    if (!r.ok) throw new Error(r.status === 401 ? 'Invalid token — needs repo scope' : 'HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(user){
+    GH_USERNAME = user.login;
+    storageSet('dtf-gh-username', GH_USERNAME);
+    ghPatInput.value = '';
+    setServerUrl(DEFAULT_SERVER);
     projectsFetched = false;
     fetchProjects();
+    render();
+  })
+  .catch(function(e){
+    ghIdentityError.textContent = '✗ ' + e.message;
+    ghIdentityError.classList.add('visible');
+  })
+  .finally(function(){
+    ghVerifyBtn.disabled = false;
+    ghVerifyBtn.textContent = 'Connect';
   });
+});
+ghPatInput.addEventListener('keydown', function(e){
+  if (e.key === 'Enter'){ e.preventDefault(); ghVerifyBtn.click(); }
+});
 
-  /* ── Project selector ──────────────────────────────── */
-  var projectsFetched = false;
-  function fetchProjects() {
-    var url = apiUrl('/projects');
-    if (!url) {
-      /* Local server — use the /projects endpoint */
-      url = SERVER + '/projects';
-    }
-    fetch(url, { cache: 'no-store' }).then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).then(function(list) {
+function projectDisplayName(id){
+  for (var i=0; i<projectList.length; i++) if (projectList[i].id === id) return projectList[i].name;
+  return id;
+}
+function selectProjectInDropdown(id){
+  for (var i=0; i<projectSelect.options.length; i++){
+    if (projectSelect.options[i].value === id){ projectSelect.selectedIndex = i; return; }
+  }
+}
+function fetchProjects(){
+  var url = apiUrl('/projects'); if (!url) url = SERVER + '/projects';
+  fetch(url, { cache:'no-store' })
+    .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(list){
       if (!Array.isArray(list)) throw new Error('Not an array');
-      projectsFetched = true;
-      projectList = list;
-      if (!GH_USERNAME) {
-        projectSelect.innerHTML = '<option value="">Set your GitHub username below</option>';
+      projectsFetched = true; projectList = list;
+      if (!GH_USERNAME){
+        projectSelect.innerHTML = '<option value="">Connect GitHub first</option>';
         return;
       }
-      var filtered = list.filter(function(p) { return !p.owner || p.owner.toLowerCase() === GH_USERNAME.toLowerCase(); });
+      var filtered = list.filter(function(p){ return !p.owner || p.owner.toLowerCase() === GH_USERNAME.toLowerCase(); });
       projectSelect.innerHTML = '';
-      if (filtered.length === 0) {
+      if (filtered.length === 0){
         projectSelect.innerHTML = '<option value="">No projects</option>';
         return;
       }
-      for (var i = 0; i < filtered.length; i++) {
+      for (var i=0; i<filtered.length; i++){
         var opt = document.createElement('option');
         opt.value = filtered[i].id;
         opt.textContent = filtered[i].name;
         if (filtered[i].id === CURRENT_PROJECT) opt.selected = true;
         projectSelect.appendChild(opt);
       }
-      /* If no saved project, select the first one */
-      if (!CURRENT_PROJECT && filtered.length > 0) {
+      if (!CURRENT_PROJECT && filtered.length > 0){
         CURRENT_PROJECT = filtered[0].id;
         storageSet('dtf-project-id', CURRENT_PROJECT);
       }
-      /* If document is linked to a project, ensure it's selected (covers race with scan-result) */
-      if (documentProject) {
-        var docProjectFound = false;
-        for (var j = 0; j < list.length; j++) {
-          if (list[j].id === documentProject) { docProjectFound = true; break; }
-        }
-        if (docProjectFound) {
+      if (documentProject){
+        var found = false;
+        for (var j=0; j<list.length; j++) if (list[j].id === documentProject){ found = true; break; }
+        if (found){
           CURRENT_PROJECT = documentProject;
           storageSet('dtf-project-id', CURRENT_PROJECT);
           selectProjectInDropdown(CURRENT_PROJECT);
         } else {
-          /* Document was linked to a project that no longer exists on server */
-          log('Document was linked to "' + documentProject + '" but that project was not found on server');
-          setStatus('Previously linked project "' + documentProject + '" not found on server \u2014 choose a project and re-sync.', 'err');
+          log('Linked project "' + documentProject + '" not found on server');
+          setStatus('Previously linked project not found — choose a project and re-sync.', 'err');
           documentProject = '';
         }
       }
-    }).catch(function() {
-      if (!projectsFetched) {
-        projectSelect.innerHTML = '<option value="">(connecting&hellip;)</option>';
-      }
+    })
+    .catch(function(){
+      if (!projectsFetched) projectSelect.innerHTML = '<option value="">(connecting…)</option>';
     });
+}
+projectSelect.addEventListener('change', function(){
+  CURRENT_PROJECT = projectSelect.value;
+  storageSet('dtf-project-id', CURRENT_PROJECT);
+  pendingSwitchProject = '';
+  connected = false; figmaHash = ''; tokenData = null; serverStatus = null;
+  lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
+  if (pollTimer) clearInterval(pollTimer);
+  parent.postMessage({ pluginMessage:{ type:'scan' } }, '*');
+  startPolling();
+  log('Switched to project: ' + CURRENT_PROJECT);
+});
+
+/* ════════════════════════════════════════════════════
+   BUILDER
+   ════════════════════════════════════════════════════ */
+var genReady = false;
+function updateGenPrereqs(data){
+  var csOk = data.compSizeCount > 0;
+  var t2Ok = data.t2Count > 0;
+  var t3Ok = data.t3Count > 0;
+  genReady = csOk && t2Ok;
+  generateBtn.disabled = !genReady;
+
+  var missing = [];
+  if (!csOk) missing.push('comp-size');
+  if (!t2Ok) missing.push('T2 Surface');
+  if (!t3Ok) missing.push('T3 Status');
+
+  if (missing.length){
+    prereqsBar.classList.add('visible');
+    document.getElementById('prereqsTitle').textContent = 'Missing collections (' + missing.length + ')';
+    prereqsList.innerHTML = missing.map(function(m){ return '<span>• ' + esc(m) + '</span>'; }).join('');
+  } else {
+    prereqsBar.classList.remove('visible');
   }
 
-  projectSelect.addEventListener('change', function() {
-    CURRENT_PROJECT = projectSelect.value;
-    storageSet('dtf-project-id', CURRENT_PROJECT);
-    /* Hide any stale mismatch warning */
-    projectWarn.className = 'project-warn';
-    /* Reset state and re-poll with new project path */
-    connected = false;
-    figmaHash = '';
-    tokenData = null;
-    serverStatus = null;
-    lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
-    if (pollTimer) clearInterval(pollTimer);
-    /* Re-scan so saved hash is restored before the first poll completes. */
-    parent.postMessage({ pluginMessage: { type: 'scan' } }, '*');
-    startPolling();
-    log('Switched to project: ' + CURRENT_PROJECT);
-  });
-
-  /* ── Component Builder ─────────────────────────────── */
-  var generateBtn = document.getElementById('generateBtn');
-  var genStatus = document.getElementById('genStatus');
-  var genInfo = document.getElementById('genInfo');
-  var prereqCS = document.getElementById('prereqCS');
-  var prereqT2 = document.getElementById('prereqT2');
-  var prereqT3 = document.getElementById('prereqT3');
-  var genReady = false;
-
-  /* Check prerequisites on load */
-  parent.postMessage({ pluginMessage: { type: 'check-gen-prereqs' } }, '*');
-
-  function updateGenPrereqs(data) {
-    var csOk = data.compSizeCount > 0;
-    var t2Ok = data.t2Count > 0;
-    var t3Ok = data.t3Count > 0;
-    prereqCS.innerHTML = (csOk ? '&#9745;' : '&#9744;') + ' comp-size' + (csOk ? ' <span style="color:#16A34A">(' + data.compSizeCount + ')</span>' : '');
-    prereqT2.innerHTML = (t2Ok ? '&#9745;' : '&#9744;') + ' T2 Surface' + (t2Ok ? ' <span style="color:#16A34A">(' + data.t2Count + ')</span>' : '');
-    prereqT3.innerHTML = (t3Ok ? '&#9745;' : '&#9744;') + ' T3 Status' + (t3Ok ? ' <span style="color:#16A34A">(' + data.t3Count + ')</span>' : '');
-    genReady = csOk && t2Ok;
-    generateBtn.disabled = !genReady;
-    generateBtn.style.opacity = genReady ? '1' : '0.5';
-
-    /* Show existing generated components */
-    if (data.versions && Object.keys(data.versions).length > 0) {
-      var parts = [];
-      for (var k in data.versions) {
-        if (data.versions.hasOwnProperty(k)) {
-          var v = data.versions[k];
-          parts.push(k + ' v' + v.version + ' (' + v.totalComponents + ' variants)');
-        }
+  if (data.versions && Object.keys(data.versions).length > 0){
+    var parts = [];
+    for (var k in data.versions){
+      if (data.versions.hasOwnProperty(k)){
+        var v = data.versions[k];
+        parts.push(k + ' v' + v.version + ' (' + v.totalComponents + ' variants)');
       }
-      genInfo.style.display = 'block';
-      genInfo.innerHTML = '&#9989; Generated: ' + parts.join(', ');
     }
+    genInfo.classList.add('visible');
+    genInfo.textContent = '✓ Generated: ' + parts.join(', ');
   }
+}
+generateBtn.addEventListener('click', function(){
+  if (!genReady) return;
+  var selected = [];
+  var checks = document.querySelectorAll('.comp-check:checked');
+  for (var i=0; i<checks.length; i++) selected.push(checks[i].value);
+  if (selected.length === 0){ genStatus.textContent = 'Select at least one component.'; return; }
+  generateBtn.disabled = true;
+  generateBtn.textContent = 'Generating…';
+  genStatus.textContent = 'Starting component generation…';
+  genInfo.classList.remove('visible');
+  parent.postMessage({ pluginMessage:{ type:'generate-components', components:selected } }, '*');
+});
 
-  generateBtn.addEventListener('click', function() {
-    if (!genReady) return;
-    var selected = [];
-    var checks = document.querySelectorAll('.comp-check:checked');
-    for (var i = 0; i < checks.length; i++) selected.push(checks[i].value);
-    if (selected.length === 0) {
-      genStatus.textContent = 'Select at least one component';
-      return;
-    }
-    generateBtn.disabled = true;
-    generateBtn.textContent = 'Generating\u2026';
-    genStatus.textContent = 'Starting component generation\u2026';
-    genInfo.style.display = 'none';
-    parent.postMessage({ pluginMessage: { type: 'generate-components', components: selected } }, '*');
-  });
+/* ════════════════════════════════════════════════════
+   START
+   ════════════════════════════════════════════════════ */
+setTab('sync');
+fetchProjects();
+startPolling();
+render();
 </script>
 </body>
 </html>
