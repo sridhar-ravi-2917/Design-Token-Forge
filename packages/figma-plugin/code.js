@@ -3946,13 +3946,31 @@ async function generateComponentFromBlueprint(blueprint) {
   var savedProject = '';
   try { savedProject = figma.root.getPluginData('dtf-project') || ''; } catch (e) {}
 
-  /* W1/M5 \u2014 fingerprint the blueprint and bound-token surface so a
+  /* W1/M5 — fingerprint the blueprint and bound-token surface so a
      future Build can diff "spec unchanged · tokens differ" etc.
-     specHash:    deterministic hash of the BP definition object.
-     tokensHash:  hash of the sorted variable IDs we actually bound
-                  during this Build (one entry per id, deduped). */
-  var specHash = '';
-  try { specHash = dtfHash32(dtfStableStringify(BP)); } catch (e) {}
+     structureHash: deterministic hash of the BP definition object.
+                    Drives the "structure" pill.
+     prototypeHash: hash of BP.states + plugin code version + a
+                    'wired' marker — reactions are hardcoded in
+                    code.js (not in BP data), so a CODE_VERSION
+                    bump or a states[] change should re-fire the
+                    "prototype" pill. Drives the "prototype" pill.
+     tokensHash:    hash of the sorted variable IDs we actually bound
+                    during this Build (one entry per id, deduped).
+                    Drives the "bindings" pill.
+     specHash:      legacy alias of structureHash for M5-part-1
+                    readers. New code should read structureHash. */
+  var structureHash = '';
+  try { structureHash = dtfHash32(dtfStableStringify(BP)); } catch (e) {}
+  var specHash = structureHash;
+  var prototypeHash = '';
+  try {
+    prototypeHash = dtfHash32(
+      'proto:' + CODE_VERSION + ':' +
+      dtfStableStringify(BP.states || []) + ':' +
+      (stats.reactions > 0 ? 'wired' : 'none')
+    );
+  } catch (e) {}
   var tokensHash = '';
   try {
     var ids = [];
