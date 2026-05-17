@@ -712,22 +712,25 @@
   .debug-panel strong { color: var(--dtf-fg-strong); font-weight: 600; }
   .debug-panel .row { display: flex; gap: 10px; margin-bottom: 2px; }
 
-  /* ── Changelog (rare; in menu) ────────────────────── */
-  .changelog-panel {
-    display: none;
-    padding: 8px 10px;
-    background: var(--dtf-surface-alt);
-    border-top: 1px solid var(--dtf-border);
-    border-bottom: 1px solid var(--dtf-border);
-    max-height: 160px; overflow-y: auto;
-    font-size: var(--dtf-fs-10); color: var(--dtf-fg-subtle);
+  /* ── Hero spinner ────────────────────────────────
+     Inline SVG ring that pairs with the glyph circle. Used when
+     the hero communicates an in-flight async operation (deploy
+     settling, syncing). The animation runs in the SVG itself so we
+     don't restart it on every render() pass. */
+  .hero-spinner {
+    width: 18px; height: 18px;
+    animation: dtfSpin 0.9s linear infinite;
+    transform-origin: center;
   }
-  .changelog-panel.visible { display: block; }
-  .changelog-panel .log-entry {
-    padding: 3px 0; border-bottom: 1px solid var(--dtf-border);
+  .hero-spinner circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 38;
+    stroke-dashoffset: 28;
   }
-  .changelog-panel .log-time { color: var(--dtf-fg-faint); font-family: var(--dtf-font-mono); }
-  .changelog-panel .empty { padding: 8px 0; color: var(--dtf-fg-faint); }
+  @keyframes dtfSpin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body data-screen="loading" data-tab="sync" data-conn="off">
@@ -754,8 +757,12 @@
           <input type="checkbox" id="autoSyncCb">
           <span>Auto-sync when tokens change</span>
         </label>
+        <!-- Version history lives on the DTF web app, not in the
+             plugin. The plugin only knows the latest deployed hash;
+             the editor knows the full per-token authoring history.
+             Opens externally so the user gets the full dialog. -->
         <button class="tb-menu-item connected-only" id="menuChangelog">
-          <span>Change history</span>
+          <span>Version history ↗</span>
         </button>
         <button class="tb-menu-item connected-only" id="menuDebug">
           <span>Debug info</span>
@@ -787,11 +794,6 @@
     <div class="row"><span>Collections:</span><strong id="dbgCols">—</strong></div>
     <div class="row"><span>Hash:</span><strong id="dbgHash">—</strong></div>
     <div class="row"><span>Server:</span><strong id="dbgServer">—</strong></div>
-  </div>
-
-  <!-- ─── Changelog panel (toggled from menu) ──────── -->
-  <div class="changelog-panel" id="changelogPanel">
-    <div id="changelogList" class="empty">No change history available.</div>
   </div>
 
   <!-- ─── Tabs ─────────────────────────────────────── -->
@@ -969,8 +971,13 @@ var menuServer   = document.getElementById('menuServer');
 var menuDisconnect = document.getElementById('menuDisconnect');
 var serverPanel  = document.getElementById('serverPanel');
 var debugPanel   = document.getElementById('debugPanel');
-var changelogPanel = document.getElementById('changelogPanel');
-var changelogList  = document.getElementById('changelogList');
+/* changelogPanel/List were removed from the DOM — the in-plugin
+   panel was a stub that never worked on the static deploy (no
+   /changelog endpoint on GH Pages). The menu item now opens the
+   web app's version history dialog externally. We keep null
+   sentinels so legacy paths that touch these elements no-op. */
+var changelogPanel = null;
+var changelogList  = null;
 var dbgVars = document.getElementById('dbgVars');
 var dbgCols = document.getElementById('dbgCols');
 var dbgHash = document.getElementById('dbgHash');
@@ -1081,7 +1088,7 @@ var openGroups = new Set();      /* expanded group keys */
 /* Build stamp — bump on every UI-affecting change so you can confirm
    the Figma plugin sandbox isn't serving a cached old copy. Shown in
    the empty-state footer + logged once to the plugin console. */
-var BUILD_VERSION = '2026-05-17-p9';
+var BUILD_VERSION = '2026-05-17-p10';
 function log(msg){ console.log('[DTF] ' + msg); }
 log('plugin UI build ' + BUILD_VERSION);
 
@@ -1201,7 +1208,7 @@ function render(){
   /* Deploy in flight */
   if (deploySettling){
     setHero({
-      glyph:'⏳', glyphClass:'work',
+      spinner:true, glyphClass:'work',
       title:'Deployment in progress',
       sub:'Waiting for GitHub Pages to finish deploying. This auto-resolves in a few seconds.'
     });
@@ -1213,7 +1220,7 @@ function render(){
   /* Syncing in progress */
   if (syncing){
     setHero({
-      glyph:'↻', glyphClass:'work',
+      spinner:true, glyphClass:'work',
       title:'Syncing…',
       sub:'Updating variables in this Figma file.'
     });
@@ -1296,7 +1303,14 @@ function render(){
 function setHero(opts){
   heroEl.style.display = 'flex';
   heroGlyph.className = 'hero-glyph ' + (opts.glyphClass || 'neutral');
-  heroGlyph.textContent = opts.glyph || '●';
+  /* spinner: render an animated SVG ring instead of a text glyph. The
+     deploying / syncing heroes set this so the user has motion to
+     anchor the wait; a static ‘⏳’ emoji read as a frozen UI. */
+  if (opts.spinner){
+    heroGlyph.innerHTML = '<svg class="hero-spinner" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7"/></svg>';
+  } else {
+    heroGlyph.textContent = opts.glyph || '●';
+  }
   heroTitle.textContent = opts.title || '';
   heroSub.innerHTML = opts.sub || '';
   heroActions.innerHTML = '';
@@ -1742,23 +1756,27 @@ autoSyncCb.addEventListener('change', function(){
   storageSet('dtf-auto-sync', AUTO_SYNC ? '1' : '0');
 });
 menuChangelog.addEventListener('click', function(){
+  /* Version history lives on the DTF web app, not in the plugin.
+     The plugin only has access to the current deployed snapshot;
+     the editor knows every commit + author + diff. Hand the user
+     off there. PAT is already verified by the time they see this
+     menu item (it's .connected-only), so the web app can hydrate
+     the same identity from the URL fragment if needed. */
   closeMenu();
-  serverPanel.classList.remove('visible');
-  debugPanel.classList.remove('visible');
-  changelogPanel.classList.toggle('visible');
-  if (changelogPanel.classList.contains('visible') && !isStaticHost()) fetchChangelog();
+  var url = SERVER.replace(/\/$/, '');
+  if (CURRENT_PROJECT) url += '/?project=' + encodeURIComponent(CURRENT_PROJECT) + '#history';
+  else                 url += '/#history';
+  parent.postMessage({ pluginMessage:{ type:'open-external', url:url } }, '*');
 });
 menuDebug.addEventListener('click', function(){
   closeMenu();
   serverPanel.classList.remove('visible');
-  changelogPanel.classList.remove('visible');
   debugPanel.classList.toggle('visible');
   dbgServer.textContent = SERVER;
 });
 menuServer.addEventListener('click', function(){
   closeMenu();
   debugPanel.classList.remove('visible');
-  changelogPanel.classList.remove('visible');
   serverPanel.classList.toggle('visible');
   serverUrlOverride.value = SERVER;
 });
@@ -1880,7 +1898,7 @@ function fetchChangelog(){
     .then(function(r){ return r.json(); })
     .then(function(data){
       changeData = data;
-      if (data.entries && data.entries.length > 0){
+      if (changelogList && data.entries && data.entries.length > 0){
         var html = '';
         for (var i=0; i<data.entries.length; i++){
           var e = data.entries[i];

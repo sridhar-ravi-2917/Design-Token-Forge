@@ -3949,6 +3949,13 @@ figma.ui.onmessage = async function(msg) {
     sendUserInfo();
   }
 
+  /* Open external URL in the user's default browser. Used by the
+     "Version history" menu item to hand off to the DTF web app
+     where the full per-commit history dialog lives. */
+  if (msg.type === 'open-external' && msg.url) {
+    try { figma.openExternal(msg.url); } catch (e) {}
+  }
+
   /* Reset ID map — useful when rename state is corrupted */
   if (msg.type === 'reset-idmap') {
     saveIdMap({});
