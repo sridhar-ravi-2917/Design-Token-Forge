@@ -3867,6 +3867,33 @@
       return { id: r.id, label: r.label, keyHex: (State.proposed[r.id] || '').toUpperCase() };
     });
     if (customRoles.length) cfg.customRoles = customRoles;
+
+    /* Persist per-role T1 lever picks so the next editor boot can
+       hydrate State.t1 from disk. Without this, semantic.css gets
+       written correctly but the editor re-seeds from in-code
+       T1_DEFAULT_STEPS on next load \u2014 producing a silent drift
+       where the file says container=50 but the row shows step 75
+       (the default), and the topbar reads 'No changes yet' because
+       baseline matches the freshly-seeded default. See
+       seedT1FromConfig() for the symmetric reader. */
+    var t1Picks = { light: {}, dark: {} };
+    ['light','dark'].forEach(function (mode) {
+      ROLES.forEach(function (r) {
+        var t = State.t1[mode][r.id];
+        if (!t) return;
+        var pick = {};
+        if (t.fill)             pick.fill             = t.fill;
+        if (t.content)          pick.content          = t.content;
+        if (t.container)        pick.container        = t.container;
+        if (t.borderStep)       pick.borderStep       = t.borderStep;
+        if (t.separatorStep)    pick.separatorStep    = t.separatorStep;
+        if (t.onComponent)      pick.onComponent      = t.onComponent;
+        if (t.onContainerStep)  pick.onContainerStep  = t.onContainerStep;
+        if (Object.keys(pick).length) t1Picks[mode][r.id] = pick;
+      });
+    });
+    cfg.t1Picks = t1Picks;
+
     cfg.latestVersion = {
       version: meta.version,
       name:    meta.name || '',
@@ -4831,6 +4858,11 @@
     injectProjectPrimitivesSync();
     promoteCustomRoles();
     seedSurfacePaletteFromConfig();
+    /* Hydrate T1 picks from the published config BEFORE the AA-fix
+       loop and BEFORE t1Baseline is snapshotted. Without this,
+       State.t1 always starts at the in-code defaults and the editor
+       silently disagrees with the on-disk semantic.css. */
+    seedT1FromConfig();
 
     bindAddPaletteDialog();
     // Default: show CSS names ON. Overridden below if UI state has been saved.
@@ -5161,6 +5193,43 @@
     node.textContent = cssText;
     if (!existing) document.head.appendChild(node);
     _customPalettesCache = null;
+  }
+
+  /* Seed State.t1 from config.t1Picks so a fresh boot reflects
+     what was actually published, not the in-code defaults. This is
+     the symmetric reader for the t1Picks writer in buildConfigJSON.
+
+     Without this, the editor was silently drifting: the publish path
+     wrote container=50 to semantic.css, but the next boot re-seeded
+     State.t1.container from T1_DEFAULT_STEPS (=75), and baseline was
+     snapshotted from that. Topbar read 'No changes yet' even though
+     the row label and the on-disk file disagreed by 25 steps.
+
+     Must run BEFORE the AA-fix loop and BEFORE t1Baseline is
+     snapshotted, so the snapshot captures the loaded values (post
+     AA-fix), not the seed defaults. */
+  function seedT1FromConfig() {
+    var cfg = readProjectConfigSync();
+    if (!cfg || !cfg.t1Picks) return;
+    var STEP_OK = {};
+    ALL_STEPS.forEach(function (s) { STEP_OK[s] = true; });
+    ['light','dark'].forEach(function (mode) {
+      var src = cfg.t1Picks[mode];
+      if (!src) return;
+      ROLES.forEach(function (r) {
+        var pick = src[r.id];
+        if (!pick) return;
+        var dest = State.t1[mode][r.id];
+        if (!dest) return;
+        if (pick.fill            && STEP_OK[pick.fill])            dest.fill            = pick.fill;
+        if (pick.content         && STEP_OK[pick.content])         dest.content         = pick.content;
+        if (pick.container       && STEP_OK[pick.container])       dest.container       = pick.container;
+        if (pick.borderStep      && STEP_OK[pick.borderStep])      dest.borderStep      = pick.borderStep;
+        if (pick.separatorStep   && STEP_OK[pick.separatorStep])   dest.separatorStep   = pick.separatorStep;
+        if (pick.onComponent)                                       dest.onComponent     = pick.onComponent;
+        if (pick.onContainerStep && STEP_OK[pick.onContainerStep]) dest.onContainerStep = pick.onContainerStep;
+      });
+    });
   }
 
   /* Seed State.t2SurfacePalette from config.surfacePaletteSrc so
