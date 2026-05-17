@@ -1240,18 +1240,27 @@ function renderChangeList(){
     activeFilters.clear();
   }
 
-  /* Auto-expand heuristic: expand all groups by default so the user
-     SEES the actual changes in viewport rather than a wall of
-     collapsed section headers. Only collapse-by-default kicks in
-     once we cross 100 changes (then expand only the smallest). */
+  /* Auto-expand heuristic. Goal: when the user opens the plugin they
+     SEE the meaningful diff in viewport, not the longest alias list.
+     Strategy:
+       - <=100 changes: expand every group (the whole diff fits).
+       - >100: expand the FIRST group in COLLECTION_ORDER that's
+         present (T0 -> T1 -> T2 -> T3 -> primitives-numbers ->
+         comp size). T0 holds the source-of-truth changes; aliased
+         tiers below it just mirror those. */
   var visible = applyFilters(allGroups);
   if (openGroups.size === 0){
     if (total <= 100){
       visible.forEach(function(g){ openGroups.add(g.key); });
     } else {
-      var smallest = null;
-      visible.forEach(function(g){ if (!smallest || g.rows.length < smallest.rows.length) smallest = g; });
-      if (smallest) openGroups.add(smallest.key);
+      var preferred = null;
+      for (var co=0; co<COLLECTION_ORDER.length && !preferred; co++){
+        for (var vi3=0; vi3<visible.length; vi3++){
+          if (visible[vi3].key === COLLECTION_ORDER[co]){ preferred = visible[vi3]; break; }
+        }
+      }
+      if (!preferred && visible.length) preferred = visible[0];
+      if (preferred) openGroups.add(preferred.key);
     }
   }
 
