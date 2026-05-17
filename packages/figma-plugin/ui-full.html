@@ -934,7 +934,7 @@ var openGroups = new Set();      /* expanded group keys */
 /* Build stamp — bump on every UI-affecting change so you can confirm
    the Figma plugin sandbox isn't serving a cached old copy. Shown in
    the empty-state footer + logged once to the plugin console. */
-var BUILD_VERSION = '2026-05-17-p4';
+var BUILD_VERSION = '2026-05-17-p5';
 function log(msg){ console.log('[DTF] ' + msg); }
 log('plugin UI build ' + BUILD_VERSION);
 
@@ -1678,65 +1678,191 @@ function fmtVal(raw){
   return String(raw);
 }
 
-/* Compare two raw values for equivalence. Returns true if they
-   represent the SAME design decision — even when serialised
-   differently. False positives in the diff come from:
-     a) Aliases: file emits {alias:true,id,name?} where name may be
-        unresolved; tokens.json emits {type:'VARIABLE_ALIAS',name}.
-        Two aliases are equal if their target names match, OR if
-        the name is missing on either side (we can't prove a change,
-        so default to equal — aliases only change when the user
-        manually reassigns a binding, never as a consequence of
-        upstream value edits).
-     b) Numeric units: spacing variables come from Figma as raw
-        FLOAT (e.g. 1) but tokens.json emits the px string '1px'.
-        Strip trailing 'px'/'rem'/'%' and parse-then-compare
-        numerically. */
+/* Compare two raw values for equivalence. See protocol block below. */
+/* ─────────────────────────────────────────────────────────────
+   Diff comparator — TREATED AS PROTOCOL.
+   These functions decide whether a token row is "changed" or not.
+   With surfaces + comp tokens projected to grow into the thousands,
+   false positives erode trust and false negatives ship broken
+   handoffs. The rules below are the ENTIRE contract; every change
+   must be paired with a runtime self-test below.
+
+   Rules in priority order:
+     R1. Both sides empty (null / undefined / '' / NaN) → equal.
+     R2. Alias-vs-alias: equal iff their normalised target names match.
+         Normalisation: lowercase, trim, collapse leading/trailing '/'.
+         If either name missing → equal (no proof of change; aliases
+         never change as a consequence of upstream value edits).
+     R3. Alias-vs-literal → changed (binding state actually flipped).
+     R4. Literal-vs-literal:
+         a) Both empty after normalisation → equal.
+         b) Hex colors: case-folded, shorthand expanded
+            (#abc → #aabbcc), trailing alpha 'ff' stripped
+            (#rrggbbff === #rrggbb).
+         c) Numbers (with optional length unit): unit stripped, parsed,
+            rounded to 6 decimals to swallow float drift.
+         d) Otherwise: lowercased trimmed string compare.
+   ───────────────────────────────────────────────────────────── */
+function isAliasShape(v){
+  return v && typeof v === 'object' && (v.alias === true || v.type === 'VARIABLE_ALIAS');
+}
+function normAliasName(name){
+  if (name == null) return '';
+  return String(name).trim().toLowerCase().replace(/^\/+|\/+$/g, '');
+}
 function rawEqual(a, b){
-  /* Empty/null/undefined/'' on BOTH sides → equal. This catches
-     rows like `radius/none: 0 → 0` where one side stringifies to ''
-     and the other to '0' because of {value:null} or missing-mode
-     defaults — the user's intent was identical. */
-  var aEmpty = (a == null || a === '');
-  var bEmpty = (b == null || b === '');
-  if (aEmpty && bEmpty) return true;
-  var aIsAlias = a && typeof a === 'object' && (a.alias || a.type === 'VARIABLE_ALIAS');
-  var bIsAlias = b && typeof b === 'object' && (b.alias || b.type === 'VARIABLE_ALIAS');
-  if (aIsAlias !== bIsAlias) return false;   /* one's an alias, other isn't */
-  if (aIsAlias && bIsAlias){
-    if (!a.name || !b.name) return true;   /* can't prove a change — assume equal */
-    return a.name === b.name;
+  var aEmpty = (a == null || a === '' || (typeof a === 'number' && isNaN(a)));
+  var bEmpty = (b == null || b === '' || (typeof b === 'number' && isNaN(b)));
+  if (aEmpty && bEmpty) return true;                          /* R1 */
+  var aIsAlias = isAliasShape(a);
+  var bIsAlias = isAliasShape(b);
+  if (aIsAlias !== bIsAlias) return false;                    /* R3 */
+  if (aIsAlias && bIsAlias){                                  /* R2 */
+    var an = normAliasName(a.name);
+    var bn = normAliasName(b.name);
+    if (!an || !bn) return true;
+    return an === bn;
   }
-  return normForCompare(a) === normForCompare(b);
+  return normForCompare(a) === normForCompare(b);             /* R4 */
 }
 
-/* Cheap normalisation used for equality only — strips hex case,
-   trims trailing zeros, and drops common length units so '14' ===
-   '14px' === '14.0'. Real display still uses fmtVal. */
 function normForCompare(s){
   if (s == null || s === '') return '';
-  if (s && typeof s === 'object') return JSON.stringify(s);
+  if (s && typeof s === 'object') return JSON.stringify(s);   /* shouldn't reach here for primitives */
   s = String(s).trim().toLowerCase();
   if (s === '') return '';
+  /* R4b — hex */
   if (/^#[0-9a-f]+$/.test(s)){
-    if (s.length === 4) s = '#' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3];   /* #abc → #aabbcc */
-    if (s.length === 5) s = '#' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3] + s[4]+s[4]; /* #abcd → #aabbccdd */
+    if (s.length === 4) s = '#' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3];
+    else if (s.length === 5) s = '#' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3] + s[4]+s[4];
+    if (s.length === 9 && s.slice(7) === 'ff') s = s.slice(0, 7);   /* fully opaque alpha ⇒ drop */
     return s;
   }
-  /* Strip common length units before numeric parse: '14px' → '14'. */
+  /* R4c — number with optional unit */
   var stripped = s.replace(/(px|rem|em|%|ms|s)$/, '').trim();
   var asNum = Number(stripped);
   if (stripped !== '' && !isNaN(asNum) && isFinite(asNum)){
-    /* Round to 6 decimals to swallow float-precision drift:
-       Figma stores opacity as 0.05000000074505806, tokens.json emits
-       '0.05' — same intent, must compare equal. */
     return String(Math.round(asNum * 1e6) / 1e6);
   }
-  return s;
+  return s;                                                   /* R4d */
+}
+
+/* Runtime self-test. Runs once on plugin load. Console-errors loudly
+   if any rule regresses. Add a new case here EVERY TIME a real-world
+   false-positive or false-negative is reported, so we never patch
+   the same class twice. */
+(function comparatorSelfTest(){
+  var cases = [
+    /* [a, b, expectedEqual, label] */
+    [null, null, true, 'R1 both null'],
+    [null, '',   true, 'R1 null vs empty string'],
+    [0,    null, false, 'R1 zero is NOT empty'],
+    [NaN,  null, true, 'R1 NaN counts as empty'],
+
+    /* Hex */
+    ['#abc', '#aabbcc', true, 'R4b shorthand'],
+    ['#FF0000', '#ff0000', true, 'R4b case folding'],
+    ['#ff0000ff', '#ff0000', true, 'R4b trailing opaque alpha stripped'],
+    ['#ff000080', '#ff0000', false, 'R4b non-opaque alpha kept'],
+
+    /* Numbers + units */
+    [1, '1px', true, 'R4c px unit equivalence'],
+    [14, '14', true, 'R4c bare number'],
+    ['0.05000000074505806', '0.05', true, 'R4c float drift'],
+    [200, '300', false, 'R4c real numeric difference'],
+
+    /* Aliases (mock shapes) */
+    [ {alias:true, name:'semantic/brand/x'}, {type:'VARIABLE_ALIAS', name:'semantic/brand/x'}, true, 'R2 same alias, different shapes' ],
+    [ {alias:true, name:'Semantic/BRAND/x'}, {type:'VARIABLE_ALIAS', name:'semantic/brand/x'}, true, 'R2 case-insensitive alias name' ],
+    [ {alias:true, name:''}, {type:'VARIABLE_ALIAS', name:'semantic/brand/x'}, true, 'R2 missing name on one side ⇒ equal' ],
+    [ {alias:true, name:'semantic/brand/x'}, {type:'VARIABLE_ALIAS', name:'semantic/success/x'}, false, 'R2 real rebinding' ],
+    [ {alias:true, name:'semantic/brand/x'}, '#ff0000', false, 'R3 alias↔literal mismatch' ],
+
+    /* Mixed */
+    ['0', '0px', true, '0 string vs 0px'],
+    ['0', '', false, 'explicit zero ≠ empty'],
+  ];
+  var failed = 0;
+  for (var i=0; i<cases.length; i++){
+    var c = cases[i];
+    var got = rawEqual(c[0], c[1]);
+    if (got !== c[2]){
+      failed++;
+      console.error('[DTF comparator FAIL]', c[3], '— expected', c[2], 'got', got, '— inputs:', c[0], c[1]);
+    }
+  }
+  if (failed === 0) console.log('[DTF] comparator self-test passed (' + cases.length + ' cases)');
+  else console.error('[DTF] comparator self-test FAILED — ' + failed + '/' + cases.length + ' cases');
+})();
+
+/* Console-exposed audit helper. Usage:
+     dtfAudit()                 — summary by collection
+     dtfAudit('prim/brand/500') — every per-mode comparison for one var
+     dtfAudit(null, 'T3 Status Context Tokens') — full per-mode log for a collection
+   Returns void; prints to console. Designed so a sceptical user can
+   prove or disprove ANY row in the change list before clicking
+   Update. */
+window.dtfAudit = function(varName, collectionFilter){
+  var cur = window.__dtfLastCurrent;
+  var tok = window.__dtfLastTokens;
+  if (!cur || !tok){ console.warn('[dtfAudit] no diff snapshot yet — open Sync tab first'); return; }
+  var curByName = {};
+  for (var ci=0; ci<cur.collections.length; ci++){
+    var cc = cur.collections[ci];
+    for (var vi=0; vi<cc.variables.length; vi++){
+      var vv = cc.variables[vi];
+      curByName[vv.name] = { col: cc.name, modes: (cc.modes || []).slice(), vals: vv.valuesByMode || {} };
+    }
+  }
+  function dumpVar(nc, nv){
+    var ex = curByName[nv.name];
+    var nvVals = nv.values || nv.valuesByMode || {};
+    if (!ex){ console.log('  + ADDED', nv.name); return; }
+    var exByMode = {};
+    for (var emi=0; emi<ex.modes.length; emi++) exByMode[String(ex.modes[emi]).toLowerCase()] = ex.vals[ex.modes[emi]];
+    var newModes = (nc.modes || []).slice();
+    var anyDiff = false;
+    var perMode = [];
+    for (var mi=0; mi<newModes.length; mi++){
+      var key = String(newModes[mi]).toLowerCase();
+      if (!(key in exByMode)){ perMode.push({mode:newModes[mi], verdict:'skip (no match in Figma)'}); continue; }
+      var nr = nvVals[newModes[mi]];
+      var or_ = exByMode[key];
+      var eq = rawEqual(nr, or_);
+      if (!eq) anyDiff = true;
+      perMode.push({ mode:newModes[mi], figma:or_, tokens:nr, equal:eq });
+    }
+    if (anyDiff || varName){
+      console.groupCollapsed((anyDiff ? '🟡 CHANGED ' : '   equal  ') + nv.name);
+      console.log('collection:', nc.name);
+      console.table(perMode);
+      console.groupEnd();
+    }
+  }
+  var matched = 0;
+  for (var nci=0; nci<tok.collections.length; nci++){
+    var nc = tok.collections[nci];
+    if (collectionFilter && nc.name !== collectionFilter) continue;
+    for (var nvi=0; nvi<nc.variables.length; nvi++){
+      var nv = nc.variables[nvi];
+      if (varName && nv.name !== varName) continue;
+      dumpVar(nc, nv);
+      matched++;
+    }
+  }
+  if (varName && matched === 0) console.warn('[dtfAudit] no variable named:', varName);
+  else console.log('[dtfAudit] inspected', matched, 'variable(s)');
+};
+console.log('[DTF] audit helper ready — type dtfAudit() in console');
 }
 
 function handleStaticDiff(current){
   if (!tokenData || !current || !current.collections) return;
+  /* Stash the two snapshots so the dtfAudit() console helper can
+     replay every per-mode comparison decision for any variable name.
+     Lets us prove the diff is correct without re-deploying. */
+  window.__dtfLastCurrent = current;
+  window.__dtfLastTokens  = tokenData;
   /* Build {variableName: {orderedModes, vals, collectionName}} lookup
      from current. We key by variable NAME only (not collection|name),
      because the Figma file's collection name may have drifted from
