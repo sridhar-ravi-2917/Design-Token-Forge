@@ -4500,16 +4500,35 @@ figma.ui.onmessage = async function(msg) {
       var currentTokensHash = '';
       var currentTokensHashes = {};
       try {
+        /* CRITICAL — _idSet must cover EVERY variable in the file,
+           not just the three collections the generator pulls from.
+           Button binds T1 brand color vars, T2 surface vars, T3
+           status vars, comp-size vars, etc. If we only check three
+           collections, every T1 binding looks "missing" and the
+           bindings pill fires on every prereq ping. */
         var _ids = [];
         var _idSet = {};
-        function _collect(m){
-          var ks = Object.keys(m||{});
-          for (var i=0;i<ks.length;i++){
-            var v=m[ks[i]];
-            if (v && v.id) { _ids.push(v.id); _idSet[v.id] = 1; }
+        try {
+          var _allCols = await figma.variables.getLocalVariableCollectionsAsync();
+          for (var _ci = 0; _ci < _allCols.length; _ci++){
+            var _cvids = _allCols[_ci].variableIds || [];
+            for (var _vi2 = 0; _vi2 < _cvids.length; _vi2++){
+              var _vid = _cvids[_vi2];
+              if (_vid) { _ids.push(_vid); _idSet[_vid] = 1; }
+            }
           }
+        } catch (e) {
+          /* Fall back to the named-collection scan if the global
+             enumeration fails — better than nothing. */
+          function _collect(m){
+            var ks = Object.keys(m||{});
+            for (var i=0;i<ks.length;i++){
+              var v=m[ks[i]];
+              if (v && v.id) { _ids.push(v.id); _idSet[v.id] = 1; }
+            }
+          }
+          _collect(csMap); _collect(t2Map); _collect(t3Map);
         }
-        _collect(csMap); _collect(t2Map); _collect(t3Map);
         _ids.sort();
         /* Kept for back-compat with UI readers that haven't migrated
            to the per-component map yet. */
