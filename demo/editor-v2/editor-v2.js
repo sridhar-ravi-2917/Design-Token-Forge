@@ -5280,16 +5280,60 @@
     try { cssText = localStorage.getItem('dtf-project-semantic-' + id) || null; }
     catch (e) { /* ignore */ }
     if (!cssText) {
-      var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
-      var url = depth + '/projects/' + encodeURIComponent(id) + '/semantic.css';
-      try {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url, /* async */ false);
-        xhr.send(null);
-        if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
-          cssText = xhr.responseText;
+      // The previous relative-path approach ('../..'/'.' + '/projects/...')
+      // breaks on certain Pages deploys where the editor URL has
+      // extra path segments (saw a 404 at
+      // /Design-Token-Forge/pearl/projects/pearl/semantic.css on
+      // first reload). Robust fix: find the project's already-loaded
+      // primitives.css <link> in the document and swap the filename.
+      // That link's href is whatever Pages resolved, so we're
+      // guaranteed to hit the same directory.
+      var url = null;
+      var links = document.querySelectorAll('link[rel="stylesheet"][href]');
+      for (var i = 0; i < links.length; i++) {
+        var h = links[i].getAttribute('href') || '';
+        if (/\/projects\/[^/]+\/primitives\.css(\?|$)/.test(h)) {
+          url = h.replace(/primitives\.css(\?.*)?$/, 'semantic.css$1');
+          break;
         }
-      } catch (e) { /* fall through */ }
+      }
+      // No project <link> (primitives may have been injected as a
+      // <style> block from the localStorage stash). Try a series of
+      // candidate URLs and use the first that 200s.
+      if (!url) {
+        var candidates = [];
+        // 1. Absolute via Pages convention: <origin>/<repo>/projects/<id>/semantic.css
+        if (typeof GH_REPO_NAME === 'string' && GH_REPO_NAME) {
+          candidates.push(location.origin + '/' + GH_REPO_NAME + '/projects/' + encodeURIComponent(id) + '/semantic.css');
+        }
+        // 2. Walk back from location.pathname to find a /projects/<id>/ segment.
+        var m = location.pathname.match(/^(.*?)\/projects\/[^/]+\//);
+        if (m) candidates.push(location.origin + m[1] + '/projects/' + encodeURIComponent(id) + '/semantic.css');
+        // 3. Old relative-path heuristics (work on file:// and the
+        //    canonical /demo/editor-v2/ Pages path).
+        var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
+        candidates.push(depth + '/projects/' + encodeURIComponent(id) + '/semantic.css');
+        for (var c = 0; c < candidates.length; c++) {
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', candidates[c], /* async */ false);
+            xhr.send(null);
+            if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
+              cssText = xhr.responseText;
+              break;
+            }
+          } catch (e) { /* try next */ }
+        }
+      } else {
+        try {
+          var xhr2 = new XMLHttpRequest();
+          xhr2.open('GET', url, /* async */ false);
+          xhr2.send(null);
+          if (xhr2.status === 0 || (xhr2.status >= 200 && xhr2.status < 300)) {
+            cssText = xhr2.responseText;
+          }
+        } catch (e) { /* swallow */ }
+      }
     }
     if (!cssText) return;
 
