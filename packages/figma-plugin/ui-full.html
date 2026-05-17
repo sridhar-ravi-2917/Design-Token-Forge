@@ -738,10 +738,15 @@
    ════════════════════════════════════════════════════════ */
 
 window.onerror = function(msg, src, line) {
+  var key = 'JS ERROR: ' + msg + ' (line ' + line + ')';
+  /* Dedupe — surfacing the same throw 9 times pushes the whole UI off-screen. */
+  var existing = document.querySelector('[data-err-key="' + CSS.escape(key) + '"]');
+  if (existing) return;
   var el = document.createElement('div');
   el.className = 'status-line err visible';
   el.style.cssText = 'display:block;margin:8px;';
-  el.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
+  el.setAttribute('data-err-key', key);
+  el.textContent = key;
   document.body.insertBefore(el, document.body.firstChild);
 };
 
@@ -1506,18 +1511,19 @@ function handleStaticDiff(current){
       var nameKey = nc.name + '|' + nv.name;
       newKeySet[nameKey] = true;
       var existing = currentByName[nameKey];
+      var nvVals = nv.valuesByMode || {};
       if (!existing){
         addedCount++;
         /* Show the first mode's value so the row is informative. */
         var sampleMode = newModes[0];
-        rows.push({ tag:'add', name: nv.name, from:'', to: fmtVal(sampleMode != null ? nv.valuesByMode[sampleMode] : '') });
+        rows.push({ tag:'add', name: nv.name, from:'', to: fmtVal(sampleMode != null ? nvVals[sampleMode] : '') });
         continue;
       }
       /* Compare by mode index: align newModes[i] ↔ existing.modes[i]. */
       var firstChange = null;
       var n = Math.min(newModes.length, existing.modes.length);
       for (var mi=0; mi<n; mi++){
-        var newRaw = nv.valuesByMode[newModes[mi]];
+        var newRaw = nvVals[newModes[mi]];
         var oldRaw = existing.vals[existing.modes[mi]];
         var newStr = fmtVal(newRaw);
         var oldStr = fmtVal(oldRaw);
@@ -1532,11 +1538,14 @@ function handleStaticDiff(current){
   /* Removals: in current, not in new */
   for (var rci=0; rci<current.collections.length; rci++){
     var rc = current.collections[rci];
+    var rcModes = rc.modes || [];
     for (var rvi=0; rvi<rc.variables.length; rvi++){
-      var rkey = rc.name + '|' + rc.variables[rvi].name;
+      var rv = rc.variables[rvi];
+      var rkey = rc.name + '|' + rv.name;
       if (!newKeySet[rkey]){
         removedCount++;
-        rows.push({ tag:'rem', name: rc.variables[rvi].name, from: fmtVal(rc.variables[rvi].valuesByMode[rc.modes[0]]), to:'' });
+        var rvVals = rv.valuesByMode || {};
+        rows.push({ tag:'rem', name: rv.name, from: fmtVal(rcModes[0] != null ? rvVals[rcModes[0]] : ''), to:'' });
       }
     }
   }
