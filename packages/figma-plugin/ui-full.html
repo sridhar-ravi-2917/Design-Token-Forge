@@ -1481,7 +1481,12 @@ function requestStaticDiff(){
 
 function fmtVal(raw){
   if (raw == null) return '';
-  if (typeof raw === 'object' && raw.alias) return '(alias)';
+  if (typeof raw === 'object'){
+    /* Both dump shape {alias:true,id} and tokens.json shape
+       {type:'VARIABLE_ALIAS',name} normalize to '(alias)' — we don't
+       resolve chains yet, so alias↔alias compares as equal. */
+    if (raw.alias || raw.type === 'VARIABLE_ALIAS') return raw.name ? '(→ ' + raw.name + ')' : '(alias)';
+  }
   return String(raw);
 }
 
@@ -1511,7 +1516,9 @@ function handleStaticDiff(current){
       var nameKey = nc.name + '|' + nv.name;
       newKeySet[nameKey] = true;
       var existing = currentByName[nameKey];
-      var nvVals = nv.valuesByMode || {};
+      /* tokens.json shape uses `values`, not `valuesByMode`. The Figma
+         dump (current) uses `valuesByMode`. Normalize both sides. */
+      var nvVals = nv.values || nv.valuesByMode || {};
       if (!existing){
         addedCount++;
         /* Show the first mode's value so the row is informative. */
@@ -1544,7 +1551,7 @@ function handleStaticDiff(current){
       var rkey = rc.name + '|' + rv.name;
       if (!newKeySet[rkey]){
         removedCount++;
-        var rvVals = rv.valuesByMode || {};
+        var rvVals = rv.values || rv.valuesByMode || {};
         rows.push({ tag:'rem', name: rv.name, from: fmtVal(rcModes[0] != null ? rvVals[rcModes[0]] : ''), to:'' });
       }
     }
