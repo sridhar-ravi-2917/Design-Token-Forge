@@ -90,14 +90,15 @@
       var bg = hex || 'transparent';
       var checked = step === selected;
       var label = step + (hex ? ' · ' + hex : '');
+      var txt = contrastText(hex);
       html += '<' + (interactive ? 'button' : 'span') + ' class="dtf-ladder-sw"'
         + (interactive ? ' type="button" role="radio" aria-checked="' + (checked ? 'true' : 'false') + '"' : '')
         + ' data-step="' + step + '"'
         + ' data-hex="' + (hex || '') + '"'
         + ' style="background:' + bg + '"'
-        + ' title="' + label + '"'
         + ' aria-label="' + label + '">'
-        +   '<span class="dtf-ladder-sw-step" style="color:' + contrastText(hex) + '">' + step + '</span>'
+        +   '<span class="dtf-ladder-sw-step" style="color:' + txt + '">' + step + '</span>'
+        +   '<span class="dtf-ladder-sw-tip">' + step + ' · ' + (hex || '—') + '</span>'
         + '</' + (interactive ? 'button' : 'span') + '>';
     }
     this.innerHTML = html;
