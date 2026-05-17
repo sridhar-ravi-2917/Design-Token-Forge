@@ -392,9 +392,15 @@ Each box is a discrete PR. Cross-link the PR when it ships.
   (cleanup skip),
   [code.js L3492-L3537](packages/figma-plugin/code.js#L3492-L3537)
   (append-into-existing-set instead of `combineAsVariants`)._
-- [ ] **M5 — Diff engine.** Pure-JS, well-tested, returns the §8
+- [x] **M5 — Diff engine.** Pure-JS, well-tested, returns the §8
   classified plan. Plug into a "Show plan" button in the Builder UI.
-  Still doesn't change Apply behaviour.
+  Still doesn't change Apply behaviour. _Shipped 2026-05-17 (read-only
+  preview, no plan modal). `check-gen-prereqs` now also returns
+  `currentSpecHashes[bp]` and `currentTokensHash`. UI compares to the
+  stored hashes and shows a brand-blue **rebuild** badge on rows that
+  would produce a different output if Generate were clicked now.
+  Tooltip shows the full fingerprint diff (e.g. `tokens deadbeef →
+  cafef00d`). Full SAFE/CAUTION/RISKY plan modal deferred to M6._
 - [ ] **M6 — Plan-then-apply Build.** Replace the existing Generate flow
   with the Phase A–D pipeline.
 - [ ] **M7 — Library-key tracking + publish-safe rebuild.** Handles §3.5

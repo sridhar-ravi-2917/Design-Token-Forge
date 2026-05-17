@@ -4442,12 +4442,40 @@ figma.ui.onmessage = async function(msg) {
       try {
         versions = JSON.parse(figma.root.getPluginData('dtf-component-versions') || '{}');
       } catch (e) { /* ignore */ }
+
+      /* M5 — compute current spec + tokens fingerprints so the UI can
+         decide "rebuild needed?" per component WITHOUT the designer
+         clicking Generate. Mirrors the math in
+         generateComponentFromBlueprint Step 9. */
+      var currentTokensHash = '';
+      try {
+        var _ids = [];
+        function _collect(m){ var ks = Object.keys(m||{}); for (var i=0;i<ks.length;i++){ var v=m[ks[i]]; if (v && v.id) _ids.push(v.id);} }
+        _collect(csMap); _collect(t2Map); _collect(t3Map);
+        _ids.sort();
+        currentTokensHash = dtfHash32(_ids.join('|'));
+      } catch (e) {}
+
+      var currentSpecHashes = {};
+      try {
+        var _bpKeys = Object.keys(COMPONENT_BLUEPRINTS);
+        for (var _bki = 0; _bki < _bpKeys.length; _bki++) {
+          var _bk = _bpKeys[_bki];
+          var _bp = COMPONENT_BLUEPRINTS[_bk];
+          if (!_bp) continue;
+          currentSpecHashes[_bk] = dtfHash32(dtfStableStringify(_bp));
+        }
+      } catch (e) {}
+
       figma.ui.postMessage({
         type: 'gen-prereqs',
         compSizeCount: Object.keys(csMap).length,
         t2Count: Object.keys(t2Map).length,
         t3Count: Object.keys(t3Map).length,
-        versions: versions
+        versions: versions,
+        currentTokensHash: currentTokensHash,
+        currentSpecHashes: currentSpecHashes,
+        pluginVersion: CODE_VERSION
       });
     } catch (e) {
       figma.ui.postMessage({ type: 'gen-prereqs', compSizeCount: 0, t2Count: 0, t3Count: 0, versions: {} });

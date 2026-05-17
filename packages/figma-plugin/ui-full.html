@@ -668,6 +668,22 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
+  .comp-pick .comp-meta .meta-pending {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(56, 95, 220, 0.10);
+    border: 1px solid var(--dtf-brand-bg);
+    color: var(--dtf-brand-bg);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .comp-pick label:has(.comp-meta.is-pending) {
+    background: rgba(56, 95, 220, 0.04);
+  }
 
   /* Prereqs: only visible when not met. Tiny disclosure. */
   .prereqs-bar {
@@ -2920,7 +2936,11 @@ function updateGenPrereqs(data){
      Falls back gracefully if only legacy fields are present.
      See docs/architecture/component-builder/
      component-ledger-and-safe-rebuild.md §10/M3. */
-  renderBuilderMeta(data.versions || {});
+  renderBuilderMeta(
+    data.versions || {},
+    data.currentSpecHashes || {},
+    data.currentTokensHash || ''
+  );
 }
 
 function fmtBuiltAgo(iso){
@@ -2944,7 +2964,9 @@ function fmtBuiltAgo(iso){
   } catch (e) { return ''; }
 }
 
-function renderBuilderMeta(versions){
+function renderBuilderMeta(versions, currentSpecHashes, currentTokensHash){
+  currentSpecHashes = currentSpecHashes || {};
+  currentTokensHash = currentTokensHash || '';
   var metas = document.querySelectorAll('.comp-pick .comp-meta');
   for (var i = 0; i < metas.length; i++){
     var el  = metas[i];
@@ -3000,19 +3022,33 @@ function renderBuilderMeta(versions){
       ? ('Changed: ' + changes.join(' + '))
       : '';
 
+    /* M5 — "Rebuild needed?" — compare LIVE current hashes against
+       what's stored. Set if either spec or tokens have moved since the
+       last successful Build. */
+    var pending = [];
+    var curSpec   = currentSpecHashes[key] || '';
+    if (curSpec && v.specHash   && curSpec !== v.specHash)     pending.push('spec');
+    if (currentTokensHash && v.tokensHash && currentTokensHash !== v.tokensHash) pending.push('tokens');
+    var needsRebuild = pending.length > 0;
+
     /* Tooltip = full fingerprint, copyable on hover. */
     var tip = [
-      v.specHash    ? ('spec '    + v.specHash)    : '',
-      v.tokensHash  ? ('tokens '  + v.tokensHash)  : '',
+      v.specHash    ? ('spec '    + v.specHash    + (curSpec && curSpec !== v.specHash ? ' → ' + curSpec : '')) : '',
+      v.tokensHash  ? ('tokens '  + v.tokensHash  + (currentTokensHash && currentTokensHash !== v.tokensHash ? ' → ' + currentTokensHash : '')) : '',
       v.pluginVersion ? ('plugin ' + v.pluginVersion) : '',
       ranProject    ? ('project ' + ranProject)    : ''
     ].filter(Boolean).join(' · ');
 
+    var pendingBadge = needsRebuild
+      ? '<span class="meta-pending" title="' + esc(pending.join(' + ')) + ' changed since last build">rebuild</span>'
+      : '';
+
     el.hidden = false;
     el.classList.toggle('is-drift', isDrift);
+    el.classList.toggle('is-pending', needsRebuild);
     if (tip) el.setAttribute('title', tip); else el.removeAttribute('title');
     el.innerHTML =
-      '<span class="meta-time">' + esc(line1) + drift + '</span>' +
+      '<span class="meta-time">' + esc(line1) + drift + pendingBadge + '</span>' +
       (line2 ? '<span class="meta-count">' + esc(line2) + '</span>' : '') +
       (line3 ? '<span class="meta-change">' + esc(line3) + '</span>' : '');
   }
