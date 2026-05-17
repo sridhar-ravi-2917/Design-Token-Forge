@@ -1501,6 +1501,7 @@ function render(){
       }
       setSyncBadge('!');
       if (statusBar.classList.contains('err') && /fetch tokens/.test(statusBar.textContent)){ setStatus('', ''); }
+      applyFooterForActiveTab();
       return;
     }
     if (changeGroupsEl) changeGroupsEl.hidden = false;
