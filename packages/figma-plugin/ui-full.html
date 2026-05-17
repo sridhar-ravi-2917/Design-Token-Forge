@@ -790,6 +790,9 @@ var lastSeenHash = '', hashStableCount = 0;
 var HASH_SETTLE_POLLS = 2;
 var deploySettling = false;
 var documentProject = '', pendingSwitchProject = '';
+var userSwitchedProject = false;   /* true after user picks a new project in the dropdown
+                                      so the next scan-result does NOT auto-revert to the
+                                      file's bound project. */
 var projectList = [], projectsFetched = false;
 var fetchRetries = 0, MAX_FETCH_RETRIES = 2;
 var syncVerifyAttempts = 0, MAX_SYNC_VERIFY = 5;
@@ -1430,14 +1433,26 @@ window.onmessage = function(event){
       lastSyncedVarCount = msg.savedVarCount || 0;
     }
     if (msg.savedProject){
+      /* Always record what the FILE is bound to — needed for mismatch detection. */
       documentProject = msg.savedProject;
-      CURRENT_PROJECT = msg.savedProject;
-      storageSet('dtf-project-id', CURRENT_PROJECT);
-      selectProjectInDropdown(CURRENT_PROJECT);
-      if (pollTimer) clearInterval(pollTimer);
-      connected = false; tokenData = null; serverStatus = null;
-      lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
-      startPolling();
+      if (userSwitchedProject){
+        /* User deliberately picked a different project in the dropdown.
+           Do NOT revert their choice. Leave CURRENT_PROJECT alone so the
+           next poll loads the new project's tokens; the mismatch warning
+           will fire at sync time (startSync) when documentProject !==
+           CURRENT_PROJECT. */
+        userSwitchedProject = false;
+      } else {
+        /* Initial load (or restart): adopt the file's bound project so the
+           plugin re-opens to the same project the file was last synced to. */
+        CURRENT_PROJECT = msg.savedProject;
+        storageSet('dtf-project-id', CURRENT_PROJECT);
+        selectProjectInDropdown(CURRENT_PROJECT);
+        if (pollTimer) clearInterval(pollTimer);
+        connected = false; tokenData = null; serverStatus = null;
+        lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
+        startPolling();
+      }
     }
     if (msg.found){
       dbgVars.textContent = msg.varCount;
@@ -1662,15 +1677,25 @@ function fetchProjects(){
     });
 }
 projectSelect.addEventListener('change', function(){
-  CURRENT_PROJECT = projectSelect.value;
+  var newProject = projectSelect.value;
+  if (!newProject || newProject === CURRENT_PROJECT) return;
+  CURRENT_PROJECT = newProject;
   storageSet('dtf-project-id', CURRENT_PROJECT);
   pendingSwitchProject = '';
-  connected = false; figmaHash = ''; tokenData = null; serverStatus = null;
+  userSwitchedProject = true;
+  /* Wipe the in-memory sync marker so the new project's tokens show up
+     as 'changes pending' (or 'first run' if file has no vars). The file's
+     bound project stays in documentProject so mismatch detection works
+     when the user hits Update. */
+  figmaHash = '';
+  connected = false; tokenData = null; serverStatus = null;
   lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
   if (pollTimer) clearInterval(pollTimer);
+  /* Re-scan to refresh documentProject + figmaHash baseline. */
   parent.postMessage({ pluginMessage:{ type:'scan' } }, '*');
   startPolling();
-  log('Switched to project: ' + CURRENT_PROJECT);
+  log('Switched to project: ' + CURRENT_PROJECT + ' (file is bound to ' + (documentProject || 'none') + ')');
+  render();
 });
 
 /* ════════════════════════════════════════════════════
