@@ -776,10 +776,25 @@
       ['fill','content','container'].forEach(function (lever) {
         if (t[lever] !== b[lever]) diffs.push({ mode: mode, lever: lever, fromStep: b[lever], toStep: t[lever] });
       });
-      if (t.borderStep)      diffs.push({ mode: mode, lever: 'border',      fromStep: 'auto', toStep: t.borderStep });
-      if (t.separatorStep)   diffs.push({ mode: mode, lever: 'separator',   fromStep: 'auto', toStep: t.separatorStep });
-      if (t.onComponent)     diffs.push({ mode: mode, lever: 'onComponent', fromStep: 'auto', toStep: t.onComponent });
-      if (t.onContainerStep) diffs.push({ mode: mode, lever: 'onContainer', fromStep: 'auto', toStep: t.onContainerStep });
+      // Optional levers: only count as a diff if they DIFFER from
+      // the baseline. The previous version counted any set value as
+      // a change, which was harmless when these were always null at
+      // boot but broke once hydrators (seedT1FromConfig /
+      // seedT1FromSemanticCSS) started pinning them from the
+      // published file \u2014 producing 8 phantom diffs per role
+      // (4 levers x 2 modes) that disagreed with the topbar.
+      [['borderStep','border'], ['separatorStep','separator'],
+       ['onComponent','onComponent'], ['onContainerStep','onContainer']
+      ].forEach(function (pair) {
+        var key = pair[0], label = pair[1];
+        var tv = t[key] || null;
+        var bv = b[key] || null;
+        if (tv !== bv) {
+          diffs.push({ mode: mode, lever: label,
+                       fromStep: bv || 'auto',
+                       toStep:   tv || 'auto' });
+        }
+      });
     });
     return diffs;
   }
