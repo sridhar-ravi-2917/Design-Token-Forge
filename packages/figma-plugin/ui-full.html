@@ -267,6 +267,9 @@
   /* Builder footer stacks: CTA on top, reassurance footnote below. */
   #footerBuilder { flex-direction: column; align-items: stretch; gap: 6px; }
   #footerBuilder .btn { white-space: nowrap; }
+  /* While a deploy/sync/build is in flight, hide the Builder footer
+     so the busy overlay reads as the only actionable surface. */
+  body[data-builder-busy="1"] #footerBuilder { display: none; }
 
   /* ── Hero (idle / pending / mismatch / undo / setup) ── */
   .hero {
@@ -1215,6 +1218,11 @@ var builderBusySub   = document.getElementById('builderBusySub');
 function setBuilderBusy(on, subText, titleText){
   if (!builderBusy) return;
   builderBusy.setAttribute('aria-hidden', on ? 'false' : 'true');
+  /* Body flag drives footer visibility via CSS — the Build/Rebuild
+     CTA is meaningless while a deploy or sync is in flight, and
+     leaving it visible behind the overlay invites accidental clicks
+     (the overlay is translucent). */
+  document.body.setAttribute('data-builder-busy', on ? '1' : '0');
   if (on){
     if (titleText && builderBusyTitle) builderBusyTitle.textContent = titleText;
     if (subText   && builderBusySub)   builderBusySub.textContent   = subText;
