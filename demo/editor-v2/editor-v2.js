@@ -4276,6 +4276,7 @@
       // lag by ~1 min).
       try {
         localStorage.setItem('dtf-project-primitives-' + projId, files['primitives.css'] || '');
+        localStorage.setItem('dtf-project-semantic-' + projId, files['semantic.css'] || '');
         localStorage.setItem('dtf-project-config-' + projId, newCfgText);
       } catch (e) { /* non-fatal */ }
       // Fire Pages rebuild — best-effort like normal Publish.
@@ -4593,6 +4594,7 @@
     // can sync localStorage stash (read by injectProjectPrimitivesSync
     // on next page load).
     var publishedPrimCSS = '';
+    var publishedSemCSS  = '';
     var publishedCfgJSON = '';
 
     ensureGhCredentials().then(function (cred) {
@@ -4605,6 +4607,7 @@
       var surfCSS = buildSurfacesCSS(meta);
       var cfgJSON = buildConfigJSON(prevCfg, meta);
       publishedPrimCSS = primCSS;
+      publishedSemCSS  = semCSS;
       publishedCfgJSON = cfgJSON;
       var versionSnapshot = JSON.stringify({
         meta: meta,
@@ -4657,6 +4660,7 @@
       // the OLD key color even though publish succeeded.
       try {
         if (publishedPrimCSS) localStorage.setItem('dtf-project-primitives-' + projId, publishedPrimCSS);
+        if (publishedSemCSS)  localStorage.setItem('dtf-project-semantic-' + projId, publishedSemCSS);
         if (publishedCfgJSON) localStorage.setItem('dtf-project-config-' + projId, publishedCfgJSON);
       } catch (e) { /* quota or disabled storage — non-fatal */ }
       // ── Step 2: notify Figma (best-effort).
@@ -4863,6 +4867,11 @@
        State.t1 always starts at the in-code defaults and the editor
        silently disagrees with the on-disk semantic.css. */
     seedT1FromConfig();
+    /* Last-resort: read the published semantic.css directly and
+       reverse-match its hex values to ladder steps. This makes the
+       file the source of truth, so editor and production stay in
+       lockstep even when config.t1Picks is missing or stale. */
+    seedT1FromSemanticCSS();
 
     bindAddPaletteDialog();
     // Default: show CSS names ON. Overridden below if UI state has been saved.
@@ -5229,6 +5238,148 @@
         if (pick.onComponent)                                       dest.onComponent     = pick.onComponent;
         if (pick.onContainerStep && STEP_OK[pick.onContainerStep]) dest.onContainerStep = pick.onContainerStep;
       });
+    });
+  }
+
+  /* Last-resort hydrator: parse the published semantic.css and
+     reverse-engineer T1 lever picks by matching its hex values back
+     against each role's ladder. This is the "self-healing" path \u2014
+     it makes the published file the source of truth, so the editor
+     can never disagree with what users actually see in production,
+     even when config.t1Picks is missing (older projects pre-dating
+     the writer in buildConfigJSON) or the config.json has been
+     deleted / hand-edited.
+
+     Runs AFTER seedT1FromConfig, so config picks (when present) win
+     \u2014 config can express things the file can't, like "user
+     explicitly chose default" for border/separator. Only fills in
+     gaps the config didn't cover.
+
+     Reads:
+       --<role>-component-bg-default   -> t1.fill
+       --<role>-content-default        -> t1.content
+       --<role>-container-bg           -> t1.container
+       --<role>-component-outline-default -> t1.borderStep (only if
+           it differs from the auto-derived value, else left null)
+       --<role>-component-separator    -> t1.separatorStep (same
+           auto-derived guard as borderStep)
+       --<role>-on-component           -> t1.onComponent
+           (#FFFFFF -> 'white', #0A0A0A -> 'black', else step match)
+       --<role>-on-container           -> t1.onContainerStep
+   */
+  function seedT1FromSemanticCSS() {
+    var id = getActiveProjectId();
+    if (!id) return;
+    var cssText = null;
+    try { cssText = localStorage.getItem('dtf-project-semantic-' + id) || null; }
+    catch (e) { /* ignore */ }
+    if (!cssText) {
+      var depth = (location.pathname.indexOf('/demo/') !== -1) ? '../..' : '.';
+      var url = depth + '/projects/' + encodeURIComponent(id) + '/semantic.css';
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, /* async */ false);
+        xhr.send(null);
+        if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
+          cssText = xhr.responseText;
+        }
+      } catch (e) { /* fall through */ }
+    }
+    if (!cssText) return;
+
+    // Split into mode blocks. :root is light; [data-theme="dark"] is dark.
+    // semantic.css is editor-generated so the structure is stable.
+    var lightBlock = '';
+    var darkBlock  = '';
+    var rootMatch = cssText.match(/:root\s*\{([\s\S]*?)\}/);
+    if (rootMatch) lightBlock = rootMatch[1];
+    var darkMatch = cssText.match(/\[data-theme="dark"\]\s*\{([\s\S]*?)\}/);
+    if (darkMatch) darkBlock = darkMatch[1];
+
+    function parseBlock(block) {
+      var out = {};
+      if (!block) return out;
+      var rx = /--([a-z0-9-]+):\s*(#[0-9A-Fa-f]{3,8})\s*;/g;
+      var m;
+      while ((m = rx.exec(block))) {
+        out['--' + m[1]] = m[2].toUpperCase();
+      }
+      return out;
+    }
+    var blocks = { light: parseBlock(lightBlock), dark: parseBlock(darkBlock) };
+
+    // Build a quick reverse-lookup: hex -> step, per role+mode.
+    // Hex collisions inside a single ladder are extremely rare
+    // (ladders are tonal sweeps) but if one happens, first match wins
+    // \u2014 which is fine because both steps paint identically.
+    function findStep(roleId, mode, hex) {
+      if (!hex) return null;
+      var ladder = ladderFor(roleId);
+      var H = String(hex).toUpperCase();
+      var names = Object.keys(ladder);
+      for (var i = 0; i < names.length; i++) {
+        if (String(ladder[names[i]]).toUpperCase() === H) return names[i];
+      }
+      return null;
+    }
+
+    ['light','dark'].forEach(function (mode) {
+      var vars = blocks[mode];
+      if (!vars || !Object.keys(vars).length) return;
+      var savedMode = State.editingMode;
+      State.editingMode = mode; // ladderFor/resolveBorderStep read this
+      ROLES.forEach(function (r) {
+        var dest = State.t1[mode][r.id];
+        if (!dest) return;
+        var pref = '--' + r.id + '-';
+        var fillHex   = vars[pref + 'component-bg-default'];
+        var contentHex= vars[pref + 'content-default'];
+        var contHex   = vars[pref + 'container-bg'];
+        var borderHex = vars[pref + 'component-outline-default'];
+        var sepHex    = vars[pref + 'component-separator'];
+        var onCompHex = vars[pref + 'on-component'];
+        var onContHex = vars[pref + 'on-container'];
+
+        // Only fill values the config didn't already supply. A pick
+        // counts as "supplied" if it differs from the in-code default
+        // OR if it matches the published file (so both agree).
+        // Simplest approach: always overwrite from the file when a
+        // hex match exists. Config ran first, so for projects WITH
+        // cfg.t1Picks the values agree; this overwrite is a no-op.
+        // For projects WITHOUT cfg.t1Picks the file wins, which is
+        // exactly what we want.
+        var fillStep = findStep(r.id, mode, fillHex);
+        if (fillStep) dest.fill = fillStep;
+        var contentStep = findStep(r.id, mode, contentHex);
+        if (contentStep) dest.content = contentStep;
+        var contStep = findStep(r.id, mode, contHex);
+        if (contStep) dest.container = contStep;
+
+        // on-component: canonical 'white'/'black' shortcuts first,
+        // else fall through to a ladder step match.
+        if (onCompHex === '#FFFFFF') dest.onComponent = 'white';
+        else if (onCompHex === '#0A0A0A') dest.onComponent = 'black';
+        else {
+          var ocStep = findStep(r.id, mode, onCompHex);
+          if (ocStep) dest.onComponent = ocStep;
+        }
+
+        var ocnStep = findStep(r.id, mode, onContHex);
+        if (ocnStep) dest.onContainerStep = ocnStep;
+
+        // borderStep / separatorStep: if the published value equals
+        // what resolveBorder/Separator would auto-derive from the
+        // (now updated) container, leave the override null so future
+        // container changes still cascade. Only pin when the file
+        // really diverges from the auto value.
+        var autoBorder = stepRelToward(dest.container, 6, mode);
+        var borderStep = findStep(r.id, mode, borderHex);
+        if (borderStep && borderStep !== autoBorder) dest.borderStep = borderStep;
+        var autoSep = stepRelToward(dest.container, 2, mode);
+        var sepStep = findStep(r.id, mode, sepHex);
+        if (sepStep && sepStep !== autoSep) dest.separatorStep = sepStep;
+      });
+      State.editingMode = savedMode;
     });
   }
 
@@ -5745,6 +5896,7 @@
         try { localStorage.removeItem(DRAFT_KEY + '--' + id); } catch (e) {}
         try { localStorage.removeItem('dtf-project-config-' + id); } catch (e) {}
         try { localStorage.removeItem('dtf-project-primitives-' + id); } catch (e) {}
+        try { localStorage.removeItem('dtf-project-semantic-' + id); } catch (e) {}
         try { localStorage.removeItem('dtf-color-config-' + id); } catch (e) {}
         var wasActive = (getActiveProjectId() === id);
         updateBusy('Deleted \u201C' + name + '\u201D', wasActive ? 'Switching to next project\u2026' : 'Updating list\u2026');
