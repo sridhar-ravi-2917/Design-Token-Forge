@@ -93,6 +93,7 @@
     var pageLabel = this._labelFor(page);
     var noTheme = this.hasAttribute('no-theme-toggle');
     var noNew = this.hasAttribute('no-new-project');
+    var noAcct = this.hasAttribute('no-account');
 
     /* dropdown menu (page switcher) */
     var ddHtml = '';
@@ -129,6 +130,44 @@
       '<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" aria-pressed="false">'
         + ICON_SUN + ICON_MOON +
       '</button>';
+
+    /* Account menu — username + Sign out. Visible whenever a PAT
+       session is active (auth-gate stored dtf-gh-user on verify).
+       Anchored to the right of the topbar; opens a small menu
+       with the GitHub username and a Sign out action that calls
+       window.DtfAuthLogout (auth-gate.js) to clear credentials
+       and reload. Hidden via `no-account` attribute on pages that
+       don't want it (none currently). */
+    var ghUser = '';
+    try { ghUser = localStorage.getItem('dtf-gh-user') || ''; } catch (e) {}
+    var acctHtml = '';
+    if (!noAcct && ghUser) {
+      var initial = (ghUser.charAt(0) || '?').toUpperCase();
+      acctHtml = ''
+        + '<div class="nav-acct">'
+        +   '<button class="nav-acct-btn" type="button" '
+        +     'aria-haspopup="true" aria-expanded="false" '
+        +     'aria-label="Account: ' + esc(ghUser) + '" '
+        +     'title="Signed in as ' + esc(ghUser) + '">'
+        +     '<span class="nav-acct-avatar" aria-hidden="true">' + esc(initial) + '</span>'
+        +   '</button>'
+        +   '<div class="nav-acct-menu" role="menu">'
+        +     '<div class="nav-acct-head">'
+        +       '<div class="nav-acct-name">' + esc(ghUser) + '</div>'
+        +       '<div class="nav-acct-meta">GitHub PAT session</div>'
+        +     '</div>'
+        +     '<div class="dd-sep" role="separator"></div>'
+        +     '<button class="nav-acct-signout" type="button" role="menuitem">'
+        +       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        +         '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>'
+        +         '<polyline points="16 17 21 12 16 7"/>'
+        +         '<line x1="21" y1="12" x2="9" y2="12"/>'
+        +       '</svg>'
+        +       'Sign out'
+        +     '</button>'
+        +   '</div>'
+        + '</div>';
+    }
     var html = ''
       + '<nav class="explorer-nav dtf-topbar" aria-label="Site navigation">'
       +   '<div class="nav-crumb">'
@@ -148,6 +187,7 @@
       +     '<span class="nav-divider" aria-hidden="true"></span>'
       +     newHtml
       +     themeHtml
+      +     acctHtml
       +   '</div>'
       + '</nav>';
 
@@ -173,6 +213,56 @@
     document.addEventListener('keydown', function(e){
       if (e.key === 'Escape' && dd.hasAttribute('data-open')) { close(); btn.focus(); }
     });
+
+    /* Account menu wiring (only present when ghUser is set) */
+    var acctBtn = this.querySelector('.nav-acct-btn');
+    var acctMenu = this.querySelector('.nav-acct-menu');
+    var signOut = this.querySelector('.nav-acct-signout');
+    if (acctBtn && acctMenu) {
+      function closeAcct(){
+        acctMenu.removeAttribute('data-open');
+        acctBtn.setAttribute('aria-expanded','false');
+      }
+      acctBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (acctMenu.hasAttribute('data-open')) closeAcct();
+        else {
+          acctMenu.setAttribute('data-open','');
+          acctBtn.setAttribute('aria-expanded','true');
+        }
+      });
+      document.addEventListener('click', function (e) {
+        if (!acctBtn.contains(e.target) && !acctMenu.contains(e.target)) closeAcct();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && acctMenu.hasAttribute('data-open')) {
+          closeAcct();
+          acctBtn.focus();
+        }
+      });
+      if (signOut) {
+        signOut.addEventListener('click', function () {
+          var ok = window.confirm(
+            'Sign out of Design Token Forge?\n\n' +
+            'Your GitHub PAT will be cleared from this browser. ' +
+            'You will need to paste it again to access projects.'
+          );
+          if (!ok) return;
+          if (typeof window.DtfAuthLogout === 'function') {
+            window.DtfAuthLogout();
+          } else {
+            /* Fallback if auth-gate.js isn't loaded on this page */
+            try {
+              localStorage.removeItem('dtf-gh-pat');
+              localStorage.removeItem('dtf-gh-user');
+              sessionStorage.removeItem('dtf-auth-ok');
+              sessionStorage.removeItem('dtf-admin-auth');
+            } catch (_e) {}
+            location.reload();
+          }
+        });
+      }
+    }
   };
 
   DtfTopbar.prototype._labelFor = function (page) {

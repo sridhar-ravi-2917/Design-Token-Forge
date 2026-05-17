@@ -105,6 +105,41 @@ dtf-topbar{display:block}
 /* Hide divider when no slotted actions sit to its left */
 .dtf-topbar-actions:empty + .nav-divider{display:none}
 
+/* ── Account menu (PAT session) ────────────────────────── */
+.nav-acct{position:relative;display:inline-flex;align-items:center}
+.nav-acct-btn{
+  width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:50%;border:1px solid var(--demo-border);background:var(--demo-surface);
+  color:var(--demo-fg-strong);cursor:pointer;transition:all 120ms ease;font-family:inherit;
+}
+.nav-acct-btn:hover{background:var(--demo-surface-alt);border-color:var(--demo-fg-faint)}
+.nav-acct-btn:focus-visible{outline:2px solid var(--brand-component-bg-default,#286CE5);outline-offset:2px}
+.nav-acct-avatar{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg, var(--brand-component-bg-default,#286CE5), var(--info-component-bg-default,#0EA5E9));
+  color:#fff;font-size:11px;font-weight:700;line-height:1;letter-spacing:0;
+}
+.nav-acct-menu{
+  position:absolute;top:calc(100% + 6px);right:0;
+  min-width:220px;background:var(--demo-surface);border:1px solid var(--demo-border);
+  border-radius:var(--radius-md,6px);box-shadow:0 8px 24px rgba(0,0,0,.12);
+  padding:6px;z-index:1000;display:none;
+}
+.nav-acct-menu[data-open]{display:block}
+.nav-acct-head{padding:10px 12px 6px}
+.nav-acct-name{font-size:13px;font-weight:600;color:var(--demo-fg-strong);line-height:1.2}
+.nav-acct-meta{font-size:11px;color:var(--demo-fg-faint);margin-top:2px}
+.nav-acct-signout{
+  width:100%;display:flex;align-items:center;gap:8px;
+  padding:8px 12px;background:transparent;border:none;border-radius:var(--radius-sm,4px);
+  color:var(--demo-fg);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;
+  text-align:left;transition:background 120ms ease,color 120ms ease;
+}
+.nav-acct-signout:hover{background:#FEE2E2;color:#991B1B}
+html[data-theme="dark"] .nav-acct-signout:hover{background:rgba(220,38,38,.15);color:#FCA5A5}
+.nav-acct-signout svg{width:14px;height:14px;flex-shrink:0}
+
 /* ── Header ────────────────────────────────────────────── */
 .demo-header{padding:24px 32px;border-bottom:1px solid var(--demo-border);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .demo-header h1{font-size:var(--font-size-20,20px);font-weight:700;color:var(--demo-fg-strong)}
