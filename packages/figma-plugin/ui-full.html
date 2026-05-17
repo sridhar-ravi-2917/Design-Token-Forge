@@ -310,6 +310,20 @@
   }
   .btn-primary:hover { background: var(--dtf-brand-bg-hover); }
   .btn-primary:disabled { background: var(--dtf-surface-deep); color: var(--dtf-fg-faint); }
+  /* Rebind intent: same button, different signal. Replacing 600+
+     variable bindings in a file is not a "save" action — it overwrites
+     work that was bound to the previous project. Paint the CTA in the
+     warning role so the user reads it as "this changes a lot", not
+     "this is the happy path". Still primary-weight (filled, not ghost)
+     because it IS the right action when the user has switched projects
+     deliberately. */
+  .btn-primary[data-intent="rebind"] {
+    background: var(--dtf-warning-content);
+    color: var(--dtf-fg-on-brand);
+  }
+  .btn-primary[data-intent="rebind"]:hover {
+    background: color-mix(in srgb, var(--dtf-warning-content) 88%, #000);
+  }
   .btn-ghost {
     background: var(--dtf-surface-alt); color: var(--dtf-fg);
     border-color: var(--dtf-border-strong);
@@ -1067,7 +1081,7 @@ var openGroups = new Set();      /* expanded group keys */
 /* Build stamp — bump on every UI-affecting change so you can confirm
    the Figma plugin sandbox isn't serving a cached old copy. Shown in
    the empty-state footer + logged once to the plugin console. */
-var BUILD_VERSION = '2026-05-17-p8';
+var BUILD_VERSION = '2026-05-17-p9';
 function log(msg){ console.log('[DTF] ' + msg); }
 log('plugin UI build ' + BUILD_VERSION);
 
@@ -1134,6 +1148,12 @@ function render(){
   }
   if (mismatchSync)    mismatchSync.hidden    = !isMismatch;
   if (mismatchBuilder) mismatchBuilder.hidden = !isMismatch;
+  /* Repaint footer CTA in warning role when this is a rebind, so the
+     button doesn't read as a benign "Save" action. Cleared otherwise. */
+  if (syncBtn){
+    if (isMismatch) syncBtn.setAttribute('data-intent', 'rebind');
+    else            syncBtn.removeAttribute('data-intent');
+  }
 
   /* Undo detected */
   if (undoDetected){
