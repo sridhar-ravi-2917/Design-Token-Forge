@@ -1275,9 +1275,14 @@ async function generateComponentFromBlueprint(blueprint) {
      set instead of delete+create. Default OFF for back-compat.
      See docs/architecture/component-builder/
      component-ledger-and-safe-rebuild.md §10/M4. */
-  var SAFE_REBUILD = false;
+  /* Safe rebuild is the safe default (was opt-in via flag). The legacy
+     delete+recreate path is still reachable for diagnostic use by
+     explicitly setting `dtf-safe-rebuild` = '0'. */
+  var SAFE_REBUILD = true;
   try {
-    SAFE_REBUILD = figma.root.getPluginData('dtf-safe-rebuild') === '1';
+    var _srRaw = figma.root.getPluginData('dtf-safe-rebuild');
+    if (_srRaw === '0') SAFE_REBUILD = false;
+    /* '', '1' or unset all mean ON — the new default. */
   } catch (e) { /* ignore */ }
   log('Gen mode: ' + (SAFE_REBUILD ? 'SAFE_REBUILD (preserve set ids)' : 'legacy (full recreate)'));
 
@@ -4000,10 +4005,14 @@ async function generateComponentFromBlueprint(blueprint) {
       motion:  (stats.reactions > 0)
     },
     /* M5 fingerprints */
-    specHash:       specHash,
-    tokensHash:     tokensHash,
-    prevSpecHash:   _priorEntry.specHash   || '',
-    prevTokensHash: _priorEntry.tokensHash || '',
+    specHash:         specHash,         /* legacy alias = structureHash */
+    structureHash:    structureHash,
+    prototypeHash:    prototypeHash,
+    tokensHash:       tokensHash,
+    prevSpecHash:     _priorEntry.specHash      || '',
+    prevStructureHash:_priorEntry.structureHash || _priorEntry.specHash || '',
+    prevPrototypeHash:_priorEntry.prototypeHash || '',
+    prevTokensHash:   _priorEntry.tokensHash    || '',
     priorSnapshot:  priorSnapshot   /* W1 — what we just invalidated */
   };
   figma.root.setPluginData('dtf-component-versions', JSON.stringify(existingVersions));
@@ -4457,13 +4466,25 @@ figma.ui.onmessage = async function(msg) {
       } catch (e) {}
 
       var currentSpecHashes = {};
+      var currentStructureHashes = {};
+      var currentPrototypeHashes = {};
       try {
         var _bpKeys = Object.keys(COMPONENT_BLUEPRINTS);
         for (var _bki = 0; _bki < _bpKeys.length; _bki++) {
           var _bk = _bpKeys[_bki];
           var _bp = COMPONENT_BLUEPRINTS[_bk];
           if (!_bp) continue;
-          currentSpecHashes[_bk] = dtfHash32(dtfStableStringify(_bp));
+          var _sh = dtfHash32(dtfStableStringify(_bp));
+          currentStructureHashes[_bk] = _sh;
+          currentSpecHashes[_bk] = _sh;  /* legacy alias */
+          /* Prototype: keyed on plugin version + BP's state list.
+             A change in either re-derives the hash and lights the
+             prototype pill. Reactions are baked into plugin code, not
+             BP data, so CODE_VERSION is the right signal here. */
+          var _ps = 'proto:' + CODE_VERSION + ':' +
+                    dtfStableStringify(_bp.states || []) + ':' +
+                    'wired';
+          currentPrototypeHashes[_bk] = dtfHash32(_ps);
         }
       } catch (e) {}
 
@@ -4473,8 +4494,11 @@ figma.ui.onmessage = async function(msg) {
         t2Count: Object.keys(t2Map).length,
         t3Count: Object.keys(t3Map).length,
         versions: versions,
-        currentTokensHash: currentTokensHash,
-        currentSpecHashes: currentSpecHashes,
+        currentTokensHash:     currentTokensHash,
+        currentSpecHashes:     currentSpecHashes,       /* legacy alias */
+        currentStructureHashes:currentStructureHashes,
+        currentPrototypeHashes:currentPrototypeHashes,
+        currentProject:        (function(){ try { return figma.root.getPluginData('dtf-project') || ''; } catch(e){ return ''; } })(),
         pluginVersion: CODE_VERSION
       });
     } catch (e) {

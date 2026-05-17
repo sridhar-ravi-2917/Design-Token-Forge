@@ -611,10 +611,10 @@
   #dtfResizeHandle:hover { color: var(--dtf-fg-subtle); }
 
   /* ── Builder tab ─────────────────────────────────── */
-  .builder-intro {
-    font-size: var(--dtf-fs-12); color: var(--dtf-fg-subtle);
-    line-height: 1.5; margin-bottom: 16px;
-  }
+  /* V2 layout (compressed). Each row = [checkbox] [name + pills + when]
+     and a one-line ACTION below. No more right-aligned meta block, no
+     more explainer cards. See demo/mock-builder.html scenarios 0–7. */
+
   .comp-pick {
     display: flex; flex-direction: column; gap: 0;
     margin-bottom: 12px;
@@ -623,67 +623,66 @@
     overflow: hidden;
   }
   .comp-pick label {
-    display: flex; align-items: center; gap: 8px;
-    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    padding: 11px 12px;
+    align-items: start;
     font-size: var(--dtf-fs-12); color: var(--dtf-fg-strong);
     cursor: pointer;
     border-top: 1px solid var(--dtf-border);
   }
   .comp-pick label:first-child { border-top: 0; }
   .comp-pick label:hover { background: var(--dtf-surface-alt); }
-  .comp-pick input[type="checkbox"] { accent-color: var(--dtf-brand-bg); }
-  .comp-pick .comp-name { flex: 1 1 auto; }
-  .comp-pick .comp-meta {
-    flex: 0 0 auto;
-    font-size: var(--dtf-fs-10);
-    color: var(--dtf-fg-subtle);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    line-height: 1.3;
-    white-space: nowrap;
-  }
-  .comp-pick .comp-meta.is-drift { color: var(--dtf-warning-content); }
-  .comp-pick .comp-meta .meta-time { display: block; }
-  .comp-pick .comp-meta .meta-count { display: block; opacity: 0.75; }
-  .comp-pick .comp-meta .meta-change {
-    display: block;
+  .comp-pick input[type="checkbox"] {
+    accent-color: var(--dtf-brand-bg);
     margin-top: 2px;
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--dtf-brand-bg);
-    opacity: 0.85;
   }
-  .comp-pick .comp-meta .meta-drift {
+  /* Tint only the HIGHEST-severity row (drift > structure > proto > bindings) */
+  .comp-pick label[data-tint="drift"]     { background: rgba(214,29,32,0.04); }
+  .comp-pick label[data-tint="structure"] { background: rgba(166,98,8,0.03); }
+  .comp-pick label[data-tint="proto"]     { background: rgba(91,33,182,0.03); }
+  .comp-pick label[data-tint="bindings"]  { background: rgba(51,102,240,0.03); }
+
+  .comp-head {
+    display: flex; align-items: baseline; gap: 6px;
+    flex-wrap: wrap;
+  }
+  .comp-pick .comp-name {
+    font-weight: 600; color: var(--dtf-fg-strong);
+    font-size: var(--dtf-fs-13);
+  }
+  .comp-when {
+    color: var(--dtf-fg-faint);
+    font-size: var(--dtf-fs-11);
+    font-variant-numeric: tabular-nums;
+  }
+  .comp-action {
+    color: var(--dtf-fg);
+    font-size: var(--dtf-fs-11);
+    margin-top: 4px;
+    line-height: 1.45;
+  }
+  .comp-action.idle { color: var(--dtf-fg-faint); font-style: italic; }
+  .comp-action .nums { color: var(--dtf-fg-strong); font-weight: 600; }
+
+  /* Status pills — small, uppercase, color-coded by cause. */
+  .pill {
     display: inline-block;
-    margin-left: 4px;
-    padding: 1px 5px;
-    border-radius: 999px;
-    background: var(--dtf-warning-bg-soft);
-    border: 1px solid var(--dtf-warning-border);
-    color: var(--dtf-warning-content);
+    padding: 1px 6px;
+    border-radius: var(--dtf-radius-pill);
     font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
+    font-weight: 700;
     letter-spacing: 0.04em;
-  }
-  .comp-pick .comp-meta .meta-pending {
-    display: inline-block;
-    margin-left: 4px;
-    padding: 1px 5px;
-    border-radius: 999px;
-    background: rgba(56, 95, 220, 0.10);
-    border: 1px solid var(--dtf-brand-bg);
-    color: var(--dtf-brand-bg);
-    font-size: 9px;
-    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    vertical-align: middle;
+    border: 1px solid transparent;
   }
-  .comp-pick label:has(.comp-meta.is-pending) {
-    background: rgba(56, 95, 220, 0.04);
-  }
+  .pill[data-kind="bindings"]  { background: #DBEAFE; color: #1E40AF; border-color: #BFDBFE; }
+  .pill[data-kind="structure"] { background: var(--dtf-warning-bg-soft); color: var(--dtf-warning-content); border-color: var(--dtf-warning-border); }
+  .pill[data-kind="proto"]     { background: #EDE9FE; color: #5B21B6; border-color: #DDD6FE; }
+  .pill[data-kind="drift"]     { background: var(--dtf-danger-bg-soft); color: var(--dtf-danger-content); border-color: var(--dtf-danger-border); }
+  .pill[data-kind="new"]       { background: var(--dtf-surface-alt); color: var(--dtf-fg-subtle); border-color: var(--dtf-border); }
 
   /* Prereqs: only visible when not met. Tiny disclosure. */
   .prereqs-bar {
@@ -709,26 +708,47 @@
   .gen-info.visible { display: block; }
   .gen-status { font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle); margin-top: 6px; min-height: 14px; }
 
-  /* M4 safe-rebuild toggle */
-  .safe-rebuild-toggle {
-    display: flex; align-items: flex-start; gap: 10px;
-    margin-top: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--dtf-border);
+  /* Footnote under the Rebuild CTA — single source of safety
+     reassurance. Replaces the per-row green panels the v1 mock had. */
+  .gen-footnote {
+    text-align: center;
+    font-size: var(--dtf-fs-10);
+    color: var(--dtf-fg-faint);
+    padding: 6px 10px 0;
+  }
+
+  /* Builder busy overlay — mirrors the Sync hero's "Syncing…"
+     UX so component generation feels like a first-class long-running
+     action, not a tiny text update. Sits over the Builder pane. */
+  #paneBuilder { position: relative; }
+  .builder-busy {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; padding: 24px;
+    background: color-mix(in srgb, var(--dtf-surface) 92%, transparent);
+    backdrop-filter: blur(2px);
+    z-index: 5;
     border-radius: var(--dtf-radius-md);
-    background: var(--dtf-surface-alt);
-    cursor: pointer;
-    font-size: var(--dtf-fs-11);
-    color: var(--dtf-fg-strong);
   }
-  .safe-rebuild-toggle:hover { background: var(--dtf-surface); }
-  .safe-rebuild-toggle input[type="checkbox"] {
-    margin-top: 2px;
-    accent-color: var(--dtf-brand-bg);
+  .builder-busy[aria-hidden="false"] { display: flex; }
+  .builder-busy .bb-spinner {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 3px solid var(--dtf-border);
+    border-top-color: var(--dtf-brand-bg);
+    animation: bbspin 0.8s linear infinite;
   }
-  .safe-rebuild-toggle .srt-text { display: flex; flex-direction: column; gap: 2px; line-height: 1.4; }
-  .safe-rebuild-toggle .srt-text strong { font-weight: 600; }
-  .safe-rebuild-toggle .srt-hint { color: var(--dtf-fg-subtle); font-size: var(--dtf-fs-10); }
+  @keyframes bbspin { to { transform: rotate(360deg); } }
+  .builder-busy .bb-title {
+    font-size: var(--dtf-fs-13); font-weight: 600;
+    color: var(--dtf-fg);
+  }
+  .builder-busy .bb-sub {
+    font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle);
+    text-align: center; max-width: 280px;
+    min-height: 28px;
+  }
 
   /* ── Inline status (for sync progress, errors) ───── */
   .status-line {
@@ -1036,41 +1056,51 @@
         <div class="rebind-caption">Generating will sync the new project’s variables first, then create components against them.</div>
       </div>
 
-      <p class="builder-intro">
-        Generate Figma components bound to your token variables. Components share the same variable IDs your tokens use, so brand changes in DTF propagate automatically.
-      </p>
-
       <div class="prereqs-bar" id="prereqsBar">
         <strong id="prereqsTitle">Set up collections first</strong>
         <div class="prereqs-list" id="prereqsList"></div>
       </div>
 
+      <!-- V2 Builder rows. Each row carries a head (name + pills +
+           when) and a one-line action describing what Rebuild will
+           do. The renderer (renderBuilderMeta) fills .comp-head and
+           .comp-action based on prereq hashes vs ledger hashes. -->
       <div class="comp-pick">
         <label data-component="button">
           <input type="checkbox" class="comp-check" value="button">
-          <span class="comp-name">Button</span>
-          <span class="comp-meta" data-meta-for="button" hidden></span>
+          <div>
+            <div class="comp-head">
+              <span class="comp-name">Button</span>
+              <span class="comp-pills" data-pills-for="button"></span>
+              <span class="comp-when" data-when-for="button"></span>
+            </div>
+            <div class="comp-action" data-action-for="button"></div>
+          </div>
         </label>
         <label data-component="split-button">
           <input type="checkbox" class="comp-check" value="split-button">
-          <span class="comp-name">Split Button</span>
-          <span class="comp-meta" data-meta-for="split-button" hidden></span>
+          <div>
+            <div class="comp-head">
+              <span class="comp-name">Split Button</span>
+              <span class="comp-pills" data-pills-for="split-button"></span>
+              <span class="comp-when" data-when-for="split-button"></span>
+            </div>
+            <div class="comp-action" data-action-for="split-button"></div>
+          </div>
         </label>
       </div>
 
-      <!-- M4 — safe-rebuild flag toggle (off by default).
-           See docs/architecture/component-builder/
-           component-ledger-and-safe-rebuild.md §10/M4. -->
-      <label class="safe-rebuild-toggle">
-        <input type="checkbox" id="safeRebuildToggle">
-        <span class="srt-text">
-          <strong>Safe rebuild</strong>
-          <span class="srt-hint">Preserve component-set IDs so published library references survive. Experimental.</span>
-        </span>
-      </label>
-
       <div class="gen-status" id="genStatus"></div>
       <div class="gen-info" id="genInfo" hidden></div>
+
+      <!-- Full-pane busy overlay during Rebuild. Mirrors the Sync
+           tab's "Syncing…" hero so both deploy-style actions share
+           the same loader UX. -->
+      <div class="builder-busy" id="builderBusy" aria-hidden="true" role="status">
+        <div class="bb-spinner" aria-hidden="true"></div>
+        <div class="bb-title" id="builderBusyTitle">Rebuilding components…</div>
+        <div class="bb-sub" id="builderBusySub">Snapshotting existing sets, then writing variants.</div>
+      </div>
     </div>
 
   </div>
@@ -1081,7 +1111,8 @@
     <button class="btn btn-primary btn-full" id="syncBtn">Update variables in Figma</button>
   </div>
   <div class="footer" id="footerBuilder" hidden>
-    <button class="btn btn-primary btn-full" id="generateBtn" disabled>Generate components</button>
+    <button class="btn btn-primary btn-full" id="generateBtn" disabled>Build components</button>
+    <div class="gen-footnote" id="genFootnote">Existing IDs and library references are always preserved.</div>
   </div>
 
 <script>
@@ -1170,6 +1201,13 @@ var prereqsBar   = document.getElementById('prereqsBar');
 var prereqsList  = document.getElementById('prereqsList');
 var genStatus    = document.getElementById('genStatus');
 var genInfo      = document.getElementById('genInfo');
+var builderBusy      = document.getElementById('builderBusy');
+var builderBusySub   = document.getElementById('builderBusySub');
+function setBuilderBusy(on, subText){
+  if (!builderBusy) return;
+  builderBusy.setAttribute('aria-hidden', on ? 'false' : 'true');
+  if (on && subText && builderBusySub) builderBusySub.textContent = subText;
+}
 var generateBtn  = document.getElementById('generateBtn');
 
 var footerSync   = document.getElementById('footerSync');
@@ -1269,6 +1307,7 @@ function render(){
     setupForm.hidden = true;
     changesPanel.hidden = true;
     footerSync.hidden = true;
+    applyFooterForActiveTab();
     return;
   }
   if (!GH_USERNAME){
@@ -1287,6 +1326,7 @@ function render(){
     if (tbMenuPop) tbMenuPop.classList.add('signed-out');
     if (tbRefresh) tbRefresh.hidden = true;
     setSyncBadge(0);
+    applyFooterForActiveTab();
     return;
   }
   setupForm.hidden = true;
@@ -1342,6 +1382,7 @@ function render(){
       if (!tokenData) fetchTokenData();
       startSync();
     });
+    applyFooterForActiveTab();
     return;
   }
 
@@ -1364,6 +1405,7 @@ function render(){
     changesPanel.hidden = true;
     footerSync.hidden = true;
     body.dataset.conn = 'error';
+    applyFooterForActiveTab();
     return;
   }
 
@@ -1378,6 +1420,7 @@ function render(){
     });
     changesPanel.hidden = true;
     footerSync.hidden = true;
+    applyFooterForActiveTab();
     return;
   }
 
@@ -1390,6 +1433,7 @@ function render(){
     });
     changesPanel.hidden = true;
     footerSync.hidden = true;
+    applyFooterForActiveTab();
     return;
   }
 
@@ -1450,6 +1494,7 @@ function render(){
     if (statusBar.classList.contains('err') && /fetch tokens/.test(statusBar.textContent)){
       setStatus('', '');
     }
+    applyFooterForActiveTab();
     return;
   }
 
@@ -1462,6 +1507,7 @@ function render(){
   changesPanel.hidden = true;
   footerSync.hidden = true;
   setSyncBadge(0);
+  applyFooterForActiveTab();
 }
 
 function setHero(opts){
@@ -1901,9 +1947,17 @@ function setTab(name){
   tabBuilder.setAttribute('aria-selected', name === 'builder' ? 'true' : 'false');
   paneSync.hidden = name !== 'sync';
   paneBuilder.hidden = name !== 'builder';
-  footerSync.hidden = (name !== 'sync') || footerSync.hidden;
+  /* Footer ownership is exclusive to the active tab. render() may
+     try to unhide footerSync when sync state changes — applyFooter
+     reconciles that against the tab. */
   if (name === 'sync')    { footerBuilder.hidden = true; render(); }
   if (name === 'builder') { footerSync.hidden = true; footerBuilder.hidden = false; }
+}
+/* Called at the end of every render() so the Sync hero renderer
+   can't leak its footer CTA into the Builder tab. Was the cause of
+   two CTAs (Update / Generate) showing simultaneously. */
+function applyFooterForActiveTab(){
+  if (body.dataset.tab === 'builder'){ footerSync.hidden = true; }
 }
 tabSync.addEventListener('click', function(){ setTab('sync'); });
 tabBuilder.addEventListener('click', function(){ setTab('builder'); });
@@ -2675,19 +2729,24 @@ window.onmessage = function(event){
     render();
   }
 
-  if (msg.type === 'gen-progress')  genStatus.textContent = msg.text;
+  if (msg.type === 'gen-progress'){
+    genStatus.textContent = msg.text;
+    if (builderBusySub && msg.text) builderBusySub.textContent = msg.text;
+  }
   if (msg.type === 'gen-done'){
     var gs = msg.stats;
     generateBtn.disabled = false;
-    generateBtn.textContent = 'Generate components';
+    generateBtn.textContent = builderHasAnyBuild ? 'Rebuild components' : 'Build components';
     genStatus.textContent = gs.components + ' variants · ' + gs.bindings + ' bindings · ' + gs.reactions + ' reactions' + (gs.errors.length > 0 ? ' — ' + gs.errors.length + ' errors' : '');
     genInfo.classList.add('visible');
-    genInfo.textContent = '✓ Components generated.';
+    genInfo.textContent = '✓ Components built.';
+    setBuilderBusy(false);
     parent.postMessage({ pluginMessage:{ type:'check-gen-prereqs' } }, '*');
   }
   if (msg.type === 'gen-error'){
     generateBtn.disabled = !genReady;
-    generateBtn.textContent = 'Generate components';
+    generateBtn.textContent = builderHasAnyBuild ? 'Rebuild components' : 'Build components';
+    setBuilderBusy(false);
     /* Stack trace is included after the em-dash on the plugin side.
        Show on two lines so the user can copy/paste back to us. */
     var em  = String(msg.error || '');
@@ -2938,8 +2997,10 @@ function updateGenPrereqs(data){
      component-ledger-and-safe-rebuild.md §10/M3. */
   renderBuilderMeta(
     data.versions || {},
-    data.currentSpecHashes || {},
-    data.currentTokensHash || ''
+    data.currentStructureHashes || data.currentSpecHashes || {},
+    data.currentPrototypeHashes || {},
+    data.currentTokensHash || '',
+    data.currentProject || ''
   );
 }
 
@@ -2964,93 +3025,158 @@ function fmtBuiltAgo(iso){
   } catch (e) { return ''; }
 }
 
-function renderBuilderMeta(versions, currentSpecHashes, currentTokensHash){
-  currentSpecHashes = currentSpecHashes || {};
-  currentTokensHash = currentTokensHash || '';
-  var metas = document.querySelectorAll('.comp-pick .comp-meta');
-  for (var i = 0; i < metas.length; i++){
-    var el  = metas[i];
-    var key = el.getAttribute('data-meta-for');
-    var v   = versions[key];
+/* V2 — track whether any component has a ledger entry. Drives
+   the CTA label ("Build" first time vs "Rebuild" thereafter). */
+var builderHasAnyBuild = false;
+
+/* V2 layout. Per-row composition:
+     • pills:    bindings | structure | proto | drift | new
+     • action:   one-line, bolded numbers, copy depends on which
+                 pills are present (see demo/mock-builder.html).
+     • tint:     subtle bg on the row of HIGHEST severity
+                 (drift > structure > proto > bindings). */
+function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHashes, currentTokensHash, currentProject){
+  currentStructureHashes = currentStructureHashes || {};
+  currentPrototypeHashes = currentPrototypeHashes || {};
+  currentTokensHash      = currentTokensHash || '';
+  currentProject         = currentProject || (typeof CURRENT_PROJECT === 'string' ? CURRENT_PROJECT : '');
+
+  var rows = document.querySelectorAll('.comp-pick label[data-component]');
+  builderHasAnyBuild = false;
+  var pendingExistingCount = 0;
+  var newCount = 0;
+
+  for (var i = 0; i < rows.length; i++){
+    var row     = rows[i];
+    var key     = row.getAttribute('data-component');
+    var pillsEl = row.querySelector('[data-pills-for="' + key + '"]');
+    var whenEl  = row.querySelector('[data-when-for="'  + key + '"]');
+    var actEl   = row.querySelector('[data-action-for="'+ key + '"]');
+    if (!pillsEl || !actEl) continue;
+
+    var v = versions[key];
+
+    /* No ledger entry → "new" row. */
     if (!v){
-      el.hidden = true;
-      el.textContent = '';
-      el.classList.remove('is-drift');
+      newCount++;
+      pillsEl.innerHTML = '<span class="pill" data-kind="new">new</span>';
+      whenEl && (whenEl.textContent = '');
+      actEl.classList.remove('idle');
+      actEl.innerHTML = 'Will create variants bound to <span class="nums">' +
+        esc(currentProject || 'this project') + '</span> tokens.';
+      row.setAttribute('data-tint', '');
       continue;
     }
+    builderHasAnyBuild = true;
 
-    /* Count variants. Prefer schemaVersion=1 componentSets shape;
-       fall back to legacy totalComponents number. */
-    var variantCount = 0;
+    /* Variant count for first build messaging is irrelevant here
+       (existing entry). Compute hashes diff. */
+    var ledgerStruct = v.structureHash || v.specHash || '';
+    var ledgerProto  = v.prototypeHash || '';
+    var ledgerTokens = v.tokensHash    || '';
+    var curStruct    = currentStructureHashes[key] || '';
+    var curProto     = currentPrototypeHashes[key] || '';
+
+    var bindingsChanged  = !!(ledgerTokens && currentTokensHash && ledgerTokens !== currentTokensHash);
+    var structureChanged = !!(ledgerStruct && curStruct        && ledgerStruct !== curStruct);
+    var protoChanged     = !!(ledgerProto  && curProto         && ledgerProto  !== curProto);
+    var ranProject       = v.project || '';
+    var isDrift          = !!(currentProject && ranProject && currentProject !== ranProject);
+
+    /* Tally bindings/variants/reactions deltas for the action line.
+       We don't know exact counts of *what would change* — only what's
+       in the ledger — so we surface the totals at build time as the
+       "will re-target" magnitude. */
+    var totVariants  = 0, totBindings = 0, totReactions = 0;
     if (v.componentSets && v.componentSets.length){
       for (var ci = 0; ci < v.componentSets.length; ci++){
         var cs = v.componentSets[ci];
-        if (cs && cs.variants) variantCount += Object.keys(cs.variants).length;
+        if (!cs) continue;
+        if (cs.variants)  totVariants += Object.keys(cs.variants).length;
+        if (cs.bindings)  totBindings += (cs.bindings|0);
+        if (cs.reactions) totReactions += (cs.reactions|0);
       }
     }
-    if (!variantCount && typeof v.totalComponents === 'number'){
-      variantCount = v.totalComponents;
+    if (!totVariants  && typeof v.totalComponents === 'number') totVariants  = v.totalComponents;
+    if (!totBindings  && typeof v.totalBindings   === 'number') totBindings  = v.totalBindings;
+    if (!totReactions && typeof v.totalReactions  === 'number') totReactions = v.totalReactions;
+
+    /* Build pills (order: bindings → structure → proto → drift). */
+    var pillsHtml = '';
+    if (bindingsChanged)  pillsHtml += '<span class="pill" data-kind="bindings">bindings</span>';
+    if (structureChanged) pillsHtml += '<span class="pill" data-kind="structure">structure</span>';
+    if (protoChanged)     pillsHtml += '<span class="pill" data-kind="proto">prototype</span>';
+    if (isDrift)          pillsHtml += '<span class="pill" data-kind="drift">wrong project</span>';
+
+    /* Tint priority. */
+    var tint = isDrift ? 'drift'
+             : structureChanged ? 'structure'
+             : protoChanged ? 'proto'
+             : bindingsChanged ? 'bindings'
+             : '';
+    row.setAttribute('data-tint', tint);
+
+    /* Timestamp. */
+    var when = fmtBuiltAgo(v.writtenAt || v.generatedAt);
+    whenEl && (whenEl.textContent = when ? ('· ' + when) : '');
+
+    /* Action line copy. Numbers are bolded via .nums.
+       N() wraps an integer for readability. */
+    function N(n){ return '<span class="nums">' + (n|0) + '</span>'; }
+    var anyChange = bindingsChanged || structureChanged || protoChanged || isDrift;
+    var action = '';
+
+    if (isDrift) {
+      action = 'Built against <span class="nums">' + esc(ranProject) +
+        '</span>. Rebuilding re-targets to <span class="nums">' + esc(currentProject) + '</span>.';
+    } else if (bindingsChanged && structureChanged && protoChanged) {
+      action = 'Adds ' + N(totBindings) + ' bindings, ' + N(totVariants) +
+        ' variants, and re-wires ' + N(totReactions) + ' reactions.';
+    } else if (bindingsChanged && structureChanged) {
+      action = 'Adds ' + N(totBindings) + ' bindings and ' + N(totVariants) + ' variants.';
+    } else if (bindingsChanged && protoChanged) {
+      action = 'Adds ' + N(totBindings) + ' bindings and re-wires ' + N(totReactions) + ' reactions.';
+    } else if (structureChanged && protoChanged) {
+      action = 'Adds ' + N(totVariants) + ' variants and re-wires ' + N(totReactions) + ' reactions.';
+    } else if (bindingsChanged) {
+      action = 'Updates ' + N(totBindings) + ' token bindings.';
+    } else if (structureChanged) {
+      action = 'Adds ' + N(totVariants) + ' variants.';
+    } else if (protoChanged) {
+      action = 'Re-wires ' + N(totReactions) + ' reactions.';
+    } else {
+      action = 'Up to date.';
     }
 
-    /* Drift detection. If the file is now scoped to a different project
-       than the one this build was generated against, flag it. */
-    var nowProject = (typeof CURRENT_PROJECT === 'string') ? CURRENT_PROJECT : '';
-    var ranProject = v.project || '';
-    var isDrift    = !!(nowProject && ranProject && nowProject !== ranProject);
+    pillsEl.innerHTML = pillsHtml;
+    actEl.classList.toggle('idle', !anyChange);
+    actEl.innerHTML = action;
 
-    var when  = fmtBuiltAgo(v.writtenAt || v.generatedAt);
-    var ver   = v.version ? ('v' + v.version) : '';
-    var line1 = when ? ('Built ' + when) : '';
-    var line2 = [ver, variantCount ? (variantCount + ' variants') : '']
-                  .filter(Boolean).join(' · ');
-    var drift = isDrift
-      ? '<span class="meta-drift" title="Built against project ' + esc(ranProject) +
-        '; file is now scoped to ' + esc(nowProject) + '">drift</span>'
-      : '';
-
-    /* M5 — line 3 surfaces what changed at last Build vs the one
-       before it. Pure read of fields already in the ledger; no live
-       recomputation. */
-    var changes = [];
-    if (v.specHash && v.prevSpecHash && v.specHash !== v.prevSpecHash) {
-      changes.push('spec');
-    }
-    if (v.tokensHash && v.prevTokensHash && v.tokensHash !== v.prevTokensHash) {
-      changes.push('tokens');
-    }
-    var line3 = changes.length
-      ? ('Changed: ' + changes.join(' + '))
-      : '';
-
-    /* M5 — "Rebuild needed?" — compare LIVE current hashes against
-       what's stored. Set if either spec or tokens have moved since the
-       last successful Build. */
-    var pending = [];
-    var curSpec   = currentSpecHashes[key] || '';
-    if (curSpec && v.specHash   && curSpec !== v.specHash)     pending.push('spec');
-    if (currentTokensHash && v.tokensHash && currentTokensHash !== v.tokensHash) pending.push('tokens');
-    var needsRebuild = pending.length > 0;
-
-    /* Tooltip = full fingerprint, copyable on hover. */
+    /* Fingerprint tooltip on the row (copyable on hover). */
     var tip = [
-      v.specHash    ? ('spec '    + v.specHash    + (curSpec && curSpec !== v.specHash ? ' → ' + curSpec : '')) : '',
-      v.tokensHash  ? ('tokens '  + v.tokensHash  + (currentTokensHash && currentTokensHash !== v.tokensHash ? ' → ' + currentTokensHash : '')) : '',
+      ledgerStruct ? ('structure ' + ledgerStruct + (structureChanged ? ' → ' + curStruct : '')) : '',
+      ledgerProto  ? ('prototype ' + ledgerProto  + (protoChanged     ? ' → ' + curProto  : '')) : '',
+      ledgerTokens ? ('tokens '    + ledgerTokens + (bindingsChanged  ? ' → ' + currentTokensHash : '')) : '',
       v.pluginVersion ? ('plugin ' + v.pluginVersion) : '',
-      ranProject    ? ('project ' + ranProject)    : ''
+      ranProject   ? ('project '   + ranProject) : ''
     ].filter(Boolean).join(' · ');
+    if (tip) row.setAttribute('title', tip); else row.removeAttribute('title');
 
-    var pendingBadge = needsRebuild
-      ? '<span class="meta-pending" title="' + esc(pending.join(' + ')) + ' changed since last build">rebuild</span>'
-      : '';
+    if (anyChange) pendingExistingCount++;
+  }
 
-    el.hidden = false;
-    el.classList.toggle('is-drift', isDrift);
-    el.classList.toggle('is-pending', needsRebuild);
-    if (tip) el.setAttribute('title', tip); else el.removeAttribute('title');
-    el.innerHTML =
-      '<span class="meta-time">' + esc(line1) + drift + pendingBadge + '</span>' +
-      (line2 ? '<span class="meta-count">' + esc(line2) + '</span>' : '') +
-      (line3 ? '<span class="meta-change">' + esc(line3) + '</span>' : '');
+  /* CTA label. Derive from ledger state alone — checkbox state is
+     separately enforced (gen-click rejects empty selection). */
+  if (generateBtn) {
+    if (!builderHasAnyBuild) {
+      generateBtn.textContent = newCount > 0
+        ? 'Build components'
+        : 'Build components';
+    } else if (pendingExistingCount > 0 || newCount > 0) {
+      generateBtn.textContent = 'Rebuild components';
+    } else {
+      generateBtn.textContent = 'Rebuild components';
+    }
   }
 }
 generateBtn.addEventListener('click', function(){
@@ -3060,26 +3186,18 @@ generateBtn.addEventListener('click', function(){
   for (var i=0; i<checks.length; i++) selected.push(checks[i].value);
   if (selected.length === 0){ genStatus.textContent = 'Select at least one component.'; return; }
   generateBtn.disabled = true;
-  generateBtn.textContent = 'Generating…';
-  genStatus.textContent = 'Starting component generation…';
+  generateBtn.textContent = builderHasAnyBuild ? 'Rebuilding…' : 'Building…';
+  genStatus.textContent = 'Starting…';
   genInfo.classList.remove('visible');
+  setBuilderBusy(true, 'Snapshotting existing sets, then writing variants.');
   parent.postMessage({ pluginMessage:{ type:'generate-components', components:selected } }, '*');
 });
 
-/* M4 — safe-rebuild flag toggle. State lives in figma.root pluginData
-   so it survives plugin reload. Default OFF. */
-(function wireSafeRebuildToggle(){
-  var t = document.getElementById('safeRebuildToggle');
-  if (!t) return;
-  t.addEventListener('change', function(){
-    parent.postMessage({ pluginMessage:{
-      type: 'set-safe-rebuild',
-      enabled: !!t.checked
-    } }, '*');
-  });
-  /* Ask plugin for current value on tab open. */
-  parent.postMessage({ pluginMessage:{ type: 'get-safe-rebuild' } }, '*');
-})();
+/* M4 / V2 — safe-rebuild flag.
+   Default is ON (set on the plugin side in code.js L1278). The
+   user-facing toggle was removed in V2 because rebuilds preserving
+   IDs is the safe default, not an opt-in. A topbar-menu override
+   can be reintroduced later if any team needs the legacy behaviour. */
 
 /* ════════════════════════════════════════════════════
    START
