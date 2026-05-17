@@ -398,13 +398,13 @@
   }
   .change-row:first-child { border-top: 0; }
   .ch-tag {
-    display: inline-block; padding: 1px 5px;
-    font-size: var(--dtf-fs-9); font-weight: 700;
-    border-radius: 2px; flex-shrink: 0;
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; flex-shrink: 0;
+    text-indent: -9999px; overflow: hidden;
   }
-  .ch-tag.add { background: var(--dtf-success-bg-soft); color: var(--dtf-success-content); }
-  .ch-tag.upd { background: var(--dtf-warning-bg-soft); color: var(--dtf-warning-content); }
-  .ch-tag.rem { background: var(--dtf-danger-bg-soft); color: var(--dtf-danger-content); }
+  .ch-tag.add { background: var(--dtf-success-content); }
+  .ch-tag.upd { background: var(--dtf-warning-content); }
+  .ch-tag.rem { background: var(--dtf-danger-content); }
   .ch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dtf-fg-strong); }
   .ch-from, .ch-to { color: var(--dtf-fg-subtle); }
   .ch-arrow { color: var(--dtf-fg-faint); margin: 0 2px; }
@@ -1034,7 +1034,7 @@ function render(){
     } else {
       syncBtn.textContent = 'Create variables in Figma';
     }
-    renderChangeList();
+    renderChangeList();   /* may overwrite the label with a precise count */
     setSyncBadge(isMismatch ? '!' : (changeData ? totalChangeCount() : '!'));
     /* Once the user is in a meaningful state, clear stale fetch toasts. */
     if (statusBar.classList.contains('err') && /fetch tokens/.test(statusBar.textContent)){
@@ -1177,13 +1177,14 @@ function applyFilters(allGroups){
 function isColor(v){ return /^#[0-9a-f]{3,8}$/i.test(String(v || '').trim()); }
 
 function rowHTML(r){
+  var tagLabel = r.tag === 'add' ? 'Added' : r.tag === 'rem' ? 'Removed' : 'Modified';
   var fromSwatch = isColor(r.from) ? '<span class="ch-swatch" style="background:' + r.from + '"></span>' : '';
   var toSwatch   = isColor(r.to)   ? '<span class="ch-swatch" style="background:' + r.to + '"></span>'   : '';
   var fromHtml = r.from ? '<span class="ch-from">' + fromSwatch + esc(r.from) + '</span>' : '';
   var toHtml   = r.to   ? '<span class="ch-to">'   + toSwatch   + esc(r.to)   + '</span>' : '';
   var arrow    = (r.from && r.to) ? '<span class="ch-arrow">→</span>' : '';
   return '<div class="change-row">'
-       + '<span class="ch-tag ' + r.tag + '">' + r.tag.toUpperCase() + '</span>'
+       + '<span class="ch-tag ' + r.tag + '" title="' + tagLabel + '">' + tagLabel + '</span>'
        + '<span class="ch-name" title="' + esc(r.name) + '">' + esc(r.name) + '</span>'
        + fromHtml + arrow + toHtml
        + '</div>';
@@ -1195,8 +1196,31 @@ var groupRowLimit = {};   /* per-group render limit (mutable when "show more" cl
 function renderChangeList(){
   var allGroups = buildGroups();
   var total = 0;
-  for (var i=0; i<allGroups.length; i++) total += allGroups[i].rows.length;
-  changesCountText.textContent = total + (total === 1 ? ' change' : ' changes');
+  var nMod = 0, nAdd = 0, nRem = 0;
+  for (var i=0; i<allGroups.length; i++){
+    total += allGroups[i].rows.length;
+    for (var ri=0; ri<allGroups[i].rows.length; ri++){
+      var t = allGroups[i].rows[ri].tag;
+      if (t === 'add') nAdd++; else if (t === 'rem') nRem++; else nMod++;
+    }
+  }
+  /* Figma-style breakdown: "19 modified · 0 added · 0 removed". */
+  if (total === 0){
+    changesCountText.textContent = 'No changes';
+  } else {
+    var parts = [];
+    if (nMod) parts.push(nMod + ' modified');
+    if (nAdd) parts.push(nAdd + ' added');
+    if (nRem) parts.push(nRem + ' removed');
+    changesCountText.textContent = parts.join(' · ');
+  }
+
+  /* Mirror the count into the action button so the CTA is concrete. */
+  if (total > 0 && hasExistingVars){
+    syncBtn.textContent = 'Update ' + total + (total === 1 ? ' variable' : ' variables') + ' in Figma';
+  } else if (total > 0){
+    syncBtn.textContent = 'Create ' + total + (total === 1 ? ' variable' : ' variables') + ' in Figma';
+  }
 
   /* Show search field once we cross 50 total */
   filterSearch.hidden = total < 50;
@@ -1216,10 +1240,13 @@ function renderChangeList(){
     activeFilters.clear();
   }
 
-  /* Auto-expand heuristic: <=30 expand all; otherwise expand only the smallest. */
+  /* Auto-expand heuristic: expand all groups by default so the user
+     SEES the actual changes in viewport rather than a wall of
+     collapsed section headers. Only collapse-by-default kicks in
+     once we cross 100 changes (then expand only the smallest). */
   var visible = applyFilters(allGroups);
   if (openGroups.size === 0){
-    if (total <= 30){
+    if (total <= 100){
       visible.forEach(function(g){ openGroups.add(g.key); });
     } else {
       var smallest = null;
