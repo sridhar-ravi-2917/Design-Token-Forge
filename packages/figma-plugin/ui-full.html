@@ -632,7 +632,7 @@
 
       <!-- Change list: shown when changes pending -->
       <div id="changesPanel" hidden>
-        <div class="changes-head">
+        <div class="changes-head" id="changesHead">
           <span class="changes-count">
             <span class="changes-count-icon">⚡</span>
             <span id="changesCountText">0 changes</span>
@@ -749,6 +749,7 @@ var ghVerifyBtn  = document.getElementById('ghVerifyBtn');
 var ghIdentityError = document.getElementById('ghIdentityError');
 
 var changesPanel = document.getElementById('changesPanel');
+var changesHead  = document.getElementById('changesHead');
 var changesCountText = document.getElementById('changesCountText');
 var filterSearch = document.getElementById('filterSearch');
 var filterChips  = document.getElementById('filterChips');
@@ -950,6 +951,15 @@ function render(){
     changesPanel.hidden = false;
     footerSync.hidden = false;
     syncBtn.disabled = false;
+
+    /* Mismatched + we haven’t loaded the new project’s tokens yet → nothing
+       to diff; banner + button say it all. Hide the redundant “0 changes”
+       header and the placeholder repeat. */
+    var hasRealDiff = !!(tokenData && changeData);
+    changesHead.hidden = isMismatch && !hasRealDiff;
+    var emptyHint = document.getElementById('changesEmptyHint');
+    if (emptyHint) emptyHint.hidden = isMismatch && !hasRealDiff;
+
     if (isMismatch){
       syncBtn.textContent = 'Rebind file & sync ' + projectDisplayName(CURRENT_PROJECT);
     } else if (hasExistingVars){
@@ -959,6 +969,10 @@ function render(){
     }
     renderChangeList();
     setSyncBadge(isMismatch ? '!' : (changeData ? totalChangeCount() : '!'));
+    /* Once the user is in a meaningful state, clear stale fetch toasts. */
+    if (statusBar.classList.contains('err') && /fetch tokens/.test(statusBar.textContent)){
+      setStatus('', '');
+    }
     return;
   }
 
@@ -1164,9 +1178,11 @@ function renderChangeList(){
     var emptyMsg = (activeFilters.size > 0 || (filterSearch.value || '').trim())
       ? 'No changes match your filters.'
       : (documentProject && CURRENT_PROJECT && CURRENT_PROJECT !== documentProject)
-        ? 'Click “Rebind file &amp; sync” below to apply <strong>' + esc(projectDisplayName(CURRENT_PROJECT)) + '</strong>’s tokens to this file.'
+        ? ''   /* mismatched + no diff yet → banner + footer button say everything */
         : 'No pending changes — you’re in sync.';
-    html = '<div class="empty-state"><div>' + emptyMsg + '</div></div>';
+    html = emptyMsg
+      ? '<div class="empty-state" id="changesEmptyHint"><div>' + emptyMsg + '</div></div>'
+      : '';
   }
   changeGroups.innerHTML = html;
 }
@@ -1341,7 +1357,13 @@ function fetchTokenData(){
     })
     .catch(function(err){
       log('fetchTokenData failed: ' + (err.message || err));
-      setStatus('Failed to fetch tokens — check connection', 'err');
+      /* Auto-dismiss after a few seconds so it doesn’t shadow the
+         mismatch banner / real UI underneath. The next successful
+         poll will replace it cleanly. */
+      setStatus('Couldn’t fetch tokens — retrying…', 'err');
+      setTimeout(function(){
+        if (/fetch tokens/.test(statusBar.textContent)) setStatus('', '');
+      }, 4000);
     });
 }
 
