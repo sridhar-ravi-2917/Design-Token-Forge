@@ -17,6 +17,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -767,7 +768,75 @@ async function main() {
   console.log('');
 }
 
-main().catch(e => {
+/* ── Cache-busting pass ───────────────────────────────────────
+   Manual `?v=N` query strings on <script src> / <link href> are a
+   permanent footgun: every shipped JS/CSS change needs every
+   referencing HTML bumped, otherwise browsers serve the cached
+   copy forever (the user can hard-refresh the HTML but the cached
+   asset still wins on assets cached with long max-age, especially
+   inside same-origin iframes that the editor uses).
+
+   This pass walks every HTML file in dist/, finds every relative
+   <script src=>, <link href=>, and rewrites the `?v=...` (or
+   inserts one) with a short content hash of the actual referenced
+   file. Any byte change in the asset flips the hash → URL changes
+   → browser always fetches the new file. No more manual bumping. */
+function hashFile(absPath) {
+  try {
+    var buf = fs.readFileSync(absPath);
+    return crypto.createHash('sha1').update(buf).digest('hex').slice(0, 10);
+  } catch (e) { return null; }
+}
+function rewriteHtmlCacheBust(htmlPath) {
+  var html = fs.readFileSync(htmlPath, 'utf8');
+  var dir  = path.dirname(htmlPath);
+  // Match  src="...js" | href="...css" | src='...js' | href='...css'
+  // Captures: attr, opening quote, path (no quote), existing query, closing quote
+  var rx = /(\s(?:src|href))=(["'])([^"'?#]+\.(?:js|css|mjs))(\?[^"']*)?(\2)/gi;
+  var changed = 0;
+  var out = html.replace(rx, function (m, attr, q1, p, qs, q2) {
+    // Only fingerprint relative paths inside dist/
+    if (/^(?:https?:)?\/\//.test(p) || p.startsWith('data:')) return m;
+    var absRef = path.resolve(dir, p);
+    if (!fs.existsSync(absRef)) return m;
+    var h = hashFile(absRef);
+    if (!h) return m;
+    changed++;
+    return attr + '=' + q1 + p + '?v=' + h + q2;
+  });
+  if (changed > 0 && out !== html) {
+    fs.writeFileSync(htmlPath, out);
+    return changed;
+  }
+  return 0;
+}
+function walkHtml(dir) {
+  var totalFiles = 0, totalRefs = 0;
+  function walk(d) {
+    for (var entry of fs.readdirSync(d, { withFileTypes: true })) {
+      var p = path.join(d, entry.name);
+      if (entry.isDirectory()) {
+        // Skip node_modules just in case
+        if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+        walk(p);
+      } else if (entry.name.endsWith('.html')) {
+        var n = rewriteHtmlCacheBust(p);
+        if (n > 0) { totalFiles++; totalRefs += n; }
+      }
+    }
+  }
+  walk(dir);
+  return { totalFiles: totalFiles, totalRefs: totalRefs };
+}
+
+main().then(function () {
+  // Run only when we actually produced an output tree
+  if (!fs.existsSync(BASE_OUT_DIR)) return;
+  var stats = walkHtml(BASE_OUT_DIR);
+  if (stats.totalFiles > 0) {
+    console.log('  ✓ Cache-bust: rewrote ' + stats.totalRefs + ' asset refs across ' + stats.totalFiles + ' HTML files');
+  }
+}).catch(e => {
   console.error('Build failed:', e);
   process.exit(1);
 });

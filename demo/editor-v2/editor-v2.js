@@ -3000,12 +3000,11 @@
        ladder is the primary control) + a precomputed
        `ladderHTML` that decorates each step with its WCAG pass/fail
        against the lever's role (T1 is THE contrast-tuning surface). */
-    var leversHTML = T1_LEVERS.map(function (lever) {
+    function leverCardHTML(lever) {
       var current = t1[lever.id];
       var curHex  = ladder[current] || '#000';
       var def     = (defaultT1ForRole(role.id, mode) || {})[lever.id];
       var detached = current !== def;
-      // Header sentinel chip — current pick's contrast vs its baseline.
       var hJudge = DTFSolver.judgeStepForLever(ladder, lever.id, current, t1, mode);
       var sentinel = {
         ratio: hJudge.ratio,
@@ -3027,18 +3026,12 @@
         dataAttrs: {
           'pc-role':  role.id,
           'pc-lever': lever.id,
-          'lever':    lever.id    /* legacy hook for mouseenter focus preview */
+          'lever':    lever.id
         }
       });
-    }).join('');
-
-    /* Auto-derived Property Cards: border / separator / on-component
-       / on-container. Each shares the T1 lever chrome (alwaysExpanded
-       ladder, WCAG chip, stepper, reset). Defaults follow the
-       derivation rules; user overrides write to state via setT1Derived. */
-    var derivedHTML = T1_DERIVED.map(function (d) {
+    }
+    function derivedCardHTML(d) {
       var curStep   = t1DerivedStep(role.id, d.id, mode);
-      var defStep   = t1DerivedDefault(role.id, d.id, mode);
       var detached  = t1DerivedIsDetached(role.id, d.id, mode);
       var curHex    = t1DerivedHex(role.id, d.id, mode);
       var base      = t1DerivedBaseline(role.id, d.id, mode);
@@ -3065,7 +3058,28 @@
           'pc-derived': d.id
         }
       });
+    }
+    var leverById   = {}; T1_LEVERS.forEach(function (l) { leverById[l.id] = l; });
+    var derivedById = {}; T1_DERIVED.forEach(function (d) { derivedById[d.id] = d; });
+    /* Display order pairs fills with their on-text and containers
+       with their on-text + outlines for visual scanability. Content
+       (direct text token in the role's hue) trails after the pairs
+       since it is the least frequently tuned lever. */
+    var T1_DISPLAY_ORDER = [
+      { kind:'lever',   id:'fill' },
+      { kind:'derived', id:'onComponent' },
+      { kind:'lever',   id:'container' },
+      { kind:'derived', id:'onContainer' },
+      { kind:'derived', id:'border' },
+      { kind:'derived', id:'separator' },
+      { kind:'lever',   id:'content' }
+    ];
+    var leversHTML = T1_DISPLAY_ORDER.map(function (item) {
+      if (item.kind === 'lever' && leverById[item.id])   return leverCardHTML(leverById[item.id]);
+      if (item.kind === 'derived' && derivedById[item.id]) return derivedCardHTML(derivedById[item.id]);
+      return '';
     }).join('');
+    var derivedHTML = '';
 
     $body.innerHTML =
       '<div class="ev2-intent">'
@@ -3103,7 +3117,6 @@
         + '</div>'
         + '<div class="ev2-intent-body">'
           + '<div class="ev2-levers">' + leversHTML + '</div>'
-          + '<div class="ev2-levers ev2-levers-derived" data-pc-group="derived">' + derivedHTML + '</div>'
           + '<div class="ev2-disc"' + (State.disclosure['t1:slots'] ? ' data-open' : '') + ' data-disc="t1:slots">'
             + '<div class="ev2-disc-head">'
               + '<span>Resulting slots</span>'
