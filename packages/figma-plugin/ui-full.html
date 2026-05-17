@@ -434,6 +434,20 @@
   }
   .change-more:hover { background: var(--dtf-surface-alt); }
 
+  /* Resize handle — bottom-right corner. */
+  #dtfResizeHandle {
+    position: fixed;
+    right: 0; bottom: 0;
+    width: 16px; height: 16px;
+    cursor: nwse-resize;
+    color: var(--dtf-fg-faint);
+    display: flex; align-items: flex-end; justify-content: flex-end;
+    padding: 1px;
+    z-index: 9999;
+    touch-action: none;
+  }
+  #dtfResizeHandle:hover { color: var(--dtf-fg-subtle); }
+
   /* ── Builder tab ─────────────────────────────────── */
   .builder-intro {
     font-size: var(--dtf-fs-12); color: var(--dtf-fg-subtle);
@@ -889,7 +903,7 @@ var openGroups = new Set();      /* expanded group keys */
 /* Build stamp — bump on every UI-affecting change so you can confirm
    the Figma plugin sandbox isn't serving a cached old copy. Shown in
    the empty-state footer + logged once to the plugin console. */
-var BUILD_VERSION = '2026-05-17-p1';
+var BUILD_VERSION = '2026-05-17-p2';
 function log(msg){ console.log('[DTF] ' + msg); }
 log('plugin UI build ' + BUILD_VERSION);
 
@@ -2189,6 +2203,40 @@ setTab('sync');
 fetchProjects();
 startPolling();
 render();
+
+/* ── Resize handle ───────────────────────────────
+   Figma plugins can't be resized natively past the size set in
+   showUI(). We draw a 16px draggable handle in the bottom-right
+   corner and post {type:'resize'} messages to code.js which calls
+   figma.ui.resize(). Size persists in clientStorage. */
+(function installResizeHandle(){
+  var handle = document.createElement('div');
+  handle.id = 'dtfResizeHandle';
+  handle.title = 'Drag to resize · double-click to reset';
+  handle.setAttribute('aria-label', 'Resize window');
+  handle.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">'
+    + '<path d="M13 5L5 13M13 9L9 13M13 13L13 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>'
+    + '</svg>';
+  document.body.appendChild(handle);
+  var dragging = false, startX = 0, startY = 0, startW = 0, startH = 0;
+  handle.addEventListener('pointerdown', function(e){
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    startW = window.innerWidth; startH = window.innerHeight;
+    handle.setPointerCapture(e.pointerid || e.pointerId);
+    e.preventDefault();
+  });
+  window.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    var w = Math.max(360, startW + (e.clientX - startX));
+    var h = Math.max(420, startH + (e.clientY - startY));
+    parent.postMessage({ pluginMessage:{ type:'resize', width: w, height: h } }, '*');
+  });
+  window.addEventListener('pointerup', function(){ dragging = false; });
+  handle.addEventListener('dblclick', function(){
+    parent.postMessage({ pluginMessage:{ type:'reset-panel-size' } }, '*');
+  });
+})();
 </script>
 </body>
 </html>

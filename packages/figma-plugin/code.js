@@ -6,7 +6,17 @@
 
 figma.showUI(__html__, { width: 480, height: 560 });
 
-var CODE_VERSION = '2026-05-14-v43';
+/* Restore last user-chosen panel size (set via drag handle in UI). */
+(async function restorePanelSize(){
+  try {
+    var saved = await figma.clientStorage.getAsync('dtf-panel-size');
+    if (saved && typeof saved.width === 'number' && typeof saved.height === 'number'){
+      figma.ui.resize(Math.max(360, saved.width), Math.max(420, saved.height));
+    }
+  } catch (e) { /* first run or storage blocked — ignore */ }
+})();
+
+var CODE_VERSION = '2026-05-17-resize';
 log('code.js loaded — version ' + CODE_VERSION);
 
 /* ── URL migration via clientStorage (reliable, not blocked like localStorage) ── */
@@ -3918,6 +3928,20 @@ figma.ui.onmessage = async function(msg) {
 
   if (msg.type === 'cancel') {
     figma.closePlugin();
+  }
+
+  /* User dragged the resize handle in the bottom-right corner. */
+  if (msg.type === 'resize') {
+    var w = Math.max(360, Math.min(2000, Math.round(msg.width || 480)));
+    var h = Math.max(420, Math.min(2000, Math.round(msg.height || 560)));
+    figma.ui.resize(w, h);
+    try { figma.clientStorage.setAsync('dtf-panel-size', { width: w, height: h }); } catch (e) {}
+  }
+
+  /* "Reset window size" menu action from the UI. */
+  if (msg.type === 'reset-panel-size') {
+    figma.ui.resize(480, 560);
+    try { figma.clientStorage.setAsync('dtf-panel-size', { width: 480, height: 560 }); } catch (e) {}
   }
 
   /* UI requests user info (in case the initial delayed message was missed) */
