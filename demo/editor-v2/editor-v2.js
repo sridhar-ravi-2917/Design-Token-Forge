@@ -4039,6 +4039,7 @@
       // Reload so the editor reads the freshly-restored files as
       // the new baseline. This avoids any drift between in-memory
       // State and what GitHub now holds.
+      window.__ev2BypassUnloadGuard = true;
       setTimeout(function () { window.location.reload(); }, 1200);
     }).catch(function (err) {
       if (window.ev2Toast) window.ev2Toast('Restore failed: ' + (err && err.message || err), 'error', 6000);
@@ -4726,6 +4727,13 @@
   function initBeforeUnloadGuard() {
     window.addEventListener('beforeunload', function (e) {
       try {
+        // Our own navigations (project switch confirm, post-publish
+        // reload, onboard redirect) set this flag right before they
+        // hand off — the user has already gone through an in-app
+        // confirm or just clicked Publish, so the native
+        // "Changes you made may not be saved" prompt is redundant
+        // (and reads as broken because they already said yes).
+        if (window.__ev2BypassUnloadGuard) return;
         if (typeof totalChanges === 'function' && totalChanges() > 0) {
           var msg = 'You have unsaved changes. Leave anyway?';
           e.preventDefault();
@@ -5426,6 +5434,7 @@
         updateBusy('Deleted \u201C' + name + '\u201D', wasActive ? 'Switching to next project\u2026' : 'Updating list\u2026');
         if (!nextList.length) {
           localStorage.removeItem('dtf-active-project');
+          window.__ev2BypassUnloadGuard = true;
           setTimeout(function () { window.location.href = '../onboard.html'; }, 500);
           return;
         }
@@ -5433,7 +5442,7 @@
           var nextId = nextList[0].id;
           localStorage.setItem('dtf-active-project', nextId);
           // Hard reload to fully rebind state to the new project.
-          setTimeout(function () { window.location.href = 'index.html?project=' + encodeURIComponent(nextId); }, 500);
+          setTimeout(function () { window.__ev2BypassUnloadGuard = true; window.location.href = 'index.html?project=' + encodeURIComponent(nextId); }, 500);
         } else {
           hideBusy();
           if (window.ev2Toast) window.ev2Toast('Deleted \u201C' + name + '\u201D', 'ok');
@@ -5541,6 +5550,10 @@
   function performProjectSwitch(newId) {
     localStorage.setItem('dtf-active-project', newId);
     // Reload so the new project's tokens / config can be picked up cleanly.
+    // The user already confirmed via the in-app modal (if there were
+    // unsaved changes) — bypass the beforeunload prompt so the native
+    // "Changes may not be saved" dialog doesn't double up on top.
+    window.__ev2BypassUnloadGuard = true;
     window.location.reload();
   }
 
