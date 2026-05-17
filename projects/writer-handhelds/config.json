@@ -411,23 +411,24 @@
     }
   },
   "surfacePaletteSrc": {
-    "bright": "neutral",
-    "base": "neutral",
-    "dim": "neutral",
-    "deep": "neutral",
+    "bright": "greyscale",
+    "base": "greyscale",
+    "dim": "greyscale",
+    "deep": "greyscale",
     "accent": "brand",
-    "container": "neutral",
-    "float": "neutral",
-    "inverse": "neutral"
+    "container": "greyscale",
+    "over-container": "greyscale",
+    "float": "greyscale",
+    "inverse": "greyscale"
   },
   "owner": "sridhar-ravi-2917",
   "paletteAnchor": "exact",
   "schemaVersion": 2,
   "latestVersion": {
-    "version": "v1.0.0",
-    "name": "May16 21:59",
-    "description": "FINAL",
-    "savedAt": "2026-05-16T16:29:55.645Z",
+    "version": "v1.0.1",
+    "name": "May17 11:48",
+    "description": "",
+    "savedAt": "2026-05-17T06:18:57.334Z",
     "savedBy": "sridhar-ravi-2917"
   }
 }
