@@ -75,6 +75,22 @@ function hexToRGB(hex) {
   };
 }
 
+/* Inverse of hexToRGB — used to round-trip Figma color values back
+   into the hex strings that tokens.json stores. Preserves alpha
+   when present. */
+function rgbToHex(rgb) {
+  if (!rgb) return '';
+  function ch(v) {
+    var n = Math.round((v || 0) * 255);
+    if (n < 0) n = 0; if (n > 255) n = 255;
+    var s = n.toString(16);
+    return s.length === 1 ? '0' + s : s;
+  }
+  var hex = '#' + ch(rgb.r) + ch(rgb.g) + ch(rgb.b);
+  if (rgb.a !== undefined && rgb.a < 1) hex += ch(rgb.a);
+  return hex;
+}
+
 function toFigmaValue(raw, type) {
   if (type === 'COLOR') return hexToRGB(raw);
   if (type === 'FLOAT')  return parseFloat(raw) || 0;
@@ -3937,6 +3953,48 @@ figma.ui.onmessage = async function(msg) {
       await figma.clientStorage.deleteAsync('dtf-gh-username');
       await figma.clientStorage.deleteAsync('dtf-gh-pat');
     } catch (e) { /* ignore */ }
+  }
+
+  /* ── Dump current variables (used by UI to synthesize a diff on
+       static hosts where no /changelog endpoint exists) ───────── */
+  if (msg.type === 'dump-current-tokens') {
+    try {
+      var dtfCols = await findDTFCollections();
+      var out = { collections: [] };
+      for (var dci = 0; dci < dtfCols.length; dci++) {
+        var dcCol = dtfCols[dci];
+        var modeIdToName = {};
+        for (var mmi = 0; mmi < dcCol.modes.length; mmi++) {
+          modeIdToName[dcCol.modes[mmi].modeId] = dcCol.modes[mmi].name;
+        }
+        var outVars = [];
+        var varIds = dcCol.variableIds.slice();
+        for (var dvi = 0; dvi < varIds.length; dvi++) {
+          var vv = await figma.variables.getVariableByIdAsync(varIds[dvi]);
+          if (!vv) continue;
+          var vbm = {};
+          var modeIds = Object.keys(vv.valuesByMode || {});
+          for (var dmi = 0; dmi < modeIds.length; dmi++) {
+            var mId = modeIds[dmi];
+            var raw = vv.valuesByMode[mId];
+            var modeName = modeIdToName[mId] || mId;
+            if (raw && raw.type === 'VARIABLE_ALIAS') {
+              vbm[modeName] = { alias: true, id: raw.id };
+            } else if (vv.resolvedType === 'COLOR' && raw && typeof raw === 'object') {
+              vbm[modeName] = rgbToHex(raw);
+            } else {
+              vbm[modeName] = raw;
+            }
+          }
+          outVars.push({ name: vv.name, type: vv.resolvedType, valuesByMode: vbm });
+        }
+        out.collections.push({ name: dcCol.name, modes: dcCol.modes.map(function(m){ return m.name; }), variables: outVars });
+      }
+      figma.ui.postMessage({ type: 'current-tokens', data: out });
+    } catch (e) {
+      log('dump-current-tokens failed: ' + e.message);
+      figma.ui.postMessage({ type: 'current-tokens', data: { collections: [] } });
+    }
   }
 
   /* ── Component Generation ─────────────────────────────── */

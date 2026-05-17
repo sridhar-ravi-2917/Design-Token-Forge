@@ -1241,9 +1241,7 @@ function renderChangeList(){
       ? 'No changes match your filters.'
       : (documentProject && CURRENT_PROJECT && CURRENT_PROJECT !== documentProject)
         ? ''   /* mismatched + no diff yet → banner + footer button say everything */
-        : isStaticHost()
-          ? 'Per-token diff isn’t available on GitHub Pages. Use “Update variables” to apply the latest tokens.'
-          : 'No pending changes — you’re in sync.';
+        : 'No pending changes — you’re in sync.';
     html = emptyMsg
       ? '<div class="empty-state" id="changesEmptyHint"><div>' + emptyMsg + '</div></div>'
       : '';
@@ -1427,6 +1425,9 @@ function fetchTokenData(){
       fetchRetries = 0;
       tokenData = filterCollections(data);
       fetchChangelog();    /* keeps changeData fresh so renderChangeList has rows */
+      /* Static host has no /changelog endpoint — ask code.js to dump
+         current variables so we can synthesize a real per-token diff. */
+      if (isStaticHost()) requestStaticDiff();
     })
     .catch(function(err){
       log('fetchTokenData failed: ' + (err.message || err));
@@ -1459,6 +1460,77 @@ function fetchChangelog(){
       if (!changesPanel.hidden) renderChangeList();
     })
     .catch(function(){});
+}
+
+/* ── Static-host per-token diff ──────────────────────────
+   GitHub Pages has no /changelog endpoint, so we ask code.js
+   to dump current variables and diff client-side against
+   the incoming tokens.json. */
+function requestStaticDiff(){
+  parent.postMessage({ pluginMessage:{ type:'dump-current-tokens' } }, '*');
+}
+
+function handleStaticDiff(current){
+  if (!tokenData || !current || !current.collections) return;
+  /* Build {colName/varName/mode: value} lookup from current */
+  var currentLookup = {};
+  for (var ci=0; ci<current.collections.length; ci++){
+    var cc = current.collections[ci];
+    for (var vi=0; vi<cc.variables.length; vi++){
+      var vv = cc.variables[vi];
+      var modes = Object.keys(vv.valuesByMode || {});
+      for (var mi=0; mi<modes.length; mi++){
+        var key = cc.name + '|' + vv.name + '|' + modes[mi];
+        currentLookup[key] = String(vv.valuesByMode[modes[mi]] && vv.valuesByMode[modes[mi]].alias
+          ? '(alias)' : (vv.valuesByMode[modes[mi]] == null ? '' : vv.valuesByMode[modes[mi]])).toLowerCase();
+      }
+    }
+  }
+  /* Walk incoming tokenData, find diffs */
+  var changedVars = [];
+  var added = 0;
+  var nameSeen = {};
+  for (var nci=0; nci<tokenData.collections.length; nci++){
+    var nc = tokenData.collections[nci];
+    for (var nvi=0; nvi<nc.variables.length; nvi++){
+      var nv = nc.variables[nvi];
+      /* tokens.json variable shape: { name, type, valuesByMode:{modeName: rawHexOrNumberOrAlias} } */
+      var modeNames = Object.keys(nv.valuesByMode || {});
+      var firstChange = null;
+      var seenInFile = false;
+      for (var nmi=0; nmi<modeNames.length; nmi++){
+        var mn = modeNames[nmi];
+        var k = nc.name + '|' + nv.name + '|' + mn;
+        var rawNew = nv.valuesByMode[mn];
+        var newVal = rawNew && rawNew.alias ? '(alias)' : (rawNew == null ? '' : rawNew);
+        var newKey = String(newVal).toLowerCase();
+        if (k in currentLookup){
+          seenInFile = true;
+          if (currentLookup[k] !== newKey && !firstChange){
+            firstChange = { name: nv.name, from: String(currentLookup[k] || ''), to: String(newVal || '') };
+          }
+        }
+      }
+      if (!seenInFile){ added++; nameSeen[nc.name + '/' + nv.name] = 'add'; continue; }
+      if (firstChange){ changedVars.push(firstChange); nameSeen[nc.name + '/' + nv.name] = 'upd'; }
+    }
+  }
+  /* Removals: in current, not in new */
+  var newLookupNames = {};
+  for (var xci=0; xci<tokenData.collections.length; xci++){
+    var xc = tokenData.collections[xci];
+    for (var xvi=0; xvi<xc.variables.length; xvi++) newLookupNames[xc.name + '|' + xc.variables[xvi].name] = true;
+  }
+  var removed = 0;
+  for (var rci=0; rci<current.collections.length; rci++){
+    var rc = current.collections[rci];
+    for (var rvi=0; rvi<rc.variables.length; rvi++){
+      if (!newLookupNames[rc.name + '|' + rc.variables[rvi].name]) removed++;
+    }
+  }
+  changeData = { entries: [{ time: Date.now(), newHash: (tokenData.contentHash || '').slice(0,7), summary: { changedVars: changedVars, added: added, removed: removed, detail: changedVars.length + ' changed, ' + added + ' added, ' + removed + ' removed' } }] };
+  if (!changesPanel.hidden) renderChangeList();
+  render();
 }
 
 /* Sync */
@@ -1615,6 +1687,10 @@ window.onmessage = function(event){
     render();
   }
 
+  if (msg.type === 'current-tokens'){
+    handleStaticDiff(msg.data);
+  }
+
   if (msg.type === 'done'){
     syncing = false;
     var s = msg.stats;
@@ -1768,6 +1844,7 @@ if (tbRefresh) tbRefresh.addEventListener('click', function(){
   poll();
   fetchTokenData();
   if (!isStaticHost()) fetchChangelog();
+  else requestStaticDiff();
   setTimeout(function(){ tbRefresh.classList.remove('spinning'); }, 600);
 });
 
