@@ -5074,7 +5074,7 @@
     }
 
     // Unauthenticated fallback \u2014 try a few static paths.
-    var candidates = ['../../projects.json', '/Design-Token-Forge/projects.json', '/projects.json'];
+    var candidates = ['../../projects.json', '/projects.json'];
     var i = 0;
     return new Promise(function (resolve, reject) {
       function tryNext() {

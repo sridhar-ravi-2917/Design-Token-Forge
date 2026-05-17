@@ -143,9 +143,15 @@ try {
   var panelOpen = false;
   var cachedList = []; /* last-known project list for switching */
 
-  /* GitHub API setup */
-  var ghOwnerStored = localStorage.getItem('dtf-gh-owner') || localStorage.getItem('dtf-gh-user') || 'sridhar-ravi-2917';
-  var ghApiBase = 'https://api.github.com/repos/' + ghOwnerStored + '/Design-Token-Forge';
+  /* GitHub API setup — owner is ALWAYS the signed-in user's login
+     (set by auth-gate.js on PAT verify). No fallback to the canonical
+     maintainer's login — that was the bug where every visitor's dropdown
+     queried the maintainer's repo. If no owner is known, leave the API
+     base unset and the dropdown will simply show nothing until sign-in. */
+  var ghOwnerStored = localStorage.getItem('dtf-gh-owner') || localStorage.getItem('dtf-gh-user') || '';
+  var ghApiBase = ghOwnerStored
+    ? 'https://api.github.com/repos/' + ghOwnerStored + '/Design-Token-Forge'
+    : '';
   var ghToken = localStorage.getItem('dtf-gh-pat') || '';
   var ghHdrs = ghToken
     ? { 'Authorization': 'Bearer ' + ghToken, 'Accept': 'application/vnd.github+json' }
@@ -259,16 +265,18 @@ try {
   var pagesBase = depth + '/projects.json?_cb=' + Date.now();
 
   function fetchLiveProjects(cb) {
-    if (ghToken) {
-      /* PAT available: API is source of truth (sees just-committed projects) */
+    if (ghToken && ghApiBase) {
+      /* Signed in: ONLY the user's own fork is source of truth. We never
+         fall back to the deployed site's static projects.json — that
+         file belongs to the maintainer and would leak their project
+         list into every visitor's dropdown. Empty fork = empty list. */
       _fetchFromApi(function(list) {
-        if (list && list.length) { cb(list); return; }
-        /* API failed — fall back to static file */
-        _fetchFromStatic(cb);
+        cb(list || []);
       });
     } else {
-      /* No PAT: use static projects.json (no rate limit), merge localStorage for new ones */
-      _fetchFromStatic(cb);
+      /* Anonymous — nothing to show. The PAT gate will normally have
+         prevented us getting this far, but guard anyway. */
+      cb([]);
     }
   }
 

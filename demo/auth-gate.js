@@ -40,8 +40,37 @@
   var USER_KEY     = 'dtf-gh-user';
   var OWNER_KEY    = 'dtf-gh-owner';
   var SESSION_KEY  = 'dtf-auth-ok';
+  var EPOCH_KEY    = 'dtf-session-epoch';
+  var SESSION_EPOCH = '2';            /* bump to force-sign-out every visitor */
   var REPO_OWNER   = 'sridhar-ravi-2917';   /* canonical repo owner */
   var REPO_NAME    = 'Design-Token-Forge';
+
+  /* ── One-time wipe of stale per-user state on epoch bump. ──────
+     When SESSION_EPOCH increments we forcibly clear every visitor's
+     PAT, owner, active-project, and per-project token caches so they
+     re-authenticate fresh and land in THEIR OWN fork — not whatever
+     owner was previously cached (the canonical fix for the bug where
+     returning visitors accidentally saw the original maintainer's
+     project list). */
+  try {
+    if (localStorage.getItem(EPOCH_KEY) !== SESSION_EPOCH) {
+      var wipeExact = [PAT_KEY, USER_KEY, OWNER_KEY, 'dtf-active-project',
+        'dtf-known-projects', 'dtf-mig-unscoped-tokens-purged',
+        'dtf-saved-tokens'];
+      wipeExact.forEach(function (k) { try { localStorage.removeItem(k); } catch (_e) {} });
+      /* All per-project token caches use the dtf-saved-tokens-<id> shape. */
+      try {
+        var toDrop = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf('dtf-saved-tokens-') === 0) toDrop.push(k);
+        }
+        toDrop.forEach(function (k) { localStorage.removeItem(k); });
+      } catch (_e) {}
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_e) {}
+      localStorage.setItem(EPOCH_KEY, SESSION_EPOCH);
+    }
+  } catch (_e) {}
 
   /* ── Hide everything until the gate decides. ───────────────────
      We can't toggle <body> yet (parser hasn't reached it), so we
@@ -222,10 +251,12 @@
         try {
           localStorage.setItem(PAT_KEY, token);
           localStorage.setItem(USER_KEY, user.login || '');
-          /* Only set owner if we don't already have one — preserves
-             explicit override (eg. forks) the user set elsewhere. */
-          if (!localStorage.getItem(OWNER_KEY)) {
-            localStorage.setItem(OWNER_KEY, REPO_OWNER);
+          /* Owner = the signed-in user's OWN GitHub login. This is what
+             makes the project dropdown read from their fork instead of
+             the canonical maintainer's repo. We always overwrite with
+             the verified user.login so a stale owner can never leak. */
+          if (user.login) {
+            localStorage.setItem(OWNER_KEY, user.login);
           }
           sessionStorage.setItem(SESSION_KEY, '1');
           /* Backward-compat: editor-legacy.html still uses its own
@@ -267,6 +298,8 @@
     try {
       localStorage.removeItem(PAT_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(OWNER_KEY);
+      localStorage.removeItem('dtf-active-project');
       sessionStorage.removeItem(SESSION_KEY);
     } catch (_e) {}
     location.reload();

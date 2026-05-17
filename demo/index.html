@@ -12,11 +12,11 @@
      of the package default blue. -->
 <script>try{localStorage.removeItem('dtf-active-project');}catch(e){}</script>
 <!-- Auth gate MUST be first, no defer, so body hides before paint. -->
-<script src="auth-gate.js?v=1"></script>
+<script src="auth-gate.js?v=2"></script>
 <link rel="stylesheet" href="../packages/tokens/src/index.css">
 <link rel="stylesheet" href="shared.css?v=1008">
 <script src="dtf-topbar.js?v=9" defer></script>
-<script src="shared.js?v=1100" defer></script>
+<script src="shared.js?v=1101" defer></script>
 <style>
   :root{ color-scheme: light dark; }
   body{
@@ -267,7 +267,7 @@
   var grid = document.getElementById('projGrid');
   var countEl = document.getElementById('projCount');
   // Try relative path first (works on file:// and Pages)
-  var candidates = ['../projects.json', '/Design-Token-Forge/projects.json', '/projects.json'];
+  var candidates = ['../projects.json', '/projects.json'];
 
   function tryFetch(i){
     if (i >= candidates.length) { renderError(); return; }
