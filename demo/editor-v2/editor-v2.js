@@ -1115,12 +1115,25 @@
     var sep = document.querySelector('.ev2-savebar-sep');
     if (n === 0) {
       $autosave.textContent = '';
+      $autosave.removeAttribute('data-tip');
       if (sep) sep.hidden = true;
       return;
     }
     if (sep) sep.hidden = false;
-    if (!State.lastSavedAt) { $autosave.textContent = 'backing up\u2026'; return; }
+    if (!State.lastSavedAt) {
+      $autosave.textContent = 'backing up\u2026';
+      $autosave.setAttribute('data-tip', 'Saving your edits to this browser as a local draft. Nothing has been published to GitHub yet — use Publish to commit.');
+      return;
+    }
     $autosave.textContent = 'backed up ' + relTime(State.lastSavedAt);
+    var d = new Date(State.lastSavedAt);
+    var hh = String(d.getHours()).padStart(2,'0');
+    var mm = String(d.getMinutes()).padStart(2,'0');
+    var ss = String(d.getSeconds()).padStart(2,'0');
+    $autosave.setAttribute('data-tip',
+      'Auto-saved to this browser at ' + hh + ':' + mm + ':' + ss +
+      '. This is a local draft only — it has not been published to GitHub. ' +
+      'Use Publish to commit a snapshot every collaborator can pull.');
   }
 
   function relTime(ts) {
@@ -4698,8 +4711,30 @@
       refreshDraftStatus('idle');
     }
     initPaneResizer();
+    initBeforeUnloadGuard();
   }
   // Boot runs at the very bottom, after all helpers are defined.
+
+  /* ══════════════════════════════════════════════════════
+     beforeunload guard — warn if the user closes the tab or
+     navigates away with unsaved changes. Modern browsers
+     ignore the custom string and show their own generic
+     prompt, but returning ANY truthy value triggers it.
+     We skip the prompt when totalChanges() === 0 so the
+     editor doesn't nag on clean closes.
+     ══════════════════════════════════════════════════════ */
+  function initBeforeUnloadGuard() {
+    window.addEventListener('beforeunload', function (e) {
+      try {
+        if (typeof totalChanges === 'function' && totalChanges() > 0) {
+          var msg = 'You have unsaved changes. Leave anyway?';
+          e.preventDefault();
+          e.returnValue = msg;
+          return msg;
+        }
+      } catch (_e) {}
+    });
+  }
 
   /* ══════════════════════════════════════════════════════
      Pane resizer (drag divider between list and preview)

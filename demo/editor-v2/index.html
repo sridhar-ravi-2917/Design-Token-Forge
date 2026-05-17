@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="../shared.css">
 
   <!-- Editor v2 specific layout -->
-  <link rel="stylesheet" href="./editor-v2.css?v=132">
+  <link rel="stylesheet" href="./editor-v2.css?v=133">
 
   <!-- Per-project token chrome: load the active project's primitives/
        semantic/surfaces so the editor itself (topbar dropdown, pills,
@@ -106,14 +106,17 @@
       <div class="ev2-proj-panel" id="projPanel" role="listbox" hidden></div>
     </div>
 
-    <button slot="action" class="ev2-topbar-icon-btn" id="historyBtn" type="button"
-      data-tip="Browse published versions. Restore any previous release as a new publish.">
-      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M8 4v4l2.5 1.5"/>
-        <circle cx="8" cy="8" r="6"/>
-      </svg>
-      <span>History</span>
-    </button>
+    <div slot="action" class="ev2-topbar-status" id="topbarStatus">
+      <span class="ev2-changes" id="changeCount">No changes</span>
+      <span class="ev2-savebar-sep" hidden>·</span>
+      <span class="ev2-autosave" id="autosaveStatus"></span>
+      <span class="ev2-topbar-status-sep" aria-hidden="true">·</span>
+      <button class="ev2-topbar-linkbtn" id="historyBtn" type="button"
+        data-tip="Browse every published version of this project on GitHub. Restore any past release as a new publish.">History</button>
+    </div>
+
+    <button slot="action" class="ev2-topbar-ghost-btn" id="discardBtn" type="button" disabled
+      data-tip="Revert every unsaved change in this draft — Palette + Roles + Surfaces + Components for both light and dark modes. To reset just one section, use the Reset section button above the token list. To reset just one role, use Reset on the role card.">Discard</button>
 
     <button slot="action" class="ev2-deploy" id="deployBtn" type="button" disabled
       data-tip="Save your changes as the new default for this project. Figma refreshes automatically.">
@@ -230,18 +233,6 @@
       <div class="ev2-preview-stage" id="previewStage">
         <iframe class="ev2-preview-frame" id="previewFrame" title="Live component preview" sandbox="allow-same-origin allow-scripts"></iframe>
       </div>
-
-      <footer class="ev2-savebar" id="savebar">
-        <div class="ev2-savebar-l">
-          <span class="ev2-changes" id="changeCount">No changes</span>
-          <span class="ev2-savebar-sep" hidden>·</span>
-          <span class="ev2-autosave" id="autosaveStatus"></span>
-        </div>
-        <div class="ev2-savebar-r">
-          <button class="ev2-discard" id="discardBtn" disabled
-            data-tip="Revert every unsaved change in this draft — Palette + Roles + Surfaces + Components for both light and dark modes. To reset just one section, use the Reset section button above the token list. To reset just one role, use Reset on the role card.">Discard changes</button>
-        </div>
-      </footer>
     </section>
 
     </div><!-- /.ev2-panes -->
@@ -422,6 +413,6 @@
     </div>
   </div>
 
-  <script src="./editor-v2.js?v=149" defer></script>
+  <script src="./editor-v2.js?v=150" defer></script>
 </body>
 </html>

@@ -212,6 +212,57 @@ body{
 .ev2-topbar-icon-btn:hover{border-color:var(--demo-fg-faint);color:var(--demo-fg-strong)}
 .ev2-topbar-icon-btn:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:2px}
 
+/* Topbar status cluster — folds the old bottom savebar (change count,
+   "backed up X ago", History link) into the top action area so the
+   entire editor state lives in one persistent strip. */
+.ev2-topbar-status{
+  display:inline-flex;align-items:center;gap:8px;
+  height:28px;line-height:1;
+  padding:0 12px 0 4px;
+  font-size:11px;
+  color:var(--demo-fg-subtle);
+  white-space:nowrap;
+}
+.ev2-topbar-status .ev2-changes{font-weight:600;color:var(--demo-fg-strong)}
+.ev2-topbar-status .ev2-autosave{font-style:italic;color:var(--demo-fg-faint);cursor:help}
+.ev2-topbar-status .ev2-savebar-sep,
+.ev2-topbar-status-sep{color:var(--demo-fg-faint)}
+.ev2-topbar-status-sep[hidden]{display:none}
+/* Hide the trailing separator+History when there are no changes
+   so the bar reads "No changes" cleanly. */
+.ev2-topbar-status:has(.ev2-savebar-sep[hidden]) .ev2-topbar-status-sep{display:none}
+.ev2-topbar-linkbtn{
+  appearance:none;border:0;background:transparent;padding:0;
+  font:inherit;font-size:11px;font-weight:600;
+  color:var(--demo-fg-subtle);
+  cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--demo-border);
+  text-underline-offset:3px;
+  transition:color 120ms ease,text-decoration-color 120ms ease;
+}
+.ev2-topbar-linkbtn:hover{color:var(--demo-fg-strong);text-decoration-color:var(--demo-fg-faint)}
+.ev2-topbar-linkbtn:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:3px;border-radius:2px}
+
+/* Ghost discard button sitting next to Publish. Visually quieter
+   than the brand-solid Publish CTA so a slip-click is unlikely,
+   but still a real button (not a text link) — Discard is destructive
+   enough that it deserves a hit target. */
+.ev2-topbar-ghost-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;height:28px;line-height:1;
+  border:1px solid var(--demo-border);
+  border-radius:var(--radius-md,6px);
+  background:transparent;
+  color:var(--demo-fg-subtle);
+  font:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;
+  transition:all 120ms ease;
+  font-family:inherit;
+}
+.ev2-topbar-ghost-btn:hover:not(:disabled){border-color:var(--danger-component-outline-default,#D61D20);color:var(--danger-content-default,#D61D20)}
+.ev2-topbar-ghost-btn:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:2px}
+.ev2-topbar-ghost-btn:disabled{opacity:.45;cursor:not-allowed}
+
 .ev2-history-btn,
 .ev2-preview-link{
   display:inline-flex;align-items:center;gap:6px;
