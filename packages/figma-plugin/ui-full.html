@@ -734,6 +734,13 @@ var filterSearch = document.getElementById('filterSearch');
 var filterChips  = document.getElementById('filterChips');
 var changeGroups = document.getElementById('changeGroups');
 
+var mismatchSync       = document.getElementById('mismatchSync');
+var mismatchSyncDoc    = document.getElementById('mismatchSyncDoc');
+var mismatchSyncNew    = document.getElementById('mismatchSyncNew');
+var mismatchBuilder    = document.getElementById('mismatchBuilder');
+var mismatchBuilderDoc = document.getElementById('mismatchBuilderDoc');
+var mismatchBuilderNew = document.getElementById('mismatchBuilderNew');
+
 var prereqsBar   = document.getElementById('prereqsBar');
 var prereqsList  = document.getElementById('prereqsList');
 var genStatus    = document.getElementById('genStatus');
@@ -841,22 +848,18 @@ function render(){
   tbAvatar.title = 'Connected as ' + GH_USERNAME;
   tbMenuIdentity.textContent = 'Connected as ' + GH_USERNAME;
 
-  /* Project mismatch — high priority warning */
-  if (pendingSwitchProject && documentProject && pendingSwitchProject !== documentProject){
-    setHero({
-      glyph:'⚠', glyphClass:'warn',
-      title:'Project mismatch',
-      sub:'This Figma file is linked to <strong>' + esc(projectDisplayName(documentProject)) + '</strong>. You\'re about to sync <strong>' + esc(projectDisplayName(pendingSwitchProject)) + '</strong> instead.',
-      actions:[
-        { label:'Switch & sync', kind:'primary', id:'heroSwitchBtn' },
-        { label:'Keep current',  kind:'ghost',   id:'heroKeepBtn' }
-      ]
-    });
-    changesPanel.hidden = true;
-    footerSync.hidden = true;
-    bindMismatchActions();
-    return;
+  /* Project mismatch: file is bound to one project, dropdown points at another.
+     Render as a persistent inline banner above the change list and tweak the
+     primary action button to make the rebind explicit. */
+  var isMismatch = !!(documentProject && CURRENT_PROJECT && CURRENT_PROJECT !== documentProject);
+  if (isMismatch){
+    mismatchSyncDoc.textContent    = projectDisplayName(documentProject);
+    mismatchSyncNew.textContent    = projectDisplayName(CURRENT_PROJECT);
+    mismatchBuilderDoc.textContent = projectDisplayName(documentProject);
+    mismatchBuilderNew.textContent = projectDisplayName(CURRENT_PROJECT);
   }
+  mismatchSync.hidden    = !isMismatch;
+  mismatchBuilder.hidden = !isMismatch;
 
   /* Undo detected */
   if (undoDetected){
@@ -920,15 +923,22 @@ function render(){
   var hasPending  = serverHash && serverHash !== figmaHash && figmaHash !== '';
   var isFirstRun  = figmaHash === '' && serverStatus && serverStatus.totalVariables > 0;
 
-  if (hasPending || isFirstRun){
-    /* Change list mode */
+  if (hasPending || isFirstRun || isMismatch){
+    /* Change list mode — also used when mismatched so the user can review
+       what will be written before rebinding the file. */
     heroEl.style.display = 'none';
     changesPanel.hidden = false;
     footerSync.hidden = false;
     syncBtn.disabled = false;
-    syncBtn.textContent = hasExistingVars ? 'Update variables in Figma' : 'Create variables in Figma';
+    if (isMismatch){
+      syncBtn.textContent = 'Rebind file & sync ' + projectDisplayName(CURRENT_PROJECT);
+    } else if (hasExistingVars){
+      syncBtn.textContent = 'Update variables in Figma';
+    } else {
+      syncBtn.textContent = 'Create variables in Figma';
+    }
     renderChangeList();
-    setSyncBadge(changeData ? totalChangeCount() : '!');
+    setSyncBadge(isMismatch ? '!' : (changeData ? totalChangeCount() : '!'));
     return;
   }
 
@@ -972,26 +982,9 @@ function setSyncBadge(n){
   }
 }
 
-function bindMismatchActions(){
-  var sw = document.getElementById('heroSwitchBtn');
-  var kp = document.getElementById('heroKeepBtn');
-  if (sw) sw.addEventListener('click', function(){
-    documentProject = pendingSwitchProject;
-    pendingSwitchProject = '';
-    doSync();
-  });
-  if (kp) kp.addEventListener('click', function(){
-    CURRENT_PROJECT = documentProject;
-    pendingSwitchProject = '';
-    storageSet('dtf-project-id', CURRENT_PROJECT);
-    selectProjectInDropdown(CURRENT_PROJECT);
-    connected = false; tokenData = null; serverStatus = null;
-    lastSeenHash = ''; hashStableCount = 0; deploySettling = false;
-    if (pollTimer) clearInterval(pollTimer);
-    startPolling();
-    render();
-  });
-}
+/* Legacy mismatch hero detour replaced by persistent inline banner; kept as
+   a no-op for any stale references. */
+function bindMismatchActions(){}
 
 /* ════════════════════════════════════════════════════
    CHANGE LIST — grouped + filterable + scalable
@@ -1148,7 +1141,12 @@ function renderChangeList(){
           + '</section>';
   }
   if (!visible.length){
-    html = '<div style="padding:20px;text-align:center;color:var(--dtf-fg-faint);font-size:var(--dtf-fs-11)">No changes match your filters.</div>';
+    var emptyMsg = (activeFilters.size > 0 || (filterSearch.value || '').trim())
+      ? 'No changes match your filters.'
+      : (documentProject && CURRENT_PROJECT && CURRENT_PROJECT !== documentProject)
+        ? 'Click “Rebind file &amp; sync” below to apply <strong>' + esc(projectDisplayName(CURRENT_PROJECT)) + '</strong>’s tokens to this file.'
+        : 'No pending changes — you’re in sync.';
+    html = '<div class="empty-state"><div>' + emptyMsg + '</div></div>';
   }
   changeGroups.innerHTML = html;
 }
@@ -1395,11 +1393,10 @@ syncBtn.addEventListener('click', function(){
 });
 
 function startSync(){
-  if (documentProject && CURRENT_PROJECT !== documentProject){
-    pendingSwitchProject = CURRENT_PROJECT;
-    render();
-    return;
-  }
+  /* Mismatch is now surfaced as a persistent inline banner + a contextual
+     button label (“Rebind file & sync …”), so the user has already opted in
+     by the time they click. doSync writes the new project’s tokens and the
+     ‘done’ handler updates documentProject = CURRENT_PROJECT. */
   doSync();
 }
 
