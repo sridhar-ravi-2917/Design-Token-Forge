@@ -82,6 +82,9 @@
     display: flex; flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    /* Floating panels (Server URL / Debug info) anchor against the
+       body so their `top` / `right` offsets are predictable. */
+    position: relative;
   }
   a { color: var(--dtf-brand-content); }
 
@@ -680,12 +683,44 @@
   .setup-error { display: none; font-size: var(--dtf-fs-11); color: var(--dtf-danger-content); }
   .setup-error.visible { display: block; }
 
+  /* ── Floating panels (Server URL / Debug info) ──────
+     Previously these rendered as inline rows that pushed the hero
+     down and had no close affordance — users had to re-click the
+     menu item to dismiss. Now they float as small cards anchored
+     under the topbar, with an X button + ESC + click-outside
+     dismiss. They no longer steal vertical space from the sync UI. */
+  .floating-panel {
+    position: absolute;
+    top: 96px; right: 12px;
+    width: min(320px, calc(100% - 24px));
+    z-index: 80;
+    background: var(--dtf-surface);
+    border: 1px solid var(--dtf-border-strong);
+    border-radius: var(--dtf-radius-md);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    padding: 10px 12px;
+    display: none;
+  }
+  .floating-panel.visible { display: block; }
+  .floating-panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: -2px -4px 8px 0;
+  }
+  .floating-panel-title {
+    font-size: var(--dtf-fs-11); font-weight: 600;
+    color: var(--dtf-fg-strong); text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .floating-panel-close {
+    width: 20px; height: 20px;
+    background: transparent; border: 0; border-radius: var(--dtf-radius-sm);
+    color: var(--dtf-fg-faint); cursor: pointer;
+    font-size: 14px; line-height: 1;
+  }
+  .floating-panel-close:hover { color: var(--dtf-fg-strong); background: var(--dtf-surface-alt); }
+
   /* ── Server URL section (in menu, rare) ──────────── */
   .server-panel {
-    padding: 8px 10px;
-    background: var(--dtf-surface-alt);
-    border-top: 1px solid var(--dtf-border);
-    border-bottom: 1px solid var(--dtf-border);
     display: none;
   }
   .server-panel.visible { display: block; }
@@ -695,9 +730,9 @@
     border: 1px solid var(--dtf-border-strong);
     font: 400 var(--dtf-fs-11) var(--dtf-font-mono);
     color: var(--dtf-fg-strong); background: var(--dtf-surface);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
-  .server-panel .row { display: flex; gap: 6px; align-items: center; }
+  .server-panel .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .server-panel .preset {
     background: transparent; border: 0; padding: 0;
     color: var(--dtf-brand-content); font-size: var(--dtf-fs-10);
@@ -707,10 +742,6 @@
   /* ── Debug panel (rare; in menu) ──────────────────── */
   .debug-panel {
     display: none;
-    padding: 8px 10px;
-    background: var(--dtf-surface-alt);
-    border-top: 1px solid var(--dtf-border);
-    border-bottom: 1px solid var(--dtf-border);
     font-size: var(--dtf-fs-11); color: var(--dtf-fg-subtle);
     font-family: var(--dtf-font-mono);
   }
@@ -779,15 +810,12 @@
           <input type="checkbox" id="autoSyncCb">
           <span>Auto-sync when tokens change</span>
         </label>
-        <!-- Web handoffs: the plugin only holds the latest deployed
-             snapshot. The web app has full per-commit history and the
-             token editor. Both open externally via figma.openExternal. -->
-        <button class="tb-menu-item connected-only" id="menuOpenWeb">
-          <span>Open project on web ↗</span>
-        </button>
-        <button class="tb-menu-item connected-only" id="menuChangelog">
-          <span>Version history ↗</span>
-        </button>
+        <!-- Web handoffs (Version history, Open on web) are deferred:
+             the DTF web app currently exposes the project list to any
+             visitor (no PAT gate), so a one-click handoff from the
+             plugin would surface the user's project names to whoever
+             they share the link with. Re-enable when web supports a
+             PAT-authenticated deep link / history dialog. -->
         <div class="tb-menu-sep connected-only"></div>
         <button class="tb-menu-item connected-only" id="menuDebug">
           <span>Debug info</span>
@@ -804,7 +832,11 @@
   </div>
 
   <!-- ─── Server URL panel (toggled from menu) ─────── -->
-  <div class="server-panel" id="serverPanel">
+  <div class="server-panel floating-panel" id="serverPanel" role="dialog" aria-label="Server URL">
+    <div class="floating-panel-head">
+      <span class="floating-panel-title">Server URL</span>
+      <button class="floating-panel-close" type="button" data-close="serverPanel" aria-label="Close">×</button>
+    </div>
     <input type="text" id="serverUrlOverride" placeholder="Custom server URL" spellcheck="false">
     <div class="row">
       <button class="btn btn-ghost" id="saveUrlBtn" style="padding:6px 12px;font-size:var(--dtf-fs-11)">Save</button>
@@ -814,7 +846,11 @@
   </div>
 
   <!-- ─── Debug panel (toggled from menu) ──────────── -->
-  <div class="debug-panel" id="debugPanel">
+  <div class="debug-panel floating-panel" id="debugPanel" role="dialog" aria-label="Debug info">
+    <div class="floating-panel-head">
+      <span class="floating-panel-title">Debug info</span>
+      <button class="floating-panel-close" type="button" data-close="debugPanel" aria-label="Close">×</button>
+    </div>
     <div class="row"><span>Figma vars:</span><strong id="dbgVars">—</strong></div>
     <div class="row"><span>Collections:</span><strong id="dbgCols">—</strong></div>
     <div class="row"><span>Hash:</span><strong id="dbgHash">—</strong></div>
@@ -1114,7 +1150,7 @@ var openGroups = new Set();      /* expanded group keys */
 /* Build stamp — bump on every UI-affecting change so you can confirm
    the Figma plugin sandbox isn't serving a cached old copy. Shown in
    the empty-state footer + logged once to the plugin console. */
-var BUILD_VERSION = '2026-05-17-p11';
+var BUILD_VERSION = '2026-05-17-p12';
 function log(msg){ console.log('[DTF] ' + msg); }
 log('plugin UI build ' + BUILD_VERSION);
 
@@ -1793,30 +1829,16 @@ autoSyncCb.addEventListener('change', function(){
   AUTO_SYNC = autoSyncCb.checked;
   storageSet('dtf-auto-sync', AUTO_SYNC ? '1' : '0');
 });
-menuChangelog.addEventListener('click', function(){
-  /* Version history lives on the DTF web app, not in the plugin.
-     The plugin only has access to the current deployed snapshot;
-     the editor knows every commit + author + diff. Hand the user
-     off there. PAT is already verified by the time they see this
-     menu item (it's .connected-only), so the web app can hydrate
-     the same identity from the URL fragment if needed. */
-  closeMenu();
-  var url = SERVER.replace(/\/$/, '');
-  if (CURRENT_PROJECT) url += '/?project=' + encodeURIComponent(CURRENT_PROJECT) + '#history';
-  else                 url += '/#history';
-  parent.postMessage({ pluginMessage:{ type:'open-external', url:url } }, '*');
-});
 
-/* Open the current project on the DTF web app. Mirrors the Version
-   history handoff but lands on the project's editor (no hash). */
-var menuOpenWeb = document.getElementById('menuOpenWeb');
-if (menuOpenWeb) menuOpenWeb.addEventListener('click', function(){
-  closeMenu();
-  var url = SERVER.replace(/\/$/, '');
-  if (CURRENT_PROJECT) url += '/?project=' + encodeURIComponent(CURRENT_PROJECT);
-  else                 url += '/';
-  parent.postMessage({ pluginMessage:{ type:'open-external', url:url } }, '*');
-});
+/* Web handoffs (Version history, Open project on web) are removed
+   until the DTF web app gates project listings behind PAT auth.
+   Right now the github.io deploy exposes the project list to any
+   visitor, so a one-click handoff from the plugin would surface
+   the user's project names to anyone they share the link with.
+   The legacy menuChangelog element no longer exists in the DOM
+   either; the var is null and we skip the wiring. */
+if (menuChangelog) menuChangelog.addEventListener('click', function(){});
+var menuOpenWeb = null;
 
 /* Identity label opens the connected GitHub profile so the user can
    confirm which account is bound. Useful on shared / multi-account
@@ -1863,6 +1885,33 @@ menuServer.addEventListener('click', function(){
   debugPanel.classList.remove('visible');
   serverPanel.classList.toggle('visible');
   serverUrlOverride.value = SERVER;
+});
+
+/* Floating-panel dismiss wiring (close button, ESC, click-outside).
+   The Server URL and Debug panels used to live inline below the
+   topbar with no close affordance \u2014 users had to re-click the
+   same menu item to dismiss. Now they're floating cards with
+   three escape hatches. */
+document.querySelectorAll('.floating-panel-close').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var id = btn.getAttribute('data-close');
+    var pnl = document.getElementById(id);
+    if (pnl) pnl.classList.remove('visible');
+  });
+});
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  var any = document.querySelector('.floating-panel.visible');
+  if (any) any.classList.remove('visible');
+});
+document.addEventListener('mousedown', function(e){
+  document.querySelectorAll('.floating-panel.visible').forEach(function(pnl){
+    /* Don't dismiss when clicking the panel itself or the menu
+       item that opened it (toggle would re-open immediately). */
+    if (pnl.contains(e.target)) return;
+    if (e.target.closest('#menuServer, #menuDebug, .tb-menu')) return;
+    pnl.classList.remove('visible');
+  });
 });
 menuDisconnect.addEventListener('click', function(){
   closeMenu();
