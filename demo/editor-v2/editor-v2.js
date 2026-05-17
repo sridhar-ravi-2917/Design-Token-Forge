@@ -1005,7 +1005,25 @@
     });
     surfaceVarsLinesForMode('dark').forEach(function (l) { darkLines.push(l); });
     darkLines.push('}');
-    win.postMessage({ type: 'ev2-overrides', css: rootLines.concat(darkLines).join('\n') }, '*');
+    var cssBundle = rootLines.concat(darkLines).join('\n');
+    win.postMessage({ type: 'ev2-overrides', css: cssBundle }, '*');
+
+    /* Also apply the SAME override bundle to the editor's own document
+       so the chrome (which derives from --surface-base-* → --prim-*)
+       repaints when the user toggles exact↔normalized or tweaks a key
+       color. Without this, the iframe and the editor chrome diverge:
+       preview shows the proposed palette, chrome stays on the project's
+       shipped values. Same css text → same cascade, both contexts. */
+    try {
+      var styleId = 'ev2-editor-overrides';
+      var styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      if (styleEl.textContent !== cssBundle) styleEl.textContent = cssBundle;
+    } catch (e) {}
     // Tell the preview which role is currently being edited so the
     // contextual cards (Text card, Spotlight alert) reflect that role
     // instead of always showing brand.
