@@ -68,6 +68,10 @@
   }
 
   * { margin:0; padding:0; box-sizing:border-box; }
+  /* [hidden] must beat author display:flex/grid rules. Without this,
+     `el.hidden = true` silently no-ops on .hero / .setup-form / .footer
+     and stacks states on top of each other. */
+  [hidden] { display: none !important; }
   body {
     font-family: var(--dtf-font);
     font-size: var(--dtf-fs-12);
@@ -128,26 +132,23 @@
   body[data-conn="work"]  .tb-status-dot { background: var(--dtf-warning-bg); }
 
   .tb-avatar {
-    width: 24px; height: 24px; border-radius: 50%;
+    width: 28px; height: 28px; border-radius: 50%;
     background: var(--dtf-surface-deep); color: var(--dtf-fg-strong);
     display: flex; align-items: center; justify-content: center;
-    font-size: var(--dtf-fs-10); font-weight: 700;
+    font-size: var(--dtf-fs-11); font-weight: 700;
     flex-shrink: 0;
+    border: 0; cursor: pointer;
+    font-family: inherit;
+    transition: background 120ms ease;
   }
+  .tb-avatar:hover { background: var(--dtf-border-strong); }
   .tb-avatar.disconnected { background: var(--dtf-surface-alt); color: var(--dtf-fg-faint); }
-
-  .tb-menu-btn {
-    width: 28px; height: 28px; border-radius: var(--dtf-radius-sm);
-    background: transparent; border: 0; cursor: pointer;
-    color: var(--dtf-fg-subtle);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; line-height: 1;
-    flex-shrink: 0;
-  }
-  .tb-menu-btn:hover { background: var(--dtf-surface-alt); color: var(--dtf-fg-strong); }
 
   /* ── Overflow menu (uses native <details>) ──────────── */
   .tb-menu { position: relative; }
+  .tb-menu > summary { list-style: none; cursor: pointer; }
+  .tb-menu > summary::-webkit-details-marker,
+  .tb-menu > summary::marker { display: none; content: ''; }
   .tb-menu[open] > summary::before {
     content: ''; position: fixed; inset: 0; z-index: 5;
   }
@@ -156,8 +157,8 @@
   }
   .tb-menu summary::-webkit-details-marker { display: none; }
   .tb-menu-pop {
-    position: absolute; top: 32px; right: 0; z-index: 10;
-    min-width: 180px; padding: 4px;
+    position: absolute; top: 34px; right: 0; z-index: 10;
+    min-width: 200px; padding: 4px;
     background: var(--dtf-surface);
     border: 1px solid var(--dtf-border);
     border-radius: var(--dtf-radius-md);
@@ -540,9 +541,8 @@
         <option value="">Loading…</option>
       </select>
     </div>
-    <div class="tb-avatar disconnected" id="tbAvatar" title="Not connected">?</div>
     <details class="tb-menu" id="tbMenu">
-      <summary class="tb-menu-btn" aria-label="More options" title="More options">⋯</summary>
+      <summary class="tb-avatar disconnected" id="tbAvatar" title="Account menu" aria-label="Account menu">?</summary>
       <div class="tb-menu-pop">
         <div class="tb-menu-label" id="tbMenuIdentity">Not connected</div>
         <label class="tb-menu-item">
