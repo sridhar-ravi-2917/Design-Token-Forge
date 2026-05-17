@@ -1092,7 +1092,7 @@
           <span class="rebind-arrow">→</span>
           <span class="rebind-chip target"><span class="rebind-chip-dot"></span><span id="mismatchBuilderNew">—</span></span>
         </div>
-        <div class="rebind-caption">Generating will sync the new project’s variables first, then create components against them.</div>
+        <div class="rebind-caption">Building will replace this file's variables with the new project's, then rebuild components.</div>
       </div>
 
       <div class="prereqs-bar" id="prereqsBar">
@@ -3328,9 +3328,17 @@ function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHas
     var tint = '';
 
     if (isDrift) {
-      pillsHtml = '<span class="pill" data-kind="drift">build needed</span>';
+      /* Project mismatch is a SINGLE-decision moment. The orange
+         "Rebind required" banner at the top of the tab already
+         names both projects and explains the action. Repeating it
+         as a per-row pill + per-row "Re-targeting to X tokens"
+         line is triple-redundancy that turns calm into clutter.
+         Keep the row clean \u2014 the banner does all the talking.
+         data-state stays 'changed' so the CTA still flips to
+         "Rebind N components" and the row counts toward selection. */
       tint = 'drift';
-      why = 'Re-targeting to <span class="nums">' + esc(projectDisplayName(currentProject)) + '</span> tokens.';
+      pillsHtml = '';
+      why = '';
     } else if (bindingsChanged) {
       /* V2 path only fires here when a variable Button bound is
          actually missing — i.e. genuinely broken bindings. */
@@ -3354,7 +3362,7 @@ function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHas
     // var structureTooltip kept undefined; the merge below tolerates it.
     var structureTooltip = '';
 
-    var anyChange = !!pillsHtml;
+    var anyChange = !!pillsHtml || isDrift;
     row.setAttribute('data-tint', tint);
 
     /* Timestamp. */
