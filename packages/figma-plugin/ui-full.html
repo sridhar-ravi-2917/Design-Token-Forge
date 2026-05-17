@@ -1128,13 +1128,13 @@ function groupKey(name){
   return 'Other';
 }
 
-/* Order: components first (alpha), then global token categories. */
-var GLOBAL_GROUPS = ['Colors','Spacing','Radius','Typography','Shadow','Motion','Z-index','Other'];
+/* Order for collection-keyed groups (matches Figma's variable panel). */
+var COLLECTION_ORDER = ['T0 Primitive Colors', 'T1 Color Tokens', 'T2 Surface Context Tokens', 'T3 Status Context Tokens', 'primitives-numbers', 'comp size'];
 function groupSort(a, b){
-  var ai = GLOBAL_GROUPS.indexOf(a), bi = GLOBAL_GROUPS.indexOf(b);
+  var ai = COLLECTION_ORDER.indexOf(a), bi = COLLECTION_ORDER.indexOf(b);
   if (ai === -1 && bi === -1) return a.localeCompare(b);
-  if (ai === -1) return -1;   /* a is component, comes first */
-  if (bi === -1) return 1;
+  if (ai === -1) return 1;
+  if (bi === -1) return -1;
   return ai - bi;
 }
 
@@ -1145,7 +1145,9 @@ function buildGroups(){
   var groups = {};
   for (var i=0; i<vars.length; i++){
     var v = vars[i];
-    var k = groupKey(v.name);
+    /* Prefer the collection name we tagged at diff time. Fall back to
+       component-prefix inference for legacy / server changelog rows. */
+    var k = v.collection || groupKey(v.name);
     (groups[k] = groups[k] || []).push({ tag: v.tag || 'upd', name:v.name, from:v.from, to:v.to });
   }
   /* Server changelog reports added/removed as counts. Static-host diff
@@ -1492,30 +1494,29 @@ function fmtVal(raw){
 
 function handleStaticDiff(current){
   if (!tokenData || !current || !current.collections) return;
-  /* Build name → {orderedModes, valuesByMode} lookup from current.
-     We key by collection+variable name only (NOT by mode name), because
-     the file's mode names can drift from tokens.json ("Mode 1" vs "Light").
-     We compare values by mode INDEX so renamed modes still align. */
+  /* Build {variableName: {orderedModes, vals, collectionName}} lookup
+     from current. We key by variable NAME only (not collection|name),
+     because the Figma file's collection name may have drifted from
+     tokens.json's (renamed collection, prefix change, etc). DTF variable
+     names are globally unique across collections anyway. */
   var currentByName = {};
   for (var ci=0; ci<current.collections.length; ci++){
     var cc = current.collections[ci];
     for (var vi=0; vi<cc.variables.length; vi++){
       var vv = cc.variables[vi];
-      var orderedModes = (cc.modes || []).slice();
-      currentByName[cc.name + '|' + vv.name] = { modes: orderedModes, vals: vv.valuesByMode || {} };
+      currentByName[vv.name] = { col: cc.name, modes: (cc.modes || []).slice(), vals: vv.valuesByMode || {} };
     }
   }
   var rows = [];   /* per-variable changedVars entries (with explicit tag) */
   var addedCount = 0, removedCount = 0, updatedCount = 0;
-  var newKeySet = {};
+  var newNameSet = {};
   for (var nci=0; nci<tokenData.collections.length; nci++){
     var nc = tokenData.collections[nci];
     var newModes = (nc.modes || []).slice();
     for (var nvi=0; nvi<nc.variables.length; nvi++){
       var nv = nc.variables[nvi];
-      var nameKey = nc.name + '|' + nv.name;
-      newKeySet[nameKey] = true;
-      var existing = currentByName[nameKey];
+      newNameSet[nv.name] = true;
+      var existing = currentByName[nv.name];
       /* tokens.json shape uses `values`, not `valuesByMode`. The Figma
          dump (current) uses `valuesByMode`. Normalize both sides. */
       var nvVals = nv.values || nv.valuesByMode || {};
@@ -1523,7 +1524,7 @@ function handleStaticDiff(current){
         addedCount++;
         /* Show the first mode's value so the row is informative. */
         var sampleMode = newModes[0];
-        rows.push({ tag:'add', name: nv.name, from:'', to: fmtVal(sampleMode != null ? nvVals[sampleMode] : '') });
+        rows.push({ tag:'add', collection: nc.name, name: nv.name, from:'', to: fmtVal(sampleMode != null ? nvVals[sampleMode] : '') });
         continue;
       }
       /* Compare by mode index: align newModes[i] ↔ existing.modes[i]. */
@@ -1535,7 +1536,7 @@ function handleStaticDiff(current){
         var newStr = fmtVal(newRaw);
         var oldStr = fmtVal(oldRaw);
         if (newStr.toLowerCase() !== oldStr.toLowerCase()){
-          firstChange = { tag:'upd', name: nv.name, from: oldStr, to: newStr };
+          firstChange = { tag:'upd', collection: nc.name, name: nv.name, from: oldStr, to: newStr };
           break;
         }
       }
@@ -1548,11 +1549,10 @@ function handleStaticDiff(current){
     var rcModes = rc.modes || [];
     for (var rvi=0; rvi<rc.variables.length; rvi++){
       var rv = rc.variables[rvi];
-      var rkey = rc.name + '|' + rv.name;
-      if (!newKeySet[rkey]){
+      if (!newNameSet[rv.name]){
         removedCount++;
         var rvVals = rv.values || rv.valuesByMode || {};
-        rows.push({ tag:'rem', name: rv.name, from: fmtVal(rcModes[0] != null ? rvVals[rcModes[0]] : ''), to:'' });
+        rows.push({ tag:'rem', collection: rc.name, name: rv.name, from: fmtVal(rcModes[0] != null ? rvVals[rcModes[0]] : ''), to:'' });
       }
     }
   }
