@@ -4423,26 +4423,32 @@
       } catch (e) { /* non-fatal */ }
       // Fire Pages rebuild — best-effort like normal Publish.
       triggerPagesRebuild().catch(function () {});
-      // Keep the dialog visibly OPEN through the reload. Two reasons:
-      //  1. The editor surface underneath is still painted with the
-      //     OLD palette (we wrote stash but never re-rendered state).
-      //     If the user closed the dialog now, they'd see the old
-      //     colours for ~200-400ms until reload swaps to the new
-      //     paint — exactly the "wrong version flashes" symptom they
-      //     reported. The modal backdrop covers the editor, so as
-      //     long as the dialog stays up, the flash isn't visible.
-      //  2. The success message belongs IN the dialog (the action's
-      //     own surface), not as a floating toast — toasts get
-      //     dismissed by browser focus events during a reload.
-      // We do NOT clear _restoring here; the reload kills the page
-      // and the new page starts clean (no dialog). Backdrop click /
-      // Esc / X stay blocked until the reload fires.
+      // Set the post-restore overlay sentinel BEFORE reload. The
+      // inline script at the top of index.html reads this on next
+      // boot and paints a full-viewport opaque mask BEFORE any
+      // token CSS loads — that mask hides every intermediate paint
+      // (maintainer pearl defaults from packages/tokens/*.css <link>,
+      // stale Pages fetch, any State init overpaint) until the
+      // editor's boot() finishes its first full render with the
+      // new tokens and removes the mask.
+      // This is the only deterministic flash-killer because it does
+      // not depend on stash/Pages/draft race ordering — the mask is
+      // in the DOM before <body> parses.
+      try {
+        sessionStorage.setItem('dtf-restoring-overlay', JSON.stringify({
+          pid: projId,
+          from: ver,
+          to: meta.version
+        }));
+      } catch (_oe) {}
+      // Keep the dialog visibly OPEN through the reload (modal
+      // backdrop is the second layer covering any in-memory paint
+      // before reload fires).
       historyStatus('Restored ' + ver + ' as ' + meta.version + '. Reloading\u2026', 'ok', 8000);
-      // Reload immediately. Boot Step 1 + Step 3 in index.html paint
-      // the fresh palette synchronously from the stash we just wrote,
-      // so the new page shows the right colours on first frame. A
-      // 16ms rAF lets the status banner repaint with the "Reloading…"
-      // message before navigation tears down the page.
+      // Reload on the next animation frame so the status banner
+      // gets one paint, then we navigate. The overlay sentinel is
+      // already written to sessionStorage so the new page boots
+      // with the mask up.
       window.__ev2BypassUnloadGuard = true;
       requestAnimationFrame(function () {
         requestAnimationFrame(function () { window.location.reload(); });
@@ -5255,6 +5261,28 @@
       refreshDraftStatus('idle');
     }
     initPaneResizer();
+    // Dismiss the post-restore overlay (if any). Set by
+    // restoreVersion() before reload — see index.html head. We wait
+    // two animation frames so the editor's first render with the
+    // freshly-restored tokens has actually painted before we fade
+    // the mask out. Without the rAF wait, the mask removes between
+    // boot() completing and the browser's first paint — leaving a
+    // gap where intermediate paints (e.g. the brief
+    // packages/tokens/*.css default-pearl paint) would still flash
+    // through.
+    try {
+      var mask = document.getElementById('ev2-restore-mask');
+      if (mask && !mask.hasAttribute('data-dismiss')) {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            mask.setAttribute('data-dismiss', '1');
+            setTimeout(function () {
+              if (mask.parentNode) mask.parentNode.removeChild(mask);
+            }, 250);
+          });
+        });
+      }
+    } catch (_me) {}
     // initBeforeUnloadGuard intentionally not called — the editor
     // auto-backs up every change to localStorage (`backed up Xm ago`
     // status), so a "changes may not be saved" prompt is misleading:

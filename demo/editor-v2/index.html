@@ -7,6 +7,71 @@
   <!-- Auth gate — must be first, no defer, so body hides before paint. -->
   <script src="../auth-gate.js?v=2"></script>
 
+  <!-- Post-restore mask. Set by restoreVersion() before reload:
+         sessionStorage.setItem('dtf-restoring-overlay', JSON.stringify({pid, from, to}));
+       If present, we paint a full-viewport opaque overlay BEFORE
+       any token CSS loads. The overlay stays visible through:
+         • body parse + token <link> loads (which paint maintainer
+           pearl defaults briefly — the source of the flash)
+         • inline Step 1 stash synth (paints project palette)
+         • deferred editor-v2.js boot + injectProjectPrimitivesSync
+       editor-v2.js dismisses the overlay AFTER its first full
+       render with the new tokens, via:
+         document.getElementById('ev2-restore-mask').remove();
+       This is the only deterministic way to hide every possible
+       intermediate paint regardless of stash/Pages/draft state. -->
+  <script>
+  (function(){
+    try {
+      var raw = sessionStorage.getItem('dtf-restoring-overlay');
+      if (!raw) return;
+      var info; try { info = JSON.parse(raw); } catch (_e) { info = {}; }
+      // Single-shot: consume immediately so a manual refresh after
+      // restore doesn't permanently mask the page.
+      sessionStorage.removeItem('dtf-restoring-overlay');
+      // Inline styles (no external CSS yet) using neutral theme-immune
+      // colours. Spinner is pure CSS keyframe injected into head.
+      var st = document.createElement('style');
+      st.id = 'ev2-restore-mask-css';
+      st.textContent =
+        '#ev2-restore-mask{position:fixed;inset:0;z-index:2147483647;' +
+        'background:#0b0d12;color:#e8eaed;display:flex;flex-direction:column;' +
+        'align-items:center;justify-content:center;gap:18px;' +
+        'font:500 14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+        'opacity:1;transition:opacity .18s ease-out}' +
+        '#ev2-restore-mask[data-dismiss]{opacity:0;pointer-events:none}' +
+        '#ev2-restore-mask .rm-spin{width:36px;height:36px;border-radius:50%;' +
+        'border:3px solid rgba(255,255,255,.15);border-top-color:#fff;' +
+        'animation:ev2RmSpin .8s linear infinite}' +
+        '#ev2-restore-mask .rm-msg{opacity:.85;letter-spacing:.01em}' +
+        '#ev2-restore-mask .rm-sub{opacity:.55;font-size:12px}' +
+        '@keyframes ev2RmSpin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(st);
+      // Build overlay now so it's in the DOM before body paints.
+      // Append to documentElement since body doesn't exist yet.
+      var ov = document.createElement('div');
+      ov.id = 'ev2-restore-mask';
+      ov.setAttribute('aria-live', 'polite');
+      ov.innerHTML =
+        '<div class="rm-spin" aria-hidden="true"></div>' +
+        '<div class="rm-msg">Applying ' + (info.to ? String(info.to).replace(/[<>&]/g,'') : 'restored version') + '\u2026</div>' +
+        '<div class="rm-sub">Loading project tokens</div>';
+      // documentElement always exists during head parse.
+      document.documentElement.appendChild(ov);
+      // Safety fallback: if editor-v2.js never dismisses (e.g. boot
+      // crashes), reveal after 8s so user isn't stuck on a blank
+      // overlay forever.
+      setTimeout(function(){
+        var el = document.getElementById('ev2-restore-mask');
+        if (el && !el.hasAttribute('data-dismiss')) {
+          el.setAttribute('data-dismiss', '1');
+          setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 250);
+        }
+      }, 8000);
+    } catch (_e) {}
+  })();
+  </script>
+
   <!-- Token foundations: same chain as every component demo page -->
   <link rel="stylesheet" href="../../packages/tokens/src/primitives.css">
   <link rel="stylesheet" href="../../packages/tokens/src/semantic.css">
