@@ -47,30 +47,59 @@
          this synth produces the same primitives the editor's later
          injectProjectPrimitivesSync would produce — but it happens
          here, blocking, before the body renders. Eliminates the
-         pearl-then-brand colour flash. */
+         default-blue-then-brand colour flash.
+         If the stash is missing (first reload after hub bypass, or
+         old browser cache), fall back to a sync GitHub Contents API
+         XHR using the stored PAT — adds ~200-500ms on first paint
+         but is required to avoid the flash. */
+      function ensureCfg(pid){
+        try {
+          var raw = localStorage.getItem('dtf-project-config-' + pid);
+          if (raw) return JSON.parse(raw);
+        } catch (_e) {}
+        try {
+          var pat   = localStorage.getItem('dtf-gh-pat')   || '';
+          var owner = localStorage.getItem('dtf-gh-owner') || localStorage.getItem('dtf-gh-user') || '';
+          if (!pat || !owner) return null;
+          var url = 'https://api.github.com/repos/' + owner + '/Design-Token-Forge/contents/projects/' + encodeURIComponent(pid) + '/config.json?ref=main';
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url, /* async */ false);
+          xhr.setRequestHeader('Authorization', 'Bearer ' + pat);
+          xhr.setRequestHeader('Accept', 'application/vnd.github+json');
+          xhr.send(null);
+          if (xhr.status < 200 || xhr.status >= 300) return null;
+          var file = JSON.parse(xhr.responseText);
+          if (!file || !file.content) return null;
+          var cfg = JSON.parse(atob(file.content.replace(/\n/g, '')));
+          try { localStorage.setItem('dtf-project-config-' + pid, JSON.stringify(cfg)); } catch (_se) {}
+          return cfg;
+        } catch (_e) { return null; }
+      }
       try {
-        var cfgRaw = localStorage.getItem('dtf-project-config-' + pid);
-        if (cfgRaw && window.PaletteEngine) {
-          var cfg = JSON.parse(cfgRaw);
-          if (cfg && cfg.paletteKeys) {
-            var parts = [];
-            Object.keys(cfg.paletteKeys).forEach(function(roleId){
-              var keyHex = cfg.paletteKeys[roleId];
-              if (!keyHex) return;
-              try {
-                var pal = window.PaletteEngine.generatePalette(keyHex, { anchor: 'exact' });
-                parts.push(window.PaletteEngine.toCss(roleId, pal));
-              } catch (_e) {}
-            });
-            if (parts.length) {
-              var ss = document.createElement('style');
-              ss.id = 'ev2-project-primitives';
-              ss.textContent = parts.join('\n');
-              document.head.appendChild(ss);
-            }
+        var cfg = ensureCfg(pid);
+        if (cfg && cfg.paletteKeys && window.PaletteEngine) {
+          var parts = [];
+          Object.keys(cfg.paletteKeys).forEach(function(roleId){
+            var keyHex = cfg.paletteKeys[roleId];
+            if (!keyHex) return;
+            try {
+              var pal = window.PaletteEngine.generatePalette(keyHex, { anchor: 'exact' });
+              parts.push(window.PaletteEngine.toCss(roleId, pal));
+            } catch (_e) {}
+          });
+          if (parts.length) {
+            var ss = document.createElement('style');
+            ss.id = 'ev2-project-primitives';
+            ss.textContent = parts.join('\n');
+            document.head.appendChild(ss);
           }
         }
       } catch (_e) {}
+      /* Step 2: active tier restoration runs inline after the
+         tierbar markup parses — see <script> block just below the
+         <nav class="ev2-tierbar"> block. That timing guarantees the
+         segmented bar's aria-current is correct before first paint
+         without needing any extra CSS. */
       var cached = localStorage.getItem('dtf-saved-tokens-' + pid);
       if (cached) {
         var s = document.createElement('style');
@@ -190,6 +219,28 @@
           data-tip="Browse every published version of this project on GitHub. Restore any past version as a new release.">Version history</button>
       </div>
     </nav>
+    <script>
+    /* Restore the saved active tier inline, before any paint. The
+       HTML hardcodes T0 as aria-current=true (so a fresh first-time
+       boot has a sensible default), but on every subsequent reload
+       editor-v2.js (deferred) re-applies the saved tier — visible
+       as a pill that jumps to T0 then back to the saved tier. We
+       fix it here by patching aria-current as soon as the tier bar
+       parses, while the body is still being built. */
+    (function(){
+      try {
+        var raw = localStorage.getItem('dtf-editor-v2-ui-v1');
+        if (!raw) return;
+        var ui = JSON.parse(raw);
+        var t = ui && ui.activeTier;
+        if (t !== 't1' && t !== 't2' && t !== 't3') return;
+        document.querySelectorAll('.ev2-tier').forEach(function(btn){
+          if (btn.getAttribute('data-tier') === t) btn.setAttribute('aria-current', 'true');
+          else btn.removeAttribute('aria-current');
+        });
+      } catch (_e) {}
+    })();
+    </script>
 
     <!-- First-boot migration banner (populated by JS; hidden by default) -->
     <aside class="ev2-migrate-banner" id="migrateBanner" role="status" hidden>
