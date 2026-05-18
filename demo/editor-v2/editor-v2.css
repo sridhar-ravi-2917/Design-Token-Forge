@@ -1292,7 +1292,11 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   opacity:0;transform:translateY(-8px);
   pointer-events:none;
   transition:opacity 180ms ease,transform 180ms ease;
-  z-index:200;
+  /* Must sit above .ev2-modal (500) and .ev2-busy (700) so
+     status messages during long-running ops (restore, publish,
+     delete) aren't buried under the spinner overlay. Kept below
+     tooltips (9999) which are ephemeral hover hints. */
+  z-index:800;
 }
 .ev2-toast::before{
   content:'';
