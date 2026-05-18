@@ -1354,7 +1354,16 @@
       projectSelect.innerHTML = '';
       if (filtered.length === 0) {
         projectSelect.innerHTML = '<option value="">No projects</option>';
+        CURRENT_PROJECT = '';
+        storageSet('dtf-project-id', '');
         return;
+      }
+      /* Reset CURRENT_PROJECT if the stored id isn't owned by the
+         signed-in user (account switch / prior session leftover). */
+      var stillVisible = filtered.some(function(p) { return p.id === CURRENT_PROJECT; });
+      if (!CURRENT_PROJECT || !stillVisible) {
+        CURRENT_PROJECT = filtered[0].id;
+        storageSet('dtf-project-id', CURRENT_PROJECT);
       }
       for (var i = 0; i < filtered.length; i++) {
         var opt = document.createElement('option');
@@ -1362,11 +1371,6 @@
         opt.textContent = filtered[i].name;
         if (filtered[i].id === CURRENT_PROJECT) opt.selected = true;
         projectSelect.appendChild(opt);
-      }
-      /* If no saved project, select the first one */
-      if (!CURRENT_PROJECT && filtered.length > 0) {
-        CURRENT_PROJECT = filtered[0].id;
-        storageSet('dtf-project-id', CURRENT_PROJECT);
       }
       /* If document is linked to a project, ensure it's selected (covers race with scan-result) */
       if (documentProject) {

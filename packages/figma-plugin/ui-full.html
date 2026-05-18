@@ -3337,7 +3337,24 @@ function _renderProjectList(list){
       projectSelect.innerHTML = '';
       if (filtered.length === 0){
         projectSelect.innerHTML = '<option value="">No projects</option>';
+        /* Storage may still point at a project this user can no
+           longer see (left over from a prior session under another
+           account). Clear it so adoptProjectServer / polling don't
+           keep targeting a phantom project. */
+        CURRENT_PROJECT = '';
+        storageSet('dtf-project-id', '');
         return;
+      }
+      /* If storage points at a project the user no longer owns
+         (different fork, account switch, project deleted), the
+         dropdown would visually default to filtered[0] but JS state
+         would still hold the stale id — polling, server URL routing
+         and the "Project not deployed" hero would all reference a
+         project the user can't reach. Force-reset to filtered[0]. */
+      var stillVisible = filtered.some(function(p){ return p.id === CURRENT_PROJECT; });
+      if (!CURRENT_PROJECT || !stillVisible){
+        CURRENT_PROJECT = filtered[0].id;
+        storageSet('dtf-project-id', CURRENT_PROJECT);
       }
       for (var i=0; i<filtered.length; i++){
         var opt = document.createElement('option');
@@ -3345,10 +3362,6 @@ function _renderProjectList(list){
         opt.textContent = filtered[i].name;
         if (filtered[i].id === CURRENT_PROJECT) opt.selected = true;
         projectSelect.appendChild(opt);
-      }
-      if (!CURRENT_PROJECT && filtered.length > 0){
-        CURRENT_PROJECT = filtered[0].id;
-        storageSet('dtf-project-id', CURRENT_PROJECT);
       }
       /* Point SERVER at the active project's owner Pages site, since
          each project's tokens.json/status.json lives on the owner's
