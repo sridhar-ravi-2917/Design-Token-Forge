@@ -4543,11 +4543,22 @@ figma.ui.onmessage = async function(msg) {
          the file (designer deleted Button / Split Button from the
          page). Without this, the row keeps saying "added to Figma
          1m ago" forever even though there's nothing in Figma. We
-         check every recorded nodeId; if NONE resolve, the build is
-         considered gone and the entry is removed so the row flips
-         back to NEW. (Partial deletes still count as present — user
-         can re-Build to regenerate the missing variants.) */
+         check every recorded nodeId; if NONE resolve to a live
+         (non-removed, attached) node, the build is considered gone
+         and the entry is removed so the row flips back to NEW.
+         (Partial deletes still count as present — user can re-Build
+         to regenerate the missing variants.)
+
+         Hardening (2026-05-18):
+           - loadAllPagesAsync() so getNodeByIdAsync can resolve
+             component sets on pages that haven't been opened yet.
+           - Check node.removed — Figma's undo buffer keeps deleted
+             nodes resolvable for a while; .removed === true means
+             they're not actually in the tree.
+           - Walk up parents to confirm the node is still attached
+             to figma.root (orphans / detached subtrees → dead). */
       try {
+        try { await figma.loadAllPagesAsync(); } catch (eLoad) { /* tolerate */ }
         var _existDirty = false;
         var _keys = Object.keys(versions);
         for (var _ki = 0; _ki < _keys.length; _ki++){
@@ -4556,13 +4567,30 @@ figma.ui.onmessage = async function(msg) {
           var _nids = (_entry && _entry.nodeIds) || [];
           if (!_nids.length) continue; // nothing to check
           var _anyAlive = false;
+          var _checked = 0;
+          var _aliveCount = 0;
           for (var _ni = 0; _ni < _nids.length; _ni++){
             try {
               var _n = await figma.getNodeByIdAsync(_nids[_ni]);
-              if (_n) { _anyAlive = true; break; }
+              _checked++;
+              if (!_n) continue;
+              if (_n.removed) continue;
+              /* Walk parents to confirm attachment to document root.
+                 A detached subtree (e.g. cut to clipboard) shouldn't
+                 count as "in Figma". */
+              var _p = _n.parent;
+              var _attached = false;
+              var _hops = 0;
+              while (_p && _hops < 50){
+                if (_p === figma.root){ _attached = true; break; }
+                _p = _p.parent; _hops++;
+              }
+              if (_attached){ _anyAlive = true; _aliveCount++; }
             } catch (e) { /* node lookup failed → treat as dead */ }
           }
+          log('Ledger liveness: ' + _k + ' → ' + _aliveCount + '/' + _checked + ' alive (of ' + _nids.length + ' recorded)');
           if (!_anyAlive){
+            log('Ledger drop: ' + _k + ' — no live component sets remain');
             delete versions[_k];
             _existDirty = true;
           }
@@ -4570,7 +4598,9 @@ figma.ui.onmessage = async function(msg) {
         if (_existDirty){
           figma.root.setPluginData('dtf-component-versions', JSON.stringify(versions));
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        log('Ledger liveness check failed: ' + (e && e.message || e));
+      }
 
       /* M5/V2 — per-component bindings status.
          The OLD behaviour hashed every variable ID in the three

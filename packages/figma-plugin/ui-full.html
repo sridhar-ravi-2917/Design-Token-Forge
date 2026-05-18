@@ -2148,7 +2148,13 @@ function setTab(name){
      try to unhide footerSync when sync state changes — applyFooter
      reconciles that against the tab. */
   if (name === 'sync')    { footerBuilder.hidden = true; render(); }
-  if (name === 'builder') { footerSync.hidden = true; footerBuilder.hidden = false; }
+  if (name === 'builder') {
+    footerSync.hidden = true; footerBuilder.hidden = false;
+    /* Re-check prereqs whenever the user lands on Components so
+       deletions / additions made in Figma since the last check
+       repaint the row state without a full plugin reload. */
+    try { parent.postMessage({ pluginMessage:{ type:'check-gen-prereqs' } }, '*'); } catch(e){}
+  }
 }
 /* Called at the end of every render() so the Sync hero renderer
    can't leak its footer CTA into the Builder tab. Was the cause of
