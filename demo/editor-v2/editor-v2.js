@@ -5263,24 +5263,39 @@
     initPaneResizer();
     // Dismiss the post-restore overlay (if any). Set by
     // restoreVersion() before reload — see index.html head. We wait
-    // two animation frames so the editor's first render with the
-    // freshly-restored tokens has actually painted before we fade
-    // the mask out. Without the rAF wait, the mask removes between
-    // boot() completing and the browser's first paint — leaving a
-    // gap where intermediate paints (e.g. the brief
-    // packages/tokens/*.css default-pearl paint) would still flash
-    // through.
+    // for the preview iframe to be ready before fading the mask, so
+    // the user never sees the iframe paint with maintainer-default
+    // pearl tokens between page-load and first ev2-overrides push.
+    // The preview self-marks ready by setting data-ev2-ready on its
+    // <html> when it receives the first ev2-overrides message — see
+    // preview.html. We poll for that flag (cheap: same-origin DOM
+    // read) up to 3s, then fade regardless so the editor isn't
+    // permanently masked if the iframe never loads.
     try {
       var mask = document.getElementById('ev2-restore-mask');
       if (mask && !mask.hasAttribute('data-dismiss')) {
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            mask.setAttribute('data-dismiss', '1');
-            setTimeout(function () {
-              if (mask.parentNode) mask.parentNode.removeChild(mask);
-            }, 250);
-          });
-        });
+        var maskStart = Date.now();
+        var dismissMask = function () {
+          mask.setAttribute('data-dismiss', '1');
+          setTimeout(function () {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+          }, 250);
+        };
+        var checkPreview = function () {
+          // 3s safety cap so we never lock the user on the mask.
+          if (Date.now() - maskStart > 3000) { dismissMask(); return; }
+          try {
+            var fdoc = $frame && $frame.contentDocument;
+            if (fdoc && fdoc.documentElement && fdoc.documentElement.hasAttribute('data-ev2-ready')) {
+              requestAnimationFrame(function () {
+                requestAnimationFrame(dismissMask);
+              });
+              return;
+            }
+          } catch (_pe) { /* cross-origin or not loaded yet */ }
+          requestAnimationFrame(checkPreview);
+        };
+        requestAnimationFrame(checkPreview);
       }
     } catch (_me) {}
     // initBeforeUnloadGuard intentionally not called — the editor

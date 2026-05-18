@@ -3,6 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <title>Preview</title>
+  <!-- Self-mask: hide preview content until the editor pushes the
+       FIRST ev2-overrides message with the project's tokens. Without
+       this, the iframe paints with the maintainer's pearl tokens
+       (loaded from packages/tokens/*.css just below) for 100-1500ms
+       until the editor's postMessage lands. After a Restore, that
+       gap shows the just-replaced "Live" version's colours, which
+       looks like a "wrong version flashes for a few seconds" bug.
+       The mask is hidden by adding `data-ev2-ready` to <html> when
+       the first override arrives. Safety: auto-reveal after 4s in
+       case the editor never sends overrides (preview opened
+       standalone, dev page, etc) so the iframe isn't permanently
+       blank. -->
+  <style id="ev2-preview-mask-css">
+    html:not([data-ev2-ready])::before{
+      content:'';position:fixed;inset:0;z-index:2147483647;
+      background:#0b0d12;pointer-events:none;
+    }
+  </style>
+  <script>
+    (function(){
+      setTimeout(function(){
+        try { document.documentElement.setAttribute('data-ev2-ready','timeout'); } catch(_e){}
+      }, 4000);
+    })();
+  </script>
   <link rel="stylesheet" href="../../packages/tokens/src/primitives.css">
   <link rel="stylesheet" href="../../packages/tokens/src/semantic.css">
   <link rel="stylesheet" href="../../packages/tokens/src/surfaces.css">
@@ -772,6 +797,17 @@
       // Token override push from editor (parent posts CSS string here).
       if (d.type === 'ev2-overrides' && typeof d.css === 'string') {
         if (__ev2OverrideStyle.textContent !== d.css) __ev2OverrideStyle.textContent = d.css;
+        // Reveal the preview now that project tokens are applied.
+        // Two rAFs so the new <style> actually paints before the
+        // self-mask lifts — without this, the very first override
+        // could still let a frame of maintainer-pearl through.
+        if (!document.documentElement.hasAttribute('data-ev2-ready')) {
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){
+              document.documentElement.setAttribute('data-ev2-ready', '1');
+            });
+          });
+        }
         return;
       }
       // Custom palette injection from the T0 Palettes manager.
