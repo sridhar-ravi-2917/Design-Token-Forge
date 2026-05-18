@@ -4423,13 +4423,30 @@
       } catch (e) { /* non-fatal */ }
       // Fire Pages rebuild — best-effort like normal Publish.
       triggerPagesRebuild().catch(function () {});
-      if (window.ev2Toast) window.ev2Toast('Restored ' + ver + ' as ' + meta.version + '. Reloading editor\u2026', 'success', 3500);
-      if (dlg) dlg._restoring = false;
-      // Reload so the editor reads the freshly-restored files as
-      // the new baseline. This avoids any drift between in-memory
-      // State and what GitHub now holds.
+      // Keep the dialog visibly OPEN through the reload. Two reasons:
+      //  1. The editor surface underneath is still painted with the
+      //     OLD palette (we wrote stash but never re-rendered state).
+      //     If the user closed the dialog now, they'd see the old
+      //     colours for ~200-400ms until reload swaps to the new
+      //     paint — exactly the "wrong version flashes" symptom they
+      //     reported. The modal backdrop covers the editor, so as
+      //     long as the dialog stays up, the flash isn't visible.
+      //  2. The success message belongs IN the dialog (the action's
+      //     own surface), not as a floating toast — toasts get
+      //     dismissed by browser focus events during a reload.
+      // We do NOT clear _restoring here; the reload kills the page
+      // and the new page starts clean (no dialog). Backdrop click /
+      // Esc / X stay blocked until the reload fires.
+      historyStatus('Restored ' + ver + ' as ' + meta.version + '. Reloading\u2026', 'ok', 8000);
+      // Reload immediately. Boot Step 1 + Step 3 in index.html paint
+      // the fresh palette synchronously from the stash we just wrote,
+      // so the new page shows the right colours on first frame. A
+      // 16ms rAF lets the status banner repaint with the "Reloading…"
+      // message before navigation tears down the page.
       window.__ev2BypassUnloadGuard = true;
-      setTimeout(function () { window.location.reload(); }, 1200);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { window.location.reload(); });
+      });
     }).catch(function (err) {
       var emsg = (err && err.message) || String(err);
       // "Update is not a fast forward" survives 10 retries only
