@@ -16,6 +16,15 @@ figma.showUI(__html__, { width: 480, height: 560 });
    debounce 400ms, then ping the UI. UI responds by re-firing
    check-gen-prereqs so the liveness sweep can drop dead ledger
    entries. Cheap — we only forward the ping, not the diff itself. */
+/* In-memory ledger tombstones — when the liveness sweep drops an
+   entry because its component sets vanished, we keep the original
+   entry here for 60s. Figma preserves node IDs across delete/undo,
+   so if the user hits Cmd+Z within the window we can resurrect the
+   ledger entry instead of forcing a fresh Build. After the window
+   expires the tombstone is forgotten and the row stays NEW. */
+var LEDGER_TOMBSTONES = {};        // key → { entry, droppedAt }
+var LEDGER_TOMBSTONE_TTL_MS = 60 * 1000;
+
 (function setupLedgerWatch(){
   var _ledgerPingTimer = null;
   function _schedulePing(){
@@ -4595,6 +4604,48 @@ figma.ui.onmessage = async function(msg) {
              to figma.root (orphans / detached subtrees → dead). */
       try {
         try { await figma.loadAllPagesAsync(); } catch (eLoad) { /* tolerate */ }
+
+        /* Tombstone revival — if the user just hit Cmd+Z on a
+           component-set delete, the nodes are back with their
+           original IDs but the ledger entry was dropped. Walk
+           tombstones first; any whose nodeIds resolve again get
+           restored before the sweep runs. */
+        var _nowTs = Date.now();
+        var _revived = false;
+        var _tombKeys = Object.keys(LEDGER_TOMBSTONES);
+        for (var _tk = 0; _tk < _tombKeys.length; _tk++){
+          var _tkey = _tombKeys[_tk];
+          var _tomb = LEDGER_TOMBSTONES[_tkey];
+          if (!_tomb) continue;
+          /* Expire stale tombstones. */
+          if (_nowTs - _tomb.droppedAt > LEDGER_TOMBSTONE_TTL_MS){
+            delete LEDGER_TOMBSTONES[_tkey];
+            continue;
+          }
+          /* Already restored by a real Build → discard tombstone. */
+          if (versions[_tkey]){
+            delete LEDGER_TOMBSTONES[_tkey];
+            continue;
+          }
+          var _tNids = (_tomb.entry && _tomb.entry.nodeIds) || [];
+          var _tAlive = false;
+          for (var _tni = 0; _tni < _tNids.length; _tni++){
+            try {
+              var _tn = await figma.getNodeByIdAsync(_tNids[_tni]);
+              if (_tn && !_tn.removed){ _tAlive = true; break; }
+            } catch (e) {}
+          }
+          if (_tAlive){
+            versions[_tkey] = _tomb.entry;
+            delete LEDGER_TOMBSTONES[_tkey];
+            _revived = true;
+            log('Ledger revive: ' + _tkey + ' — nodes restored (likely undo)');
+          }
+        }
+        if (_revived){
+          figma.root.setPluginData('dtf-component-versions', JSON.stringify(versions));
+        }
+
         var _existDirty = false;
         var _keys = Object.keys(versions);
         for (var _ki = 0; _ki < _keys.length; _ki++){
@@ -4626,7 +4677,9 @@ figma.ui.onmessage = async function(msg) {
           }
           log('Ledger liveness: ' + _k + ' → ' + _aliveCount + '/' + _checked + ' alive (of ' + _nids.length + ' recorded)');
           if (!_anyAlive){
-            log('Ledger drop: ' + _k + ' — no live component sets remain');
+            log('Ledger drop: ' + _k + ' — no live component sets remain (tombstoned for ' + Math.round(LEDGER_TOMBSTONE_TTL_MS/1000) + 's in case of undo)');
+            /* Stash for potential undo-revival within TTL. */
+            LEDGER_TOMBSTONES[_k] = { entry: _entry, droppedAt: Date.now() };
             delete versions[_k];
             _existDirty = true;
           }
