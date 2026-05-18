@@ -155,7 +155,26 @@ function detectType(name, value) {
   if (/^#[0-9a-fA-F]{3,8}$/.test(value)) return 'COLOR';
   if (/^-?[\d.]+(?:px)?$/.test(value) && !value.includes(' ')) return 'FLOAT';
   if (name.startsWith('opacity-') || name.startsWith('z-')) return 'FLOAT';
+  // letter-spacing in em is a number we convert to % at the Figma boundary
+  // (see normalizeFigmaValue). Without this branch the em-suffixed values
+  // ship as STRING and the LETTER_SPACING scope is dropped — invisible in
+  // Figma's letter-spacing picker.
+  if (name.startsWith('letter-spacing-') && /^-?[\d.]+em$/.test(value)) return 'FLOAT';
   return 'STRING';
+}
+
+// Convert a CSS token value to the form Figma expects for FLOAT variables.
+// Most values pass through (the Figma plugin calls parseFloat). The one
+// transform we have to do is em → percent for letter-spacing, because
+// Figma's letter-spacing picker speaks PIXELS or PERCENT — never em.
+// Example: "-0.05em" → "-5" so parseFloat() in the plugin yields -5%.
+function normalizeFigmaValue(name, value) {
+  if (typeof value !== 'string') return value;
+  if (name.startsWith('letter-spacing-')) {
+    const m = value.match(/^(-?[\d.]+)em$/);
+    if (m) return String(parseFloat(m[1]) * 100);
+  }
+  return value;
 }
 
 // ── Figma variable scoping ────────────────────────────────────
@@ -205,9 +224,9 @@ function scopeForExtras(cssName, type) {
   if (cssName.startsWith('z-'))       return [];  // no scope restriction
   if (cssName.startsWith('font-size-'))    return ['FONT_SIZE'];
   if (cssName.startsWith('font-weight-'))  return ['FONT_WEIGHT'];
-  // LINE_HEIGHT and LETTER_SPACING are FLOAT-only scopes;
-  // if the value is STRING (e.g. "1.5em") we can't use them
-  if (cssName.startsWith('line-height-')  && type === 'FLOAT') return ['LINE_HEIGHT'];
+  // line-height ships as a unitless FLOAT (e.g. 1.5). letter-spacing ships
+  // as a percent FLOAT after normalizeFigmaValue converts em → %.
+  if (cssName.startsWith('line-height-')    && type === 'FLOAT') return ['LINE_HEIGHT'];
   if (cssName.startsWith('letter-spacing-') && type === 'FLOAT') return ['LETTER_SPACING'];
   return [];
 }
@@ -316,14 +335,16 @@ function buildExtras(primTokens, extrasTokens) {
   for (const [name, value] of Object.entries(primTokens.light)) {
     const type = detectType(name, value);
     if (type === 'COLOR') continue;          // colours go to T0
-    variables.push({ name: primPath(name), type, scopes: [], values: { Value: value } });
+    const fValue = normalizeFigmaValue(name, value);
+    variables.push({ name: primPath(name), type, scopes: scopeForExtras(name, type), values: { Value: fValue } });
   }
 
   // Extras (radius, shadow, motion, z-index, opacity) — skip COLOR tokens
   for (const [name, value] of Object.entries(extrasTokens.light)) {
     const type = detectType(name, value);
     if (type === 'COLOR') continue;  // utility colors go to T1 with Light/Dark modes
-    variables.push({ name: extrasPath(name), type, scopes: [], values: { Value: value } });
+    const fValue = normalizeFigmaValue(name, value);
+    variables.push({ name: extrasPath(name), type, scopes: scopeForExtras(name, type), values: { Value: fValue } });
   }
 
   return { name: 'primitives-numbers', modes: ['Value'], hiddenFromPublishing: true, variables };

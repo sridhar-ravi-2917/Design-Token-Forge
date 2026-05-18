@@ -10,6 +10,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import { generatePalette, STEP_NAMES, wcagContrast } from '../generator/src/palette-engine.js';
+import { TYPOGRAPHY_PRESETS, TYPOGRAPHY_LADDER, DEFAULT_TYPOGRAPHY_PRESET } from './typography-presets.js';
 
 // ── Fixed (theme-immune) colors ───────────────────────────────
 // Must match the editor's solver (demo/editor-v2/solver.js):
@@ -184,6 +185,62 @@ function generatePrimitiveTokens(palettes) {
       light[`prim-${key}-${step.name}`] = step.hex;
     }
   }
+  return { light, dark: {} };
+}
+
+/**
+ * Generate typography primitive tokens from a project's typography config.
+ *
+ * Emits, into `primitiveTokens.light`:
+ *   --font-family-{role}      (headline | body | code)   stack string
+ *   --font-size-{N}           (e.g. 14)                   "{N}px"
+ *   --font-weight-{name}      (regular | medium | …)      "400"
+ *   --line-height-{name}      (tight | snug | …)          unitless
+ *   --letter-spacing-{name}   (tight | normal | …)        "{N}em"
+ *
+ * Same shape as colour primitives so the sync server can layer it onto the
+ * parsed primitives.css without special-casing. The sync server's
+ * normalizeFigmaValue() converts letter-spacing em → % at the Figma
+ * boundary; font-size keeps its px suffix; weight stays numeric.
+ *
+ * If no typographyConfig is present we fall back to the default preset
+ * (Neutral System) so every project ships with valid font tokens.
+ */
+function generateTypographyTokens(typoConfig) {
+  const cfg = typoConfig && typoConfig.preset
+    ? typoConfig
+    : { preset: DEFAULT_TYPOGRAPHY_PRESET };
+
+  // Resolve preset → fonts. Custom configs may override fonts directly.
+  const preset = TYPOGRAPHY_PRESETS[cfg.preset] || TYPOGRAPHY_PRESETS[DEFAULT_TYPOGRAPHY_PRESET];
+  const fonts = (cfg.fonts && Object.keys(cfg.fonts).length) ? cfg.fonts : preset.fonts;
+
+  // Ladder: every preset shares the same scale today (Phase 1). Custom
+  // configs may override individual ladders for advanced users.
+  const ladder = cfg.ladder || TYPOGRAPHY_LADDER;
+  const sizes = ladder.sizes || TYPOGRAPHY_LADDER.sizes;
+  const weights = ladder.weights || TYPOGRAPHY_LADDER.weights;
+  const lineHeights = ladder.lineHeights || TYPOGRAPHY_LADDER.lineHeights;
+  const letterSpacings = ladder.letterSpacings || TYPOGRAPHY_LADDER.letterSpacings;
+
+  const light = {};
+
+  for (const [role, font] of Object.entries(fonts)) {
+    if (font && font.stack) light[`font-family-${role}`] = font.stack;
+  }
+  for (const px of sizes) {
+    light[`font-size-${px}`] = `${px}px`;
+  }
+  for (const [name, val] of Object.entries(weights)) {
+    light[`font-weight-${name}`] = String(val);
+  }
+  for (const [name, val] of Object.entries(lineHeights)) {
+    light[`line-height-${name}`] = String(val);
+  }
+  for (const [name, val] of Object.entries(letterSpacings)) {
+    light[`letter-spacing-${name}`] = String(val);
+  }
+
   return { light, dark: {} };
 }
 
@@ -384,9 +441,14 @@ export function generateTokenOverrides(config, basePrimitiveTokens) {
     if (!k.startsWith('prim-')) baseDark[k] = v;
   }
   const colorTokens = generatePrimitiveTokens(palettes);
+  // Typography always emits (defaults to neutral-system preset when no
+  // typographyConfig is set). Sits alongside palette primitives so the
+  // sync server, build-static, and editor all consume identical token
+  // sets — there is no second source of truth for fonts.
+  const typoTokens = generateTypographyTokens(config.typographyConfig);
   result.primitiveTokens = {
-    light: { ...baseLight, ...colorTokens.light },
-    dark:  { ...baseDark,  ...colorTokens.dark }
+    light: { ...baseLight, ...colorTokens.light, ...typoTokens.light },
+    dark:  { ...baseDark,  ...colorTokens.dark,  ...typoTokens.dark }
   };
 
   // Semantics: full replacement if config has semanticMap

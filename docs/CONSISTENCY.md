@@ -173,6 +173,31 @@ end-user task, not the data shape.
 - Micro-spacing (1–6px gaps) may be hardcoded; anything ≥ 8px should use `--spacing-*`
   tokens once a system is decided.
 
+## 8b. Typography vocabulary (canonical)
+
+- **Three font roles**: `headline`, `body`, `code` — same vocabulary in
+  onboard cards, `typographyConfig.fonts`, and CSS (`--font-family-headline`,
+  `--font-family-body`, `--font-family-code`). Never invent new role names
+  per project; always pick one of the three.
+- **Three source lanes** for a font: `system` (built-in OS stacks), `google`
+  (Google Fonts — designer installs in their app), `custom` (designer-hosted
+  file). Used in onboard chips and `font.source` in the preset JSON.
+- **Preset ids** are kebab-case slugs: `neutral-system`, `modern-geometric`,
+  `editorial-serif`, `friendly-humanist`, `code-first-mono`. Saved verbatim
+  in `typographyConfig.preset`.
+- **Size primitive naming**: `--font-size-{N}` where `N` is the integer
+  pixel value (e.g. `--font-size-14`). Not `-md`, not `-sm` — numeric.
+- **Weight / line-height / letter-spacing primitive naming**: descriptive,
+  not numeric — `--font-weight-regular|medium|semibold|bold|extrabold`,
+  `--line-height-tight|snug|normal|relaxed|loose`,
+  `--letter-spacing-tighter|tight|normal|wide|wider|widest`.
+- **Letter-spacing is stored in `em`** in CSS (e.g. `-0.05em`). The sync
+  server converts em → percent at the Figma boundary (`-5`) so Figma's
+  letter-spacing picker accepts it. Never write `%` in primitives.css.
+- Designer-facing copy: say **"feel"** for preset (e.g. "Pick a starting
+  feel"), **"font"** for family, **"size"** for size — never "typeface",
+  "weight number", or "tracking" in UI strings (those are jargon).
+
 ## 9. Brand / version strings
 
 - The product name **"Design Token Forge"** appears **only** in `<title>` and `<h1>` —

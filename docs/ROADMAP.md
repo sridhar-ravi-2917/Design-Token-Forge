@@ -34,6 +34,14 @@ Each phase has a **skill** that guides the AI through every step. You (the desig
 - [x] **1.12** Run all verification commands from the skill
 - [x] **1.13** First npm publish (ready — needs NPM_TOKEN secret in GitHub)
 
+### Tasks — Typography tokens (ADR-008)
+
+- [x] **1.14** Fix `letter-spacing` em → percent at the Figma sync boundary
+- [x] **1.15** `typography-presets.js` with 5 starter kits
+- [x] **1.16** `generateTypographyTokens()` in generator (emits font primitives)
+- [x] **1.17** "Pick a starting feel" step in onboard wizard
+- [x] **1.18** `typographyConfig` slot in `projects/<id>/config.json` schema
+
 **Done when:** `npm install @design-token-forge/tokens` works and the consumer gets minified, autoprefixed CSS.
 
 ---

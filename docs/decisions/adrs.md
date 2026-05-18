@@ -333,3 +333,93 @@ The proof-of-concept validates the core mechanics:
 | **V1** | + component tokens, + variable aliasing, + HTTP fetch, + diff/update |
 | **V2** | + bidirectional sync, + Figma Component generation from YAML specs, + DTCG export |
 | **V3** | + AI Screen Composer, + real-time watch mode, + publish to Figma Community |
+
+---
+
+# ADR-008: Typography Tokens — Preset-First, Designer-Friendly
+
+## Status
+
+**Accepted** — 2026-05-21
+
+## Context
+
+DTF shipped colour primitives, semantic roles, surfaces, spacing, radii, motion
+and component tokens, but typography was never treated as a first-class lever:
+
+- `primitives.css` had a hard-coded `--font-family` aliased to a system stack,
+  plus a flat size/weight/line-height/letter-spacing ladder
+- The onboard wizard did not ask about fonts at all
+- `projects/<id>/config.json` had no `typographyConfig` slot
+- The sync server emitted `letter-spacing` values as STRING (`"-0.05em"`)
+  because `detectType` did not recognise em-suffixed numbers as FLOAT —
+  Figma silently dropped the `LETTER_SPACING` scope and the variables were
+  invisible in Figma's letter-spacing picker
+
+Figma's variable model offers four typography scopes (`FONT_SIZE`,
+`FONT_WEIGHT`, `LINE_HEIGHT`, `LETTER_SPACING`) and no native font-family
+scope; letter-spacing is expressed in either pixels or percent, never em.
+
+## Decision
+
+Typography is a config-driven token domain on equal footing with colour:
+
+1. **Five preset starter kits** — Neutral System, Modern Geometric, Editorial
+   Serif, Friendly Humanist, Code-first Mono. Each defines three font roles
+   (`headline`, `body`, `code`) with a stack, a source lane (`system` |
+   `google` | `custom`) and a designer-facing label.
+2. **Shared ladder** for all presets in Phase 1 — same size/weight/line-height/
+   letter-spacing primitives every project gets today. Per-project overrides
+   land in a future editor phase.
+3. **`typographyConfig` schema** in `projects/<id>/config.json`:
+   `{ preset, fonts: { headline, body, code }, ladder? }`
+4. **Generator emits typography as primitives** — `generateTypographyTokens`
+   in `packages/sync-server/generate-from-config.js` produces `font-family-*`,
+   `font-size-N`, `font-weight-*`, `line-height-*` and `letter-spacing-*`
+   entries that overlay onto the parsed `primitives.css`, identical in shape
+   to colour primitives.
+5. **Onboard owns the first pick** — Step 2 of the create-project wizard
+   ("Pick a starting feel") shows the five preset cards with live previews.
+6. **Sync boundary normalisation** — a new `normalizeFigmaValue(name, value)`
+   helper in `server.js` converts `letter-spacing` em → percent at the Figma
+   boundary only (multiply by 100). The CSS side keeps em for readability;
+   Figma sees the percent integer it expects.
+7. **`detectType` recognises em for letter-spacing** so the FLOAT type and
+   `LETTER_SPACING` scope are applied automatically.
+
+## Rationale
+
+- Mirrors the colour pipeline 1:1 — `paletteKeys` → primitive overrides;
+  `typographyConfig` → primitive overrides. Same mental model, same
+  generator structure, same sync server path.
+- Presets keep the wizard a single-decision step for first-time designers,
+  while leaving the door open for full per-token editing later.
+- Treating typography as **primitives** (not its own new tier) avoids
+  inflating the token graph; T1 text styles can be layered on top in a
+  later phase without restructuring the export.
+- Fixing the em→percent bug at the **sync boundary** (not in CSS) preserves
+  the readability of `-0.05em` for CSS authors and the editor preview, while
+  giving Figma exactly the number it can scope.
+
+## Consequences
+
+- Every project now ships typography variables to Figma automatically —
+  even legacy projects without `typographyConfig` get the default preset.
+- Letter-spacing variables now land in Figma's letter-spacing picker
+  (previously silently STRING-typed and unscoped).
+- A second source of truth for preset data exists in `demo/onboard.html`
+  (inline copy) and `packages/sync-server/typography-presets.js` — they
+  must stay in sync until onboard moves to a module-loader build.
+- Custom font families (lane: `custom`) require the designer to host the
+  font file themselves; DTF does not bundle font loaders in Phase 1.
+- Existing component CSS that reads `--font-family` (legacy alias) keeps
+  working — the new `--font-family-body` is additive, not a rename.
+
+## Roadmap
+
+| Phase | Scope |
+|-------|-------|
+| **Phase 1** (this ADR) | Preset picker in onboard, typography primitives in sync, em→% fix |
+| **Phase 2** | Per-project ladder editor in editor-v2 (size, weight, LH, LS sliders) |
+| **Phase 3** | T1 text-style tokens (body-base, heading-lg, etc.) parallel to colour roles |
+| **Phase 4** | Custom font upload + Google Fonts auto-import in onboard |

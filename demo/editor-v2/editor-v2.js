@@ -1218,6 +1218,21 @@
 
   /* ── Local autosave (Step 6 will add server draft branch) ─ */
   var saveTimer = null;
+
+  /* Phase 2: read the HEAD version (the version this draft is
+     'based on'). Stamped into every saved draft so on next load
+     we can detect republishes that happened while a draft was open.
+     Falls back to '' when no published version exists yet (fresh
+     project, pre-Phase-1 cache). */
+  function currentHeadVersion() {
+    if (State.lastPublishedVersion) return State.lastPublishedVersion;
+    try {
+      var cfg = readProjectConfigSync();
+      if (cfg && cfg.latestVersion && cfg.latestVersion.version) return cfg.latestVersion.version;
+    } catch (_e) {}
+    return '';
+  }
+
   function scheduleAutosave() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
@@ -1225,6 +1240,7 @@
         var payload = {
           v: 1,
           ts: Date.now(),
+          baseVersion: currentHeadVersion(),
           anchor: State.anchor,
           editingMode: State.editingMode,
           proposed: State.proposed,
@@ -1316,6 +1332,9 @@
         });
       }
       State.lastSavedAt = d.ts || null;
+      // Phase 2: surface the baseVersion the draft was saved against
+      // so initConflictBanner() can detect a republish.
+      State.draftBaseVersion = d.baseVersion || '';
       return totalChanges() > 0;
     } catch (e) { return false; }
   }
@@ -5015,6 +5034,7 @@
     refreshChangeBar();
     initProjectWidget();
     initMigrationBanner();
+    initConflictBanner();
     if (hadDraft) {
       // Refresh the backup timestamp so the status pill reads
       // "backed up just now" instead of the original draft's age.
@@ -5028,6 +5048,7 @@
         var payload = {
           v: 1,
           ts: Date.now(),
+          baseVersion: State.draftBaseVersion || currentHeadVersion(),
           anchor: State.anchor,
           editingMode: State.editingMode,
           proposed: State.proposed,
@@ -5735,6 +5756,45 @@
       $banner.hidden = true;
     });
   }
+
+  /* Phase 2: Draft-vs-HEAD conflict banner.
+     Trigger: a loaded draft's stamped baseVersion differs from the
+     project's current published version. That means someone (often
+     "past me on another machine") republished while a draft was in
+     progress. We don't auto-discard — user picks. */
+  function initConflictBanner() {
+    var $b       = document.getElementById('conflictBanner');
+    var $sub     = document.getElementById('conflictBannerSub');
+    var $keep    = document.getElementById('conflictBannerKeep');
+    var $discard = document.getElementById('conflictBannerDiscard');
+    if (!$b) return;
+
+    var draftVer = State.draftBaseVersion || '';
+    var headVer  = currentHeadVersion();
+    // No draft, or draft predates Phase 2 (no stamp), or matches HEAD — nothing to warn about.
+    if (!draftVer || !headVer || draftVer === headVer) return;
+
+    $sub.textContent = 'Your unsaved draft is based on v' + draftVer
+      + ', but this project was republished to v' + headVer
+      + ' (likely from another browser or machine). Keep editing on top of v' + draftVer
+      + ', or discard and load the new published baseline.';
+    $b.hidden = false;
+
+    $keep.addEventListener('click', function () {
+      // Accept the new baseline implicitly on next save by re-stamping.
+      State.draftBaseVersion = headVer;
+      scheduleAutosave();
+      $b.hidden = true;
+    });
+
+    $discard.addEventListener('click', function () {
+      try { clearDraftFromStorage(); } catch (_e) {}
+      // Reload to re-hydrate from disk/HEAD cleanly.
+      try { window.__ev2BypassUnloadGuard = true; } catch (_e) {}
+      window.location.reload();
+    });
+  }
+
   function getKnownProjects() {
     try { return JSON.parse(localStorage.getItem('dtf-known-projects') || '[]') || []; }
     catch (e) { return []; }
