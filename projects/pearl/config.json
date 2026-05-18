@@ -6,7 +6,7 @@
   "created": "2026-05-16",
   "schemaVersion": 2,
   "paletteKeys": {
-    "brand": "#E75A6F",
+    "brand": "#A5FF99",
     "danger": "#DC2626",
     "warning": "#D97706",
     "info": "#0EA5E9",
@@ -68,10 +68,10 @@
     "inverse": "greyscale"
   },
   "latestVersion": {
-    "version": "v0.0.11",
-    "name": "Restore of v0.0.9",
-    "description": "Restored from v0.0.9 — \"Restore of v0.0.7\"",
-    "savedAt": "2026-05-18T12:47:12.078Z",
+    "version": "v0.0.12",
+    "name": "May18 18:20 - #A5FF99",
+    "description": "",
+    "savedAt": "2026-05-18T12:50:55.416Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
