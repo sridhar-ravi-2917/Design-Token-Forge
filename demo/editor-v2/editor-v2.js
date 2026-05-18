@@ -4333,6 +4333,18 @@
                       // localStorage → user sees the OLD version
                       // for ~1s before the Phase-1 version-tag
                       // check nukes the stash and snaps to HEAD.
+    var patchedCfgText; // PATCHED config.json (with latestVersion =
+                      // nextVer) — captured for the stash-mirror
+                      // step. Was previously a var-scoped local
+                      // inside the inner .then, so the outer
+                      // mirror step wrote `"undefined"` into the
+                      // stash → ensureCfg() failed to parse on
+                      // reload → editor fell back to fetching the
+                      // PREVIOUS version's config from GitHub
+                      // Contents API → editor booted painting the
+                      // OLD palette for the few seconds until the
+                      // next pass corrected it. THIS is the bug
+                      // every prior fix attempt missed.
     ensureGhCredentials().then(function (cred) {
       creds = cred;
       var hasInline = snap.json.files && !Array.isArray(snap.json.files) && typeof snap.json.files === 'object';
@@ -4367,6 +4379,10 @@
         };
         newCfgText = JSON.stringify(cfg, null, 2) + '\n';
       } catch (_) { /* leave as-is */ }
+      // Hoist to outer scope so the stash-mirror .then can read it.
+      // var-in-callback scoping bug = root cause of the lingering
+      // restore flash. See comment on patchedCfgText declaration.
+      patchedCfgText = newCfgText;
 
       // New version JSON re-embeds the same files so the restored
       // version is itself restorable.
@@ -4405,7 +4421,7 @@
         localStorage.setItem('dtf-project-primitives-' + projId, primCss);
         localStorage.setItem('dtf-project-semantic-' + projId,   semCss);
         localStorage.setItem('dtf-project-surfaces-' + projId,   surfCss);
-        localStorage.setItem('dtf-project-config-' + projId,     newCfgText);
+        localStorage.setItem('dtf-project-config-' + projId,     patchedCfgText || '');
         // ALSO update the merged CSS bundle — boot Step 3 in
         // index.html paints from `dtf-saved-tokens-<pid>` (a
         // concat of primitives+semantic+surfaces) BEFORE the
