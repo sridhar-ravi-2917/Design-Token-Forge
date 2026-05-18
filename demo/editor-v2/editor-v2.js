@@ -5016,6 +5016,28 @@
     initProjectWidget();
     initMigrationBanner();
     if (hadDraft) {
+      // Refresh the backup timestamp so the status pill reads
+      // "backed up just now" instead of the original draft's age.
+      // Justification: at this point the in-memory state IS the draft
+      // on disk (we just hydrated from it). Showing "5m ago" implies
+      // 5 minutes of work could be lost — but there's nothing to lose,
+      // the on-disk draft already matches what the user sees. Do a
+      // single immediate write to make UI label honest, then normal
+      // scheduleAutosave() takes over on next edit.
+      try {
+        var payload = {
+          v: 1,
+          ts: Date.now(),
+          anchor: State.anchor,
+          editingMode: State.editingMode,
+          proposed: State.proposed,
+          t1: State.t1,
+          t2: State.t2,
+          t2SurfacePalette: State.t2SurfacePalette
+        };
+        localStorage.setItem(getDraftKey(), JSON.stringify(payload));
+        State.lastSavedAt = payload.ts;
+      } catch (_e) {}
       refreshDraftStatus('saved');
       if (window.ev2Toast) {
         window.ev2Toast(

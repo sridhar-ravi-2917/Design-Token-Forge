@@ -1121,9 +1121,10 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
 .ev2-pal-sw:hover{transform:translateY(-1px);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), 0 2px 4px rgba(0,0,0,.10)}
 .ev2-pal-sw:focus-visible{outline:2px solid var(--brand-component-bg-default,#3366f0);outline-offset:2px;z-index:2}
 .ev2-pal-sw[aria-checked="true"]{
-  /* Brand ring on the picked step — matches the strong selected ring
-     established in commit 2bd7b7d for the old segmented control. */
-  box-shadow:0 0 0 2px var(--brand-component-bg-default,#3366f0), 0 1px 3px rgba(0,0,0,.12);
+  /* Two-tone ring (white inner + dark outer) so the selection stays
+     visible against ANY brand colour, including extremes like bright
+     yellow / lime / cyan where a brand-tinted ring would blend in. */
+  box-shadow:0 0 0 2px #fff, 0 0 0 4px rgba(0,0,0,.72), 0 1px 3px rgba(0,0,0,.12);
   z-index:1;
 }
 .ev2-pal-sw[data-pass="false"]{opacity:.45}
