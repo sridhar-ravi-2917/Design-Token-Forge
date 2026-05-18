@@ -465,6 +465,21 @@
       swatch.style.setProperty('--c2', shadeHex(hex, 0.25));
     }
     if (_brandCache[projId]) { apply(_brandCache[projId]); return; }
+    /* Prefer the localStorage stash seeded by fetchFromUserFork — it
+       holds the project owner's actual config.json, which is the only
+       way to get the real brand hex when the project lives on a
+       colleague's fork (same-origin /projects/<id>/config.json 404s
+       on the maintainer's Pages). */
+    try {
+      var stash = localStorage.getItem('dtf-project-config-' + projId);
+      if (stash) {
+        var cfg = JSON.parse(stash);
+        var hex = cfg && cfg.paletteKeys && cfg.paletteKeys.brand;
+        if (hex) { _brandCache[projId] = hex; apply(hex); return; }
+      }
+    } catch (_e) {}
+    /* Same-origin fallback for projects that DO live on this fork
+       (the maintainer's own projects, or local file:// dev). */
     var urls = [
       '../projects/' + projId + '/config.json',
       '/Design-Token-Forge/projects/' + projId + '/config.json',
