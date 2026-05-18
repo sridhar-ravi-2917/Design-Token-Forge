@@ -149,7 +149,16 @@
      Trust that — the user just navigated between demo pages. */
   try {
     if (sessionStorage.getItem(SESSION_KEY) === '1' && localStorage.getItem(PAT_KEY)) {
-      release(localStorage.getItem(USER_KEY) || null);
+      var cachedUser = localStorage.getItem(USER_KEY) || null;
+      /* Wrong-fork redirect (see verify() for the long-form rationale).
+         A returning visitor whose tab cached SESSION_KEY against the
+         maintainer's origin must still be sent to their own fork. */
+      var ghMatch = (location.hostname || '').match(/^([^.]+)\.github\.io$/i);
+      if (ghMatch && cachedUser && ghMatch[1].toLowerCase() !== cachedUser.toLowerCase()) {
+        location.replace('https://' + cachedUser + '.github.io/' + REPO_NAME + '/demo/');
+        return;
+      }
+      release(cachedUser);
       return;
     }
   } catch (_e) {}
@@ -260,6 +269,46 @@
           }
           sessionStorage.setItem(SESSION_KEY, '1');
         } catch (_e) {}
+        /* ── Wrong-fork redirect ────────────────────────────────
+           GitHub Pages origin == fork owner. If the signed-in user
+           is browsing someone else's fork (the classic case: a
+           colleague follows the maintainer's shared link), the
+           project list, editor and token data here belong to that
+           other owner — none of the colleague's projects are
+           reachable from this origin. Send them to their own fork.
+
+           Only triggers on *.github.io origins (skip file://,
+           localhost, custom domains). Verifies the destination
+           is reachable before navigating — if the user hasn't
+           enabled Pages on their fork yet we fall through to the
+           normal release() so they at least see *something*. */
+        var redirected = false;
+        try {
+          var host = location.hostname || '';
+          var ghPagesMatch = host.match(/^([^.]+)\.github\.io$/i);
+          if (ghPagesMatch && user.login) {
+            var pageOwner = ghPagesMatch[1].toLowerCase();
+            var signedInOwner = user.login.toLowerCase();
+            if (pageOwner !== signedInOwner) {
+              redirected = true;
+              btn.textContent = 'Redirecting to your fork\u2026';
+              var target = 'https://' + user.login + '.github.io/' + REPO_NAME + '/demo/';
+              /* Quick reachability probe (HEAD on Pages root). If it
+                 404s, the fork's Pages isn't published yet — fall
+                 through to release() and let them use this origin
+                 with a one-time warning toast. */
+              fetch(target, { method: 'HEAD', mode: 'no-cors' })
+                .then(function () { location.replace(target); })
+                .catch(function () {
+                  showErr('Your fork\u2019s Pages site (' + target + ') isn\u2019t reachable yet. Enable Pages in your repo settings, then reload.');
+                  btn.disabled = false;
+                  btn.textContent = 'Unlock';
+                });
+              return;
+            }
+          }
+        } catch (_e) {}
+        if (redirected) return;
         showOk('Welcome, ' + (user.login || 'user') + ' \u2014 unlocking\u2026');
         setTimeout(function () { release(user); }, 200);
       }).catch(function () {
