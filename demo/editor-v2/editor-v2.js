@@ -4406,6 +4406,15 @@
         localStorage.setItem('dtf-project-semantic-' + projId,   semCss);
         localStorage.setItem('dtf-project-surfaces-' + projId,   surfCss);
         localStorage.setItem('dtf-project-config-' + projId,     newCfgText);
+        // ALSO update the merged CSS bundle — boot Step 3 in
+        // index.html paints from `dtf-saved-tokens-<pid>` (a
+        // concat of primitives+semantic+surfaces) BEFORE the
+        // version-tag check runs. Without this, the bundle stays
+        // stale → first paint = OLD version → background fetch()
+        // eventually catches up after ~1s, producing the "old
+        // colours flash then snap to new" symptom even though the
+        // per-file stashes and config were already fresh.
+        localStorage.setItem('dtf-saved-tokens-' + projId, primCss + '\n' + semCss + '\n' + surfCss);
         // Drop any in-flight draft for this project — restoring is
         // an explicit "discard my edits and go to vX" action, and
         // the Phase-2 conflict banner would otherwise fire on reload
@@ -4743,6 +4752,7 @@
     // on next page load).
     var publishedPrimCSS = '';
     var publishedSemCSS  = '';
+    var publishedSurfCSS = '';
     var publishedCfgJSON = '';
 
     ensureGhCredentials().then(function (cred) {
@@ -4756,6 +4766,7 @@
       var cfgJSON = buildConfigJSON(prevCfg, meta);
       publishedPrimCSS = primCSS;
       publishedSemCSS  = semCSS;
+      publishedSurfCSS = surfCSS;
       publishedCfgJSON = cfgJSON;
       var versionSnapshot = JSON.stringify({
         meta: meta,
@@ -4809,7 +4820,16 @@
       try {
         if (publishedPrimCSS) localStorage.setItem('dtf-project-primitives-' + projId, publishedPrimCSS);
         if (publishedSemCSS)  localStorage.setItem('dtf-project-semantic-' + projId, publishedSemCSS);
+        if (publishedSurfCSS) localStorage.setItem('dtf-project-surfaces-' + projId, publishedSurfCSS);
         if (publishedCfgJSON) localStorage.setItem('dtf-project-config-' + projId, publishedCfgJSON);
+        // Merged CSS bundle that index.html boot Step 3 reads for
+        // first paint. Without this, reopening the editor after a
+        // Publish flashes the OLD palette for ~1s while the
+        // background fetch() catches up.
+        if (publishedPrimCSS || publishedSemCSS || publishedSurfCSS) {
+          localStorage.setItem('dtf-saved-tokens-' + projId,
+            (publishedPrimCSS || '') + '\n' + (publishedSemCSS || '') + '\n' + (publishedSurfCSS || ''));
+        }
       } catch (e) { /* quota or disabled storage — non-fatal */ }
       // ── Step 2: notify Figma (best-effort).
       setTimelineStep('figma', 'running', 'Triggering Pages rebuild\u2026');
