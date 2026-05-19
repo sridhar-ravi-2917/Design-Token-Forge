@@ -1561,26 +1561,15 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
 }
 .ev2-surface-head-palette-reset:hover{color:var(--ev2-chrome-ct-strong)}
 
-/* Editing mode toggle (Light / Dark). Reuses .ev2-edit-mode click
-   handler from the existing T1 dispatcher — same data-edit-mode
-   attribute, so no JS duplication. */
+/* Editing mode toggle (Light / Dark). The button styles live in
+   the canonical .ev2-edit-mode block above (icon + label, pill,
+   aria-checked driven). This row-wrapper class is used by some
+   intent-head instances of the same toggle. */
 .ev2-edit-mode-row{
   display:inline-flex;align-items:center;
   padding:3px;border-radius:var(--radius-md,8px);
   background:var(--ev2-chrome-subtle);
   border:1px solid var(--ev2-chrome-outline);
-}
-.ev2-edit-mode{
-  padding:5px 12px;
-  font:inherit;font-size:12px;font-weight:600;
-  border:0;background:transparent;border-radius:var(--radius-sm,6px);
-  color:var(--ev2-chrome-ct-subtle);
-  cursor:pointer;
-}
-.ev2-edit-mode[aria-checked="true"]{
-  background:var(--ev2-chrome-bg);
-  color:var(--ev2-chrome-ct-strong);
-  box-shadow:var(--shadow-xs,0 1px 2px rgba(0,0,0,.05));
 }
 
 /* Family group containing N Property Cards */
