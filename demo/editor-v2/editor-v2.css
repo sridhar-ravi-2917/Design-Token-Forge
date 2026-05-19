@@ -1222,6 +1222,37 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   font:inherit;font-size:12px;font-weight:500;
   cursor:pointer;
 }
+/* Preview surface override \u2014 lets the designer audit each surface
+   family by repainting the preview canvas without changing what they
+   are currently editing. Empty value = follow the editor's active
+   surface (default behaviour). */
+.ev2-preview-surface{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:600;color:var(--ev2-chrome-ct-faint);
+  text-transform:uppercase;letter-spacing:.06em;
+  margin-left:auto;
+}
+.ev2-preview-surface-select{
+  padding:4px 8px;
+  border:1px solid var(--ev2-chrome-outline);
+  border-radius:var(--radius-sm,4px);
+  background:var(--ev2-chrome-bg);
+  color:var(--ev2-chrome-ct-strong);
+  font:inherit;font-size:11px;font-weight:500;
+  text-transform:none;letter-spacing:0;
+  cursor:pointer;
+}
+.ev2-preview-surface-select:focus-visible{
+  outline:2px solid var(--brand-component-bg,#3D5EFC);
+  outline-offset:1px;
+}
+/* Pill on when overriding (any non-empty value) so the designer
+   can tell at a glance the preview is decoupled from the editor. */
+.ev2-preview-surface-select[data-override="1"]{
+  border-color:var(--brand-component-bg,#3D5EFC);
+  color:var(--brand-component-bg,#3D5EFC);
+  font-weight:600;
+}
 .ev2-preview-pills{display:flex;gap:6px;flex-wrap:wrap}
 
 .ev2-preview-stage{

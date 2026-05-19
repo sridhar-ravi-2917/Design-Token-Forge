@@ -1112,10 +1112,23 @@
 
   /* The preview is "surface-aware" when the user is on T2: the body
      repaints as the surface being edited. For any other tier we fall
-     back to base so the preview is the canonical default. */
+     back to base so the preview is the canonical default.
+     V2 \u2014 a manual override dropdown in the preview header (Surface
+     family) lets the designer audit any surface without changing what
+     they're editing. Empty value = follow the editor (default). */
+  var _previewSurfaceOverride = '';
+  try { _previewSurfaceOverride = localStorage.getItem('ev2:preview-surface-override') || ''; } catch (e) {}
   function activeSurfaceForPreview() {
+    if (_previewSurfaceOverride) return _previewSurfaceOverride;
     if (State.activeTier !== 't2') return 'base';
     return State.activeSurface || 'base';
+  }
+  function activeTierForPreview() {
+    /* When overriding, force t2 so preview.html's CSS gating actually
+       paints the canvas with --surface-active-* (it only repaints on
+       t2). */
+    if (_previewSurfaceOverride) return 't2';
+    return State.activeTier;
   }
   function pushActiveSurface() {
     var win = $frame && $frame.contentWindow;
@@ -1124,7 +1137,7 @@
       win.postMessage({
         type: 'ev2-active-surface',
         surface: activeSurfaceForPreview(),
-        tier: State.activeTier
+        tier: activeTierForPreview()
       }, '*');
     } catch (e) {}
   }
@@ -4975,6 +4988,32 @@
   $reload.addEventListener('click', function () {
     $frame.contentWindow.location.reload();
   });
+
+  /* Preview surface override dropdown \u2014 lets the designer audit
+     each surface family without changing what they're editing.
+     Empty value = follow editor (default). Any other value forces
+     the preview canvas into t2 + the chosen surface. Persisted to
+     localStorage so reloads keep the chosen audit view. */
+  var $previewSurface = document.getElementById('previewSurfaceSelect');
+  if ($previewSurface) {
+    if (_previewSurfaceOverride) {
+      $previewSurface.value = _previewSurfaceOverride;
+      $previewSurface.setAttribute('data-override', '1');
+    }
+    $previewSurface.addEventListener('change', function () {
+      _previewSurfaceOverride = $previewSurface.value || '';
+      try {
+        if (_previewSurfaceOverride) {
+          localStorage.setItem('ev2:preview-surface-override', _previewSurfaceOverride);
+          $previewSurface.setAttribute('data-override', '1');
+        } else {
+          localStorage.removeItem('ev2:preview-surface-override');
+          $previewSurface.removeAttribute('data-override');
+        }
+      } catch (e) {}
+      pushActiveSurface();
+    });
+  }
 
   $frame.addEventListener('load', function () {
     var mode = document.documentElement.getAttribute('data-theme') || 'light';
