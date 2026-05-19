@@ -3605,7 +3605,8 @@ function updateGenPrereqs(data){
     data.currentTokensHash || '',
     data.currentProject || '',
     data.currentTokensHashes || null,  /* V2 per-component map */
-    data.currentBpMeta || null         /* V3.1 — planned matrix per BP */
+    data.currentBpMeta || null,        /* V3.1 — planned matrix per BP */
+    data.currentTokensMissing || null  /* V3 — per-comp missing token names */
   );
 }
 
@@ -3640,12 +3641,13 @@ var builderHasAnyBuild = false;
                  pills are present (see demo/mock-builder.html).
      • tint:     subtle bg on the row of HIGHEST severity
                  (drift > structure > proto > bindings). */
-function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHashes, currentTokensHash, currentProject, currentTokensHashes, currentBpMeta){
+function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHashes, currentTokensHash, currentProject, currentTokensHashes, currentBpMeta, currentTokensMissing){
   currentStructureHashes = currentStructureHashes || {};
   currentPrototypeHashes = currentPrototypeHashes || {};
   currentTokensHash      = currentTokensHash || '';
   currentTokensHashes    = currentTokensHashes || null;
   currentBpMeta          = currentBpMeta || null;
+  currentTokensMissing   = currentTokensMissing || null;
   /* Drift = "the project we'd build against next is not the one we
      built against last time". The dropdown (CURRENT_PROJECT) is the
      authoritative source for "next", NOT the file-bound dtf-project
@@ -3742,10 +3744,33 @@ function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHas
       why = '';
     } else if (bindingsChanged) {
       /* V2 path only fires here when a variable Button bound is
-         actually missing — i.e. genuinely broken bindings. */
+         actually missing — i.e. genuinely broken bindings.
+         V3 — surface the actual token NAMES so designers see WHY
+         a rebuild is needed without reading hashes or asking us. */
       pillsHtml = '<span class="pill" data-kind="bindings">build needed</span>';
       tint = 'bindings';
-      why = 'Some token bindings are broken and need re-binding.';
+      var _miss = (currentTokensMissing && currentTokensMissing[key]) || [];
+      var _named = [];
+      for (var _mj = 0; _mj < _miss.length; _mj++){
+        var _nm = _miss[_mj] && _miss[_mj].name;
+        if (_nm) _named.push(_nm);
+      }
+      var _n = _miss.length;
+      if (_n && _named.length){
+        /* Show up to 3 names inline; "and N more" beyond that. */
+        var _show = _named.slice(0, 3).join(', ');
+        var _rest = _named.length - 3;
+        var _list = _show + (_rest > 0 ? ' and ' + _rest + ' more' : '');
+        why = _n + ' token binding' + (_n === 1 ? '' : 's') +
+              ' need re-linking: <strong>' + _list + '</strong>' +
+              ' — renamed or removed in a recent sync. Click "Build components" to relink.';
+      } else if (_n){
+        /* Have count but no names (legacy ledger pre-boundNames). */
+        why = _n + ' token binding' + (_n === 1 ? '' : 's') +
+              ' need re-linking — renamed or removed in a recent sync.';
+      } else {
+        why = 'Some token bindings are broken and need re-binding.';
+      }
     } else if (protoChanged) {
       pillsHtml = '<span class="pill" data-kind="proto">build needed</span>';
       tint = 'proto';
@@ -3783,9 +3808,19 @@ function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHas
 
     /* Fingerprint tooltip on the row (copyable on hover). When the
        structure pill fired, prepend the per-family breakdown so the
-       designer can see exactly what changes without clicking. */
+       designer can see exactly what changes without clicking.
+       V3 — when bindings broke, also list every missing token name
+       (not just the 3 shown inline in the why-line). */
+    var _missTipNames = [];
+    if (bindingsChanged) {
+      var _mt = (currentTokensMissing && currentTokensMissing[key]) || [];
+      for (var _mk = 0; _mk < _mt.length; _mk++){
+        if (_mt[_mk] && _mt[_mk].name) _missTipNames.push(_mt[_mk].name);
+      }
+    }
     var tip = [
       (typeof structureTooltip === 'string' && structureTooltip) ? structureTooltip : '',
+      _missTipNames.length ? ('missing tokens: ' + _missTipNames.join(', ')) : '',
       ledgerStruct ? ('structure ' + ledgerStruct + (structureChanged ? ' → ' + curStruct : '')) : '',
       ledgerProto  ? ('prototype ' + ledgerProto  + (protoChanged     ? ' → ' + curProto  : '')) : '',
       ledgerTokens ? ('tokens '    + ledgerTokens + (bindingsChanged  ? ' → ' + curTokens : '')) : '',

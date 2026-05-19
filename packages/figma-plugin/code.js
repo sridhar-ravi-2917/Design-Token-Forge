@@ -779,7 +779,7 @@ function setPaintBoundToVariable(node, paintField, variable) {
     paint.boundVariables = { color: { type: 'VARIABLE_ALIAS', id: variable.id } };
   }
   node[paintField] = [paint];
-  if (variable && variable.id) _recordBoundVarId(variable.id);
+  if (variable && variable.id) _recordBoundVarId(variable.id, variable.name);
 }
 
 /* Try to bind a variable to a numeric/boolean node property */
@@ -787,7 +787,7 @@ async function tryBindVar(node, field, variable) {
   if (!variable) return false;
   try {
     node.setBoundVariable(field, variable);
-    if (variable.id) _recordBoundVarId(variable.id);
+    if (variable.id) _recordBoundVarId(variable.id, variable.name);
     return true;
   } catch (e) {
     log('bindVar failed: ' + field + ' on ' + node.name + ' — ' + e.message);
@@ -799,10 +799,16 @@ async function tryBindVar(node, field, variable) {
    the start of each generateComponentFromBlueprint() invocation; read
    at Step 9 to record the precise binding surface for THIS component
    in the ledger. Lets the Builder pill avoid false positives when a
-   sync only added or removed variables this component doesn't use. */
+   sync only added or removed variables this component doesn't use.
+
+   V3 — also captures the variable NAME at bind time so the Builder
+   pill can show a human-readable list when bindings break (variables
+   deleted/recreated lose their name in Figma; the ledger keeps it). */
 var _boundIdsForBuild = null;
-function _recordBoundVarId(id){
+var _boundNamesForBuild = null;
+function _recordBoundVarId(id, name){
   if (_boundIdsForBuild) _boundIdsForBuild[id] = 1;
+  if (_boundNamesForBuild && name && !_boundNamesForBuild[id]) _boundNamesForBuild[id] = name;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1326,8 +1332,12 @@ async function generateComponentFromBlueprint(blueprint) {
   var stats = { components: 0, bindings: 0, reactions: 0, errors: [] };
   /* Reset per-build bound-id collector. setPaintBoundToVariable,
      tryBindVar, and tryBindStroke push into this; Step 9 hashes
-     it to produce a precise tokensHash for this component only. */
+     it to produce a precise tokensHash for this component only.
+     Names collector (V3) feeds boundNames{} into the ledger so the
+     Builder pill can render "X, Y, Z were removed" when bindings
+     break (deleted variables lose their name in Figma). */
   _boundIdsForBuild = {};
+  _boundNamesForBuild = {};
   var BP = blueprint;
 
   /* M4 — read the safe-rebuild feature flag. When ON, the plugin tries
@@ -2016,7 +2026,7 @@ async function generateComponentFromBlueprint(blueprint) {
         { type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 }, opacity: 1, visible: true },
         'color', varObj
       )];
-      if (varObj.id) _recordBoundVarId(varObj.id);
+      if (varObj.id) _recordBoundVarId(varObj.id, varObj.name);
       return true;
     } catch (e) { return false; }
   }
@@ -4059,6 +4069,14 @@ async function generateComponentFromBlueprint(blueprint) {
     boundIds.sort();
     tokensHash = dtfHash32(boundIds.join('|'));
   } catch (e) {}
+  /* V3 \u2014 capture id\u2192name map so the Builder pill can show
+     human-readable names when bindings break later (variables
+     deleted in Figma lose their .name; the ledger keeps it). */
+  var boundNames = {};
+  try {
+    var _bn = _boundNamesForBuild || {};
+    for (var _bid in _bn) { if (_bn.hasOwnProperty(_bid)) boundNames[_bid] = _bn[_bid]; }
+  } catch (e) {}
 
   /* Preserve prior hashes so the Builder pill can show "changed since
      last build" without needing to recompute on every prereq ping. */
@@ -4121,6 +4139,7 @@ async function generateComponentFromBlueprint(blueprint) {
     prototypeHash:    prototypeHash,
     tokensHash:       tokensHash,
     boundIds:         boundIds,         /* V2 — exact bind surface */
+    boundNames:       boundNames,       /* V3 — id→name at build time */
     prevSpecHash:     _priorEntry.specHash      || '',
     prevStructureHash:_priorEntry.structureHash || _priorEntry.specHash || '',
     prevPrototypeHash:_priorEntry.prototypeHash || '',
@@ -4708,6 +4727,7 @@ figma.ui.onmessage = async function(msg) {
                        component only). */
       var currentTokensHash = '';
       var currentTokensHashes = {};
+      var currentTokensMissing = {};   /* V3 \u2014 per-comp [{name,id}] */
       try {
         /* CRITICAL — _idSet must cover EVERY variable in the file,
            not just the three collections the generator pulls from.
@@ -4773,6 +4793,18 @@ figma.ui.onmessage = async function(msg) {
             /* Some IDs gone → real rebind needed. Sentinel includes
                the missing list so the hash genuinely differs. */
             currentTokensHashes[_vk] = dtfHash32('missing:' + _missing.sort().join('|'));
+            /* V3 \u2014 resolve missing IDs back to the names recorded
+               at build time so the Builder pill can show readable
+               token paths (e.g. "surface/component/bg") instead of
+               opaque IDs. Falls back to '(unknown)' for legacy
+               ledger entries that predate boundNames{}. */
+            var _names = _ve.boundNames || {};
+            var _missList = [];
+            for (var _mi = 0; _mi < _missing.length; _mi++){
+              var _mid = _missing[_mi];
+              _missList.push({ id: _mid, name: _names[_mid] || '' });
+            }
+            currentTokensMissing[_vk] = _missList;
           }
         }
       } catch (e) {}
@@ -4838,6 +4870,7 @@ figma.ui.onmessage = async function(msg) {
         versions: versions,
         currentTokensHash:     currentTokensHash,       /* legacy: union of all IDs */
         currentTokensHashes:   currentTokensHashes,     /* V2: per-component */
+        currentTokensMissing:  currentTokensMissing,    /* V3: per-comp missing names */
         currentSpecHashes:     currentSpecHashes,       /* legacy alias */
         currentStructureHashes:currentStructureHashes,
         currentPrototypeHashes:currentPrototypeHashes,
