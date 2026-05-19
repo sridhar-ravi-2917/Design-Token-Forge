@@ -3454,10 +3454,25 @@
     if (window.__ev2OpenPalettePicker) window.__ev2OpenPalettePicker(openBtn);
   });
 
-  document.getElementById('showCssNames').addEventListener('change', function (e) {
-    document.body.classList.toggle('ev2-show-css', e.target.checked);
-    saveUIState();
-  });
+  /* CSS-name toggle \u2014 button hosts the visual state (aria-pressed)
+     and toggles the hidden checkbox so persistence + any legacy
+     readers keep working. */
+  (function wireCssNamesToggle(){
+    var btn = document.getElementById('showCssNamesBtn');
+    var cb  = document.getElementById('showCssNames');
+    if (!btn || !cb) return;
+    function apply(checked){
+      cb.checked = !!checked;
+      btn.setAttribute('aria-pressed', checked ? 'true' : 'false');
+      document.body.classList.toggle('ev2-show-css', !!checked);
+    }
+    btn.addEventListener('click', function(){
+      apply(!cb.checked);
+      saveUIState();
+    });
+    /* Initial paint: respect whatever the checkbox was hydrated to. */
+    apply(cb.checked);
+  })();
 
   $discard.addEventListener('click', function () {
     ROLES.forEach(function (r) {
@@ -5236,6 +5251,8 @@
         document.body.classList.toggle('ev2-show-css', ui.showCss);
         var cb = document.getElementById('showCssNames');
         if (cb) cb.checked = !!ui.showCss;
+        var btn = document.getElementById('showCssNamesBtn');
+        if (btn) btn.setAttribute('aria-pressed', ui.showCss ? 'true' : 'false');
       } else {
         // No saved preference yet — keep the HTML default (checked).
         document.body.classList.add('ev2-show-css');

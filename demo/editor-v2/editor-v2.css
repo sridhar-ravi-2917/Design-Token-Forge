@@ -176,29 +176,33 @@ body{
   box-shadow:var(--shadow-xs,0 1px 2px rgba(0,0,0,.06));
 }
 
-/* Right-side action buttons share the demo's ghost-button density
-   (--demo-* tokens, 28px height, 6px radius) so the editor topbar
-   reads identical to every other page. */
+/* CSS-name visibility toggle \u2014 icon-only button (text 'CSS names'
+   would otherwise eat ~80px in a row that already houses the
+   Edit-mode segmented + Reset). Tooltip carries the explanation;
+   aria-pressed drives the visual state. */
 .ev2-css-toggle{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:4px 8px;height:26px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;
   border:1px solid var(--demo-border);
-  border-radius:999px;
+  border-radius:var(--radius-sm,4px);
   background:transparent;
-  font-size:11px;font-weight:600;
-  color:var(--demo-fg-subtle);cursor:pointer;
+  color:var(--demo-fg-subtle);
+  cursor:pointer;
   user-select:none;
-  transition:all 120ms ease;
+  transition:color 120ms ease,border-color 120ms ease,background 120ms ease;
+  flex-shrink:0;
 }
 .ev2-css-toggle:hover{border-color:var(--demo-fg-faint);color:var(--demo-fg-strong)}
-.ev2-css-toggle input{margin:0;cursor:pointer;width:12px;height:12px}
-.ev2-css-toggle svg{color:var(--demo-fg-faint)}
-.ev2-css-toggle:has(input:checked){
+.ev2-css-toggle svg{color:inherit}
+.ev2-css-toggle[aria-pressed="true"]{
   background:var(--brand-container-bg-subtle,#EAF2FF);
-  border-color:var(--brand-component-bg-default,#3366f0);
+  border-color:var(--brand-component-bg,#3366f0);
   color:var(--brand-content-default,#2253CC);
 }
-.ev2-css-toggle:has(input:checked) svg{color:var(--brand-content-default,#2253CC)}
+.ev2-css-toggle:focus-visible{
+  outline:2px solid var(--brand-component-bg,#3366f0);
+  outline-offset:2px;
+}
 
 /* Topbar icon button — square chip used for History next to Publish.
    Sits in slot="action" of <dtf-topbar>, so it must visually match
@@ -609,9 +613,12 @@ body[data-pane-dragging="true"] .ev2-preview-frame{pointer-events:none}
   gap:10px;
   border-bottom:1px solid var(--ev2-chrome-outline);
 }
-/* In-panel "Editing" toggle — switches which mode's tokens you're
-   editing. Lives inside each role card head; the page UI theme is
-   controlled separately by the top-bar toggle. */
+/* In-panel "Editing" toggle \u2014 switches which mode's tokens you're
+   editing. Lives in the section head; the page UI theme is
+   controlled in sync (editing mode IS the UI theme). The wordy
+   'EDITING' kicker was dropped \u2014 the sun/moon icons + Light/Dark
+   labels are self-explanatory, and the tooltip carries the long
+   explanation. */
 .ev2-edit-toggle{
   display:inline-flex;align-items:center;
   padding:2px;
@@ -619,14 +626,12 @@ body[data-pane-dragging="true"] .ev2-preview-frame{pointer-events:none}
   border-radius:999px;
   background:var(--ev2-chrome-subtle);
   gap:2px;
+  flex-shrink:0;
 }
-.ev2-edit-toggle-label{
-  padding:0 8px 0 10px;
-  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ev2-chrome-ct-faint);
-}
+.ev2-edit-toggle-label{display:none}  /* legacy: kicker removed */
 .ev2-edit-mode{
-  padding:3px 10px;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;
   border:0;
   border-radius:999px;
   background:transparent;
@@ -635,11 +640,13 @@ body[data-pane-dragging="true"] .ev2-preview-frame{pointer-events:none}
   cursor:pointer;
   transition:all 120ms ease;
 }
+.ev2-edit-mode svg{flex-shrink:0;opacity:.75}
 .ev2-edit-mode[aria-checked="true"]{
   background:var(--ev2-chrome-cm-bg);
   color:var(--ev2-chrome-ct-strong);
   box-shadow:var(--shadow-xs,0 1px 2px rgba(0,0,0,.06));
 }
+.ev2-edit-mode[aria-checked="true"] svg{opacity:1}
 .ev2-edit-mode:focus-visible{
   outline:2px solid var(--brand-component-outline-default);
   outline-offset:2px;
