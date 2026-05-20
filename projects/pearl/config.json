@@ -6,7 +6,7 @@
   "created": "2026-05-16",
   "schemaVersion": 2,
   "paletteKeys": {
-    "brand": "#FF61AD",
+    "brand": "#A0FDF2",
     "danger": "#DC2626",
     "warning": "#D97706",
     "info": "#0EA5E9",
@@ -68,29 +68,29 @@
     "inverse": "greyscale"
   },
   "latestVersion": {
-    "version": "v0.0.31",
-    "name": "May19 10:22- rose petal",
+    "version": "v0.0.32",
+    "name": "May20 21:19",
     "description": "",
-    "savedAt": "2026-05-19T05:04:13.057Z",
+    "savedAt": "2026-05-20T15:49:13.282Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
     "light": {
       "brand": {
         "fill": "550",
-        "content": "600",
+        "content": "750",
         "container": "50",
-        "borderStep": "500",
-        "separatorStep": "400",
-        "onComponent": "white",
-        "onContainerStep": "700"
+        "borderStep": "700",
+        "separatorStep": "450",
+        "onComponent": "black",
+        "onContainerStep": "750"
       },
       "danger": {
         "fill": "450",
         "content": "450",
         "container": "75",
-        "borderStep": "200",
-        "separatorStep": "350",
+        "borderStep": "350",
+        "separatorStep": "250",
         "onComponent": "white",
         "onContainerStep": "550"
       },
@@ -107,8 +107,8 @@
         "fill": "350",
         "content": "600",
         "container": "75",
-        "borderStep": "500",
-        "separatorStep": "400",
+        "borderStep": "250",
+        "separatorStep": "175",
         "onComponent": "white",
         "onContainerStep": "750"
       },
@@ -116,8 +116,8 @@
         "fill": "300",
         "content": "700",
         "container": "50",
-        "borderStep": "450",
-        "separatorStep": "350",
+        "borderStep": "200",
+        "separatorStep": "150",
         "onComponent": "800",
         "onContainerStep": "700"
       }
