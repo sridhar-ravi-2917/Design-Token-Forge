@@ -44,6 +44,23 @@ html[data-ev2-chrome-surface="base"]{
   --ev2-chrome-cm-outline-hover:   var(--surface-base-cm-outline-hover);
 }
 
+/* Editor chrome tooltip tokens. These are intentionally NOT bound
+   to --surface-inverse-* because many projects ship a broken/black
+   inverse pair in dark mode (see /memories/repo/). The tooltip is
+   editor chrome, not preview content — its contrast must be
+   guaranteed regardless of project token health. */
+:root,
+html[data-theme="light"]{
+  --ev2-tip-bg:     var(--neutral-900, #1a1d24);
+  --ev2-tip-ct:     var(--color-fixed-white, #ffffff);
+  --ev2-tip-border: var(--neutral-800, #2a2e38);
+}
+html[data-theme="dark"]{
+  --ev2-tip-bg:     var(--neutral-100, #f1f3f7);
+  --ev2-tip-ct:     var(--neutral-900, #1a1d24);
+  --ev2-tip-border: var(--neutral-300, #d4d8e0);
+}
+
 *,*::before,*::after{box-sizing:border-box;margin:0}
 html,body{height:100%}
 body{
@@ -783,9 +800,9 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   padding:8px 10px;
   width:max-content;max-width:260px;
   border-radius:var(--radius-md,6px);
-  background:var(--surface-inverse-bg);
-  color:var(--surface-inverse-ct-default);
-  border:1px solid var(--surface-inverse-outline);
+  background:var(--ev2-tip-bg);
+  color:var(--ev2-tip-ct);
+  border:1px solid var(--ev2-tip-border);
   font-size:11px;font-weight:500;line-height:1.4;
   text-transform:none;letter-spacing:0;
   box-shadow:var(--shadow-lg,0 8px 24px rgba(0,0,0,.18));
@@ -799,9 +816,9 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   bottom:calc(100% + 2px);left:50%;
   transform:translateX(-50%) rotate(45deg);
   width:8px;height:8px;
-  background:var(--surface-inverse-bg);
-  border-right:1px solid var(--surface-inverse-outline);
-  border-bottom:1px solid var(--surface-inverse-outline);
+  background:var(--ev2-tip-bg);
+  border-right:1px solid var(--ev2-tip-border);
+  border-bottom:1px solid var(--ev2-tip-border);
   z-index:9999;
   pointer-events:none;
 }
@@ -818,9 +835,9 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   padding:8px 10px;
   max-width:280px;
   border-radius:var(--radius-md,6px);
-  background:var(--surface-inverse-bg);
-  color:var(--surface-inverse-ct-default);
-  border:1px solid var(--surface-inverse-outline);
+  background:var(--ev2-tip-bg);
+  color:var(--ev2-tip-ct);
+  border:1px solid var(--ev2-tip-border);
   font-size:11px;font-weight:500;line-height:1.4;
   text-transform:none;letter-spacing:0;
   box-shadow:var(--shadow-lg,0 8px 24px rgba(0,0,0,.22));
@@ -1358,10 +1375,10 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
   position:fixed;top:64px;right:20px;
   display:inline-flex;align-items:center;gap:10px;
   padding:10px 14px 10px 12px;
-  border:1px solid var(--surface-inverse-outline);
+  border:1px solid var(--ev2-tip-border);
   border-radius:var(--radius-md,6px);
-  background:var(--surface-inverse-bg);
-  color:var(--surface-inverse-ct-default);
+  background:var(--ev2-tip-bg);
+  color:var(--ev2-tip-ct);
   font-size:12px;font-weight:500;
   box-shadow:var(--shadow-lg,0 8px 24px rgba(0,0,0,.28));
   opacity:0;transform:translateY(-8px);
@@ -1376,7 +1393,8 @@ html.ev2-tip-js [data-tip]::before { content:none !important; display:none !impo
 .ev2-toast::before{
   content:'';
   width:8px;height:8px;border-radius:50%;
-  background:var(--surface-inverse-ct-faint);
+  background:var(--ev2-tip-ct);
+  opacity:.55;
   flex-shrink:0;
 }
 .ev2-toast[data-show]{opacity:1;transform:translateY(0);pointer-events:auto}
