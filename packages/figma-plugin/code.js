@@ -61,7 +61,20 @@ var LEDGER_TOMBSTONE_TTL_MS = 60 * 1000;
   } catch (e) { /* first run or storage blocked — ignore */ }
 })();
 
-var CODE_VERSION = '2026-05-20-ledger-autoheal';
+var CODE_VERSION = '2026-05-20-ledger-autoheal-create';
+
+/* Known structural comp-size variables required by the component
+   generators. Used by Step 2c (Build) AND by check-gen-prereqs
+   auto-heal so a missing required variable gets recreated without
+   the user having to click Build first. */
+var REQUIRED_COMPSIZE_VARS = [
+  { name: 'button/icon wrapper padding L', defaultVal: 8 },
+  { name: 'button/icon wrapper padding R', defaultVal: 8 },
+  { name: 'button/icon pad', defaultVal: 8 },
+  { name: 'button/radius-rounded', defaultVal: 9999 },
+  { name: 'split-button/chevron/padding', defaultVal: 8 },
+  { name: 'split-button/chevron/size',    defaultVal: 16 }
+];
 log('code.js loaded — version ' + CODE_VERSION);
 
 /* ── Stable hash helpers ────────────────────────────────
@@ -1580,21 +1593,11 @@ async function generateComponentFromBlueprint(blueprint) {
 
   /* ── Step 2c: Create missing comp-size variables ───────────
      Some files may not have all the variables the blueprint needs.
-     Create them in the comp size collection with sensible defaults. */
-  var requiredVars = [
-    { name: 'button/icon wrapper padding L', defaultVal: 8 },
-    { name: 'button/icon wrapper padding R', defaultVal: 8 },
-    { name: 'button/icon pad', defaultVal: 8 },
-    /* Rounded (pill) corner radius — bound on Rounded=True variants instead
-       of button/default/radius. Mirrors --btn-radius-rounded in CSS. */
-    { name: 'button/radius-rounded', defaultVal: 9999 },
-    /* Split-button chevron-zone structural tokens. Owned by split-button
-       (action-zone tokens come from the embedded button instance). Without
-       these, the chevron zone padding falls back to 0 and the chevron icon
-       wrapper has no width — so the trigger zone collapses. */
-    { name: 'split-button/chevron/padding', defaultVal: 8 },
-    { name: 'split-button/chevron/size',    defaultVal: 16 }
-  ];
+     Create them in the comp size collection with sensible defaults.
+     NOTE: list is module-level (REQUIRED_COMPSIZE_VARS) so prereq
+     auto-heal can also create missing entries without waiting for
+     a full Build. */
+  var requiredVars = REQUIRED_COMPSIZE_VARS;
 
   var allCols = await figma.variables.getLocalVariableCollectionsAsync();
   var csCol = allCols.find(function(c) { return c.name === 'comp size'; });
@@ -4792,9 +4795,14 @@ figma.ui.onmessage = async function(msg) {
            a new ID; ledger still had the old ID; bindings pill fired
            forever even though the same NAME still resolved correctly. */
         var _nameToId = {};
+        var _allColsForHeal = _allCols;
+        if (!_allColsForHeal) {
+          try { _allColsForHeal = await figma.variables.getLocalVariableCollectionsAsync(); }
+          catch (eRetry) { _allColsForHeal = []; }
+        }
         try {
-          for (var _ci2 = 0; _ci2 < _allCols.length; _ci2++){
-            var _col2 = _allCols[_ci2];
+          for (var _ci2 = 0; _ci2 < _allColsForHeal.length; _ci2++){
+            var _col2 = _allColsForHeal[_ci2];
             var _cvids2 = _col2.variableIds || [];
             for (var _vi3 = 0; _vi3 < _cvids2.length; _vi3++){
               try {
@@ -4805,6 +4813,44 @@ figma.ui.onmessage = async function(msg) {
           }
         } catch (eAll) {}
 
+        /* V5 — if a ledger entry references a name in
+           REQUIRED_COMPSIZE_VARS that's missing from the file, create
+           it on the spot. Step 2c does this during Build, but waiting
+           for Build means the bindings pill stays stuck until the
+           user manually clicks it. Auto-creating here clears the pill
+           on the next prereq ping. */
+        var _csColHeal = null;
+        try {
+          for (var _hi = 0; _hi < _allColsForHeal.length; _hi++){
+            if (_allColsForHeal[_hi].name === 'comp size'){ _csColHeal = _allColsForHeal[_hi]; break; }
+          }
+        } catch (eC) {}
+        var _requiredByName = {};
+        for (var _rqi = 0; _rqi < REQUIRED_COMPSIZE_VARS.length; _rqi++){
+          var _rq = REQUIRED_COMPSIZE_VARS[_rqi];
+          _requiredByName[_rq.name] = _rq.defaultVal;
+        }
+        async function _ensureRequired(name){
+          if (_nameToId[name]) return _nameToId[name];
+          if (!(name in _requiredByName)) return null;
+          if (!_csColHeal) return null;
+          try {
+            var nv = figma.variables.createVariable(name, _csColHeal, 'FLOAT');
+            var modes = (_csColHeal.modes || []).map(function(m){ return m.modeId; });
+            for (var mi = 0; mi < modes.length; mi++){
+              try { nv.setValueForMode(modes[mi], _requiredByName[name]); } catch (e) {}
+            }
+            try { nv.scopes = ['CORNER_RADIUS', 'GAP', 'WIDTH_HEIGHT']; } catch (e) {}
+            _nameToId[name] = nv.id;
+            _idSet[nv.id] = 1;
+            log('Auto-create missing required var: ' + name + ' = ' + _requiredByName[name]);
+            return nv.id;
+          } catch (e) {
+            log('Auto-create FAILED for ' + name + ': ' + (e && e.message || e));
+            return null;
+          }
+        }
+
         var _vkeys = Object.keys(versions);
         var _ledgerDirty = false;
         for (var _vi = 0; _vi < _vkeys.length; _vi++){
@@ -4813,15 +4859,6 @@ figma.ui.onmessage = async function(msg) {
           if (!_ve) continue;
           var _bound = _ve.boundIds;
           if (!_bound || !_bound.length) {
-            /* Legacy ledger entry (pre-V2 — built before per-component
-               boundIds[] tracking landed). We have NO positive evidence
-               anything broke for this component, so don't surface a
-               bindings pill. A value-only sync (color hex changes,
-               etc.) doesn't break IDs in Figma — the bound component
-               picks up new values automatically, no rebuild needed.
-               If a variable ever DOES get deleted, the next Build
-               will record boundIds[] and the V2 path below will
-               correctly detect it. Until then: silent. */
             currentTokensHashes[_vk] = _ve.tokensHash || '';
             continue;
           }
@@ -4840,18 +4877,17 @@ figma.ui.onmessage = async function(msg) {
             /* Stale ID — try to recover by name. */
             var _stName = _names[_bid] || '';
             var _newId  = _stName ? _nameToId[_stName] : null;
+            /* V5 — if name maps to a known required structural var
+               that's missing entirely, create it. */
+            if (!_newId && _stName && (_stName in _requiredByName)) {
+              _newId = await _ensureRequired(_stName);
+            }
             if (_newId) {
-              /* Same name still exists → swap to new ID, ledger is now
-                 valid again. No pill, no rebuild needed. */
               _healedBound.push(_newId);
               _healedNames[_newId] = _stName;
               _entryHealed = true;
               try { log('Ledger auto-heal HIT: ' + _vk + ' "' + _stName + '" ' + _bid + ' → ' + _newId); } catch (e) {}
             } else {
-              /* Name not found in any collection → genuinely missing.
-                 Log explicitly so we can tell the difference between
-                 "auto-heal didn't run" and "auto-heal ran but the
-                 variable name truly isn't in the file". */
               try { log('Ledger auto-heal MISS: ' + _vk + ' "' + (_stName || '(no name in ledger)') + '" id=' + _bid + ' — not present in any local collection'); } catch (e) {}
               _missing.push(_bid);
             }
@@ -4859,9 +4895,6 @@ figma.ui.onmessage = async function(msg) {
           if (_entryHealed) {
             _ve.boundIds   = _healedBound;
             _ve.boundNames = _healedNames;
-            /* Recompute tokensHash so the ledger stays internally
-               consistent and the UI's "tokens changed since last
-               build" delta line stops blinking. */
             try {
               var _sorted = _healedBound.slice().sort();
               _ve.tokensHash = dtfHash32(_sorted.join('|'));
@@ -4869,10 +4902,8 @@ figma.ui.onmessage = async function(msg) {
             _ledgerDirty = true;
           }
           if (_missing.length === 0) {
-            /* All vars Button is bound to still exist → no change. */
             currentTokensHashes[_vk] = _ve.tokensHash || '';
           } else {
-            /* Some IDs gone AND no name match → real rebind needed. */
             currentTokensHashes[_vk] = dtfHash32('missing:' + _missing.sort().join('|'));
             var _missList = [];
             for (var _mi = 0; _mi < _missing.length; _mi++){
