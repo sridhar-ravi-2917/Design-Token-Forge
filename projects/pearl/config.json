@@ -6,7 +6,7 @@
   "created": "2026-05-16",
   "schemaVersion": 2,
   "paletteKeys": {
-    "brand": "#D5C620",
+    "brand": "#837272",
     "danger": "#DC2626",
     "warning": "#D97706",
     "info": "#0EA5E9",
@@ -68,35 +68,35 @@
     "inverse": "greyscale"
   },
   "latestVersion": {
-    "version": "v0.0.33",
-    "name": "May20 22:09",
-    "description": "",
-    "savedAt": "2026-05-20T16:39:30.212Z",
+    "version": "v0.0.34",
+    "name": "Restore of v0.0.15",
+    "description": "Restored from v0.0.15 — \"May18 18:24- #837272\"",
+    "savedAt": "2026-05-20T17:04:05.435Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
     "light": {
       "brand": {
-        "fill": "550",
+        "fill": "600",
         "content": "750",
         "container": "50",
-        "borderStep": "700",
-        "separatorStep": "700",
-        "onComponent": "black",
-        "onContainerStep": "750"
+        "borderStep": "450",
+        "separatorStep": "350",
+        "onComponent": "white",
+        "onContainerStep": "600"
       },
       "danger": {
-        "fill": "450",
-        "content": "450",
+        "fill": "550",
+        "content": "550",
         "container": "75",
-        "borderStep": "350",
-        "separatorStep": "250",
+        "borderStep": "450",
+        "separatorStep": "350",
         "onComponent": "white",
         "onContainerStep": "550"
       },
       "success": {
         "fill": "600",
-        "content": "600",
+        "content": "700",
         "container": "50",
         "borderStep": "500",
         "separatorStep": "400",
@@ -104,21 +104,21 @@
         "onContainerStep": "700"
       },
       "warning": {
-        "fill": "350",
-        "content": "600",
+        "fill": "600",
+        "content": "750",
         "container": "75",
-        "borderStep": "250",
-        "separatorStep": "175",
+        "borderStep": "500",
+        "separatorStep": "400",
         "onComponent": "white",
         "onContainerStep": "750"
       },
       "info": {
-        "fill": "300",
+        "fill": "550",
         "content": "700",
         "container": "50",
-        "borderStep": "200",
-        "separatorStep": "150",
-        "onComponent": "800",
+        "borderStep": "450",
+        "separatorStep": "350",
+        "onComponent": "black",
         "onContainerStep": "700"
       }
     },
