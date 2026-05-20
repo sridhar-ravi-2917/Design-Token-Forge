@@ -6,7 +6,7 @@
   "created": "2026-05-16",
   "schemaVersion": 2,
   "paletteKeys": {
-    "brand": "#A0FDF2",
+    "brand": "#D5C620",
     "danger": "#DC2626",
     "warning": "#D97706",
     "info": "#0EA5E9",
@@ -68,10 +68,10 @@
     "inverse": "greyscale"
   },
   "latestVersion": {
-    "version": "v0.0.32",
-    "name": "May20 21:19",
+    "version": "v0.0.33",
+    "name": "May20 22:09",
     "description": "",
-    "savedAt": "2026-05-20T15:49:13.282Z",
+    "savedAt": "2026-05-20T16:39:30.212Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
@@ -81,7 +81,7 @@
         "content": "750",
         "container": "50",
         "borderStep": "700",
-        "separatorStep": "450",
+        "separatorStep": "700",
         "onComponent": "black",
         "onContainerStep": "750"
       },
