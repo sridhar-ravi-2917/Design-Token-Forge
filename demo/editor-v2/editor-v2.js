@@ -4281,7 +4281,12 @@
        with their on-text + outlines for visual scanability. Content
        (direct text token in the role's hue) trails after the pairs
        since it is the least frequently tuned lever. */
+    // Grouped as Content → Component → Container so designers read
+    // top-down from "what the text/icon looks like" to "what the
+    // filled surface looks like" to "what the soft tinted surface
+    // looks like" — matching the Resulting-slots panel grouping.
     var T1_DISPLAY_ORDER = [
+      { kind:'lever',   id:'content' },
       { kind:'lever',   id:'fill' },
       { kind:'derived', id:'onComponent' },
       { kind:'derived', id:'cmBorder' },
@@ -4289,8 +4294,7 @@
       { kind:'lever',   id:'container' },
       { kind:'derived', id:'onContainer' },
       { kind:'derived', id:'border' },
-      { kind:'derived', id:'separator' },
-      { kind:'lever',   id:'content' }
+      { kind:'derived', id:'separator' }
     ];
     var leversHTML = T1_DISPLAY_ORDER.map(function (item) {
       if (item.kind === 'lever' && leverById[item.id])   return leverCardHTML(leverById[item.id]);

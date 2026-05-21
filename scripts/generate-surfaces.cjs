@@ -6,10 +6,15 @@
  * Every hex value maps to an existing primitive → 100% Figma alias coverage.
  *
  * ARCHITECTURE:
- *   Neutral surfaces (bright, base, dim, deep, container, over-container, float, inverse)
- *     → use greyscale palette steps
- *   Accent surface
- *     → uses brand (primary) palette steps
+ *   Canvas surfaces (bright, base, dim, deep, inverse) — page tones, pick one per region
+ *   Elevation surfaces (card, modal, float)              — lifted regions placed on a canvas
+ *     All use greyscale palette steps
+ *   Accent surface uses brand (primary) palette steps
+ *
+ *   Old names `container` / `over-container` were renamed to `card` / `modal`
+ *   for clarity (the role of each surface in the elevation ladder). A
+ *   back-compat alias block is emitted at the end of surfaces.css so external
+ *   consumers keep working during migration.
  *
  * SURFACE STEP MAP:
  *   Each surface property maps to a palette step name (e.g., "25", "900", "white").
@@ -125,8 +130,8 @@ const LIGHT_SURFACE_MAP = {
     'cm-outline-pressed': '300',
     'cm-separator':       '200',
   },
-  // Surface-container: cards/panels (bright fill on neutral bg)
-  container: {
+  // Surface-card: resting elevation (cards, panels on a surface)
+  card: {
     bg:                   'white',
     hover:                '25',
     pressed:              '50',
@@ -144,8 +149,8 @@ const LIGHT_SURFACE_MAP = {
     'cm-outline-pressed': '250',
     'cm-separator':       '150',
   },
-  // Surface-over-container: popover, top-level dropdown
-  'over-container': {
+  // Surface-modal: blocking overlay (dialogs, sheets — has backdrop)
+  modal: {
     bg:                   'white',
     hover:                '25',
     pressed:              '50',
@@ -277,7 +282,7 @@ const DARK_SURFACE_MAP = {
     'cm-outline-pressed': '550',
     'cm-separator':       '750',
   },
-  container: {
+  card: {
     bg:                   '850',
     hover:                '800',
     pressed:              '750',
@@ -295,7 +300,7 @@ const DARK_SURFACE_MAP = {
     'cm-outline-pressed': '500',
     'cm-separator':       '700',
   },
-  'over-container': {
+  modal: {
     bg:                   '800',
     hover:                '750',
     pressed:              '700',
@@ -420,28 +425,29 @@ function generate() {
   if (!grey) throw new Error('Greyscale palette not found in primitives.css');
   if (!mono) throw new Error('Monochromatic palette not found in primitives.css');
 
-  const SURFACE_ORDER = ['bright','base','dim','deep','accent','container','over-container','float','inverse'];
+  // Canvas surfaces come first (page tones), then elevation surfaces (lifted layers).
+  const SURFACE_ORDER = ['bright','base','dim','deep','accent','card','modal','float','inverse'];
   const SURFACE_LABELS = {
-    bright:           'SURFACE-BRIGHT (elevated / cards / modals)',
-    base:             'SURFACE-BASE (default page canvas)',
-    dim:              'SURFACE-DIM (muted / receded areas)',
-    deep:             'SURFACE-DEEP (recessed / sidebars / wells)',
-    accent:           'SURFACE-ACCENT (primary-tinted)',
-    container:        'SURFACE-CONTAINER (cards, panels)',
-    'over-container': 'SURFACE-OVER-CONTAINER (popovers, dropdowns, modals)',
-    float:            'SURFACE-FLOAT (menus, dropdowns, popups, tooltips)',
-    inverse:          'SURFACE-INVERSE (snackbars, toasts — FIXED dark in all themes)',
+    bright:  'SURFACE-BRIGHT  · canvas · highlighted / lifted page area',
+    base:    'SURFACE-BASE    · canvas · default page',
+    dim:     'SURFACE-DIM     · canvas · muted / receded',
+    deep:    'SURFACE-DEEP    · canvas · recessed / sidebars / wells',
+    accent:  'SURFACE-ACCENT  · canvas · primary-tinted',
+    card:    'SURFACE-CARD    · elevation · resting lift (cards, panels on a surface)',
+    modal:   'SURFACE-MODAL   · elevation · blocking overlay (dialogs, sheets, has backdrop)',
+    float:   'SURFACE-FLOAT   · elevation · transient overlay (menus, dropdowns, tooltips, popovers)',
+    inverse: 'SURFACE-INVERSE · fixed   · snackbars/toasts (dark in both themes)',
   };
   const DARK_SURFACE_LABELS = {
-    bright:           'SURFACE-BRIGHT (elevated / cards / modals)',
-    base:             'SURFACE-BASE (default dark canvas)',
-    dim:              'SURFACE-DIM (muted dark areas)',
-    deep:             'SURFACE-DEEP (deepest dark / sidebars)',
-    accent:           'SURFACE-ACCENT (primary-tinted dark)',
-    container:        'SURFACE-CONTAINER (cards, panels — dark)',
-    'over-container': 'SURFACE-OVER-CONTAINER (popovers, dropdowns — dark)',
-    float:            'SURFACE-FLOAT (menus, dropdowns, popups — dark)',
-    inverse:          'SURFACE-INVERSE (snackbars, toasts — FIXED dark in all themes)',
+    bright:  'SURFACE-BRIGHT  · canvas · highlighted / lifted area (dark)',
+    base:    'SURFACE-BASE    · canvas · default page (dark)',
+    dim:     'SURFACE-DIM     · canvas · muted (dark)',
+    deep:    'SURFACE-DEEP    · canvas · deepest (dark)',
+    accent:  'SURFACE-ACCENT  · canvas · primary-tinted (dark)',
+    card:    'SURFACE-CARD    · elevation · resting lift (dark)',
+    modal:   'SURFACE-MODAL   · elevation · blocking overlay (dark)',
+    float:   'SURFACE-FLOAT   · elevation · transient overlay (dark)',
+    inverse: 'SURFACE-INVERSE · fixed   · snackbars/toasts (always dark)',
   };
 
   let out = '';
