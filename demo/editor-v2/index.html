@@ -82,7 +82,7 @@
   <link rel="stylesheet" href="../shared.css">
 
   <!-- Editor v2 specific layout -->
-  <link rel="stylesheet" href="./editor-v2.css?v=136">
+  <link rel="stylesheet" href="./editor-v2.css?v=156">
 
   <!-- Palette engine MUST load before the per-project token script
        below so we can synth primitives from cfg.paletteKeys before
@@ -444,6 +444,10 @@
           <span class="ev2-tier-badge">T0</span>
           <span class="ev2-tier-name">Palette</span>
         </button>
+        <button class="ev2-tier" data-tier="tt" role="tab">
+          <span class="ev2-tier-badge">Tt</span>
+          <span class="ev2-tier-name">Type</span>
+        </button>
         <button class="ev2-tier" data-tier="t1" role="tab">
           <span class="ev2-tier-badge">T1</span>
           <span class="ev2-tier-name">Roles</span>
@@ -480,7 +484,7 @@
         if (!raw) return;
         var ui = JSON.parse(raw);
         var t = ui && ui.activeTier;
-        if (t !== 't1' && t !== 't2' && t !== 't3') return;
+        if (t !== 't1' && t !== 't2' && t !== 't3' && t !== 'tt') return;
         document.querySelectorAll('.ev2-tier').forEach(function(btn){
           if (btn.getAttribute('data-tier') === t) btn.setAttribute('aria-current', 'true');
           else btn.removeAttribute('aria-current');
@@ -646,6 +650,82 @@
     </div>
   </div>
 
+  <!-- Custom typography dialog: pick a font per role from a curated
+       Google Fonts list, or paste any name. Opened from the
+       "+ Custom fonts" card on the Tt tier. -->
+  <div class="ev2-modal ev2-tt-modal" id="ev2TtCustom" hidden role="dialog" aria-modal="true" aria-labelledby="ev2TtCustomTitle">
+    <div class="ev2-modal-backdrop" data-tt-dismiss></div>
+    <div class="ev2-modal-card" role="document">
+      <button class="ev2-modal-close" type="button" data-tt-dismiss aria-label="Close dialog">&times;</button>
+      <h3 class="ev2-modal-title" id="ev2TtCustomTitle">Custom fonts</h3>
+      <p class="ev2-modal-body">Pick a font for each role. Suggestions are popular Google Fonts &mdash; or type any font name you already have.</p>
+      <div class="ev2-tt-modal-fields">
+        <div class="ev2-tt-modal-row">
+          <label for="ttCustomHeadline">Headline</label>
+          <input id="ttCustomHeadline" type="text" list="ttFontSuggest" data-role="headline" autocomplete="off" placeholder="e.g. Playfair Display" />
+          <span class="ev2-tt-modal-sample" data-role="headline">Aa</span>
+        </div>
+        <div class="ev2-tt-modal-row">
+          <label for="ttCustomBody">Body</label>
+          <input id="ttCustomBody" type="text" list="ttFontSuggest" data-role="body" autocomplete="off" placeholder="e.g. Inter" />
+          <span class="ev2-tt-modal-sample" data-role="body">Aa</span>
+        </div>
+        <div class="ev2-tt-modal-row">
+          <label for="ttCustomCode">Code</label>
+          <input id="ttCustomCode" type="text" list="ttFontSuggest" data-role="code" autocomplete="off" placeholder="e.g. JetBrains Mono" />
+          <span class="ev2-tt-modal-sample" data-role="code">Aa</span>
+        </div>
+      </div>
+      <datalist id="ttFontSuggest">
+        <option value="Inter"></option>
+        <option value="Roboto"></option>
+        <option value="Open Sans"></option>
+        <option value="Lato"></option>
+        <option value="Montserrat"></option>
+        <option value="Poppins"></option>
+        <option value="Source Sans 3"></option>
+        <option value="Work Sans"></option>
+        <option value="Nunito"></option>
+        <option value="DM Sans"></option>
+        <option value="Manrope"></option>
+        <option value="Plus Jakarta Sans"></option>
+        <option value="Playfair Display"></option>
+        <option value="Fraunces"></option>
+        <option value="Merriweather"></option>
+        <option value="Lora"></option>
+        <option value="EB Garamond"></option>
+        <option value="Crimson Pro"></option>
+        <option value="JetBrains Mono"></option>
+        <option value="Fira Code"></option>
+        <option value="IBM Plex Mono"></option>
+        <option value="Source Code Pro"></option>
+        <option value="Roboto Mono"></option>
+        <option value="Space Mono"></option>
+      </datalist>
+      <div class="ev2-modal-actions">
+        <button class="ev2-modal-btn" type="button" data-tt-dismiss>Cancel</button>
+        <button class="ev2-modal-btn ev2-modal-btn-primary" type="button" id="ttCustomApply">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Designer install dialog: opened from the Tt sticky footer.
+       Body is populated by renderTtInstallDialog() each time it
+       opens so the list always reflects the active preset/custom
+       picks. -->
+  <div class="ev2-modal ev2-tt-install-modal" id="ev2TtInstall" hidden role="dialog" aria-modal="true" aria-labelledby="ev2TtInstallTitle">
+    <div class="ev2-modal-backdrop" data-tt-install-dismiss></div>
+    <div class="ev2-modal-card" role="document">
+      <button class="ev2-modal-close" type="button" data-tt-install-dismiss aria-label="Close dialog">&times;</button>
+      <h3 class="ev2-modal-title" id="ev2TtInstallTitle">Fonts to install</h3>
+      <p class="ev2-modal-body" id="ev2TtInstallSub">Designers need these fonts on their computer for Figma to match what you see here.</p>
+      <div id="ev2TtInstallBody"></div>
+      <div class="ev2-modal-actions">
+        <button class="ev2-modal-btn ev2-modal-btn-primary" type="button" data-tt-install-dismiss>Got it</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Add custom palette dialog: name + key color picker + live ladder preview -->
   <div class="ev2-modal ev2-addpal" id="ev2AddPalette" hidden role="dialog" aria-modal="true" aria-labelledby="ev2AddPaletteTitle">
     <div class="ev2-modal-backdrop" data-addpal-dismiss></div>
@@ -794,6 +874,6 @@
     </div>
   </div>
 
-  <script src="./editor-v2.js?v=152" defer></script>
+  <script src="./editor-v2.js?v=170" defer></script>
 </body>
 </html>

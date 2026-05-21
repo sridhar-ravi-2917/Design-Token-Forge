@@ -17,6 +17,7 @@
 
   var TIER_META = {
     t0: { title: 'Palette',     sub: 'Your foundation colors. Editing here cascades to roles, surfaces, and every component.' },
+    tt: { title: 'Type',        sub: 'Headline, body, and code fonts. Pick a pairing or type your own — the live preview updates instantly.' },
     t1: { title: 'Roles',       sub: 'Brand, danger, success, warning, info, neutral — the meaning your colors carry.' },
     t2: { title: 'Surfaces',    sub: 'Page and section backgrounds. Each surface defines text, components, and outlines that fit on top of it.' },
     t3: { title: 'Components',  sub: 'Per-component sizes, spacing and structural tokens. Density, padding, radii.' }
@@ -637,6 +638,16 @@
     // t2SurfacePalette on save-as-default so 'CUSTOM' pills clear
     // once the user publishes their picks as the new defaults.
     t2SurfacePaletteBaseline: {},
+    // Tt Typography state. Phase 1: preset id + optional per-role
+    // override strings (CSS font-family stacks). Persistence keys
+    // mirror standalone demo/typography.html so the two surfaces
+    // share state: dtf-typo-overrides-<projectId>.
+    // `preset` = active preset id, OR the literal 'custom' when the
+    // user picked their own fonts via the Custom Fonts dialog.
+    // `custom` = the user's last picks {headline, body, code} — kept
+    // even when the user switches back to a preset, so the Custom
+    // card retains its labels.
+    typo: { preset: 'neutral-system', overrides: { headline: '', body: '', code: '' }, custom: { headline: '', body: '', code: '' }, density: 'base' },
     // T0 sub-view selector. 'roles' = key-color editing for the 6
     // primary roles; 'palettes' = inventory + CRUD for the system
     // and custom palettes that surfaces consume in T2. Palette
@@ -884,6 +895,9 @@
   function totalChanges() {
     var n = ROLES.reduce(function (acc, r) { return acc + (isRoleDirty(r.id) ? 1 : 0); }, 0);
     n += totalT2Changes();
+    /* Typography is a separate section — count it once if the user
+       has drifted from the project's published baseline. */
+    if (typeof tierTtChangeCount === 'function') n += tierTtChangeCount();
     if (State.anchor !== State.baselineAnchor) n += 1;
     return n;
   }
@@ -1237,6 +1251,8 @@
       ROLES.forEach(function (r) { if (isT1Changed(r.id)) n++; });
     } else if (tierId === 't2') {
       n = totalT2Changes();
+    } else if (tierId === 'tt') {
+      n = tierTtChangeCount();
     }
     return n;
   }
@@ -1249,7 +1265,7 @@
     // section already needs to flush the (currently empty) override
     // map once step-4 wiring writes to it. Keep t3 unsupported until
     // its own state lands.
-    var supported = (tier === 't0' || tier === 't1' || tier === 't2');
+    var supported = (tier === 't0' || tier === 't1' || tier === 't2' || tier === 'tt');
     var dirty = supported ? sectionDirtyCount(tier) : 0;
     btn.hidden = !supported;
     btn.disabled = dirty === 0;
@@ -2132,6 +2148,707 @@
         + '<div class="ev2-empty-sub">Step 2' + letter + ' wires this tier with the same intent + live-preview pattern as Palette.</div>'
       + '</div>';
   }
+
+  /* ── Tt Typography ────────────────────────────────────
+     Phase 1 typography tier. Sits between T0 (palette) and T1
+     (roles) because typography is a primitive layer, not a
+     semantic one. Five presets cover the common pairings; a
+     per-role override field accepts any CSS font stack.
+     Persistence keys mirror demo/typography.html so the two
+     surfaces share state — picking Editorial Serif here also
+     paints the standalone page, and vice versa. */
+  var TYPO_PRESETS = [
+    { id:'neutral-system',  name:'Neutral System',  vibe:'Safe & fast \u00b7 zero web fonts',
+      display:{ headline:'System UI', body:'System UI', code:'SF Mono' },
+      fonts:{ headline:'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              body:    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              code:    '"SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Menlo, Consolas, monospace' } },
+    { id:'modern-geometric',name:'Modern Geometric',vibe:'Clean SaaS \u00b7 great for product UI',
+      display:{ headline:'Inter', body:'Inter', code:'JetBrains Mono' },
+      fonts:{ headline:'Inter, system-ui, -apple-system, sans-serif',
+              body:    'Inter, system-ui, -apple-system, sans-serif',
+              code:    '"JetBrains Mono", "SF Mono", Menlo, monospace' } },
+    { id:'editorial-serif', name:'Editorial Serif', vibe:'Magazine feel \u00b7 strong personality',
+      display:{ headline:'Fraunces', body:'Inter', code:'IBM Plex Mono' },
+      fonts:{ headline:'Fraunces, Georgia, "Times New Roman", serif',
+              body:    'Inter, system-ui, -apple-system, sans-serif',
+              code:    '"IBM Plex Mono", "SF Mono", Menlo, monospace' } },
+    { id:'friendly-humanist',name:'Friendly Humanist',vibe:'Warm & approachable \u00b7 rounded shapes',
+      display:{ headline:'Nunito', body:'Nunito', code:'Source Code Pro' },
+      fonts:{ headline:'Nunito, "Trebuchet MS", "Lucida Sans", sans-serif',
+              body:    'Nunito, "Trebuchet MS", "Lucida Sans", sans-serif',
+              code:    '"Source Code Pro", "SF Mono", Menlo, monospace' } },
+    { id:'code-first-mono', name:'Code-first Mono', vibe:'Dev tools \u00b7 terminal vibe everywhere',
+      display:{ headline:'SF Mono', body:'SF Mono', code:'SF Mono' },
+      fonts:{ headline:'"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+              body:    '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+              code:    '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace' } }
+  ];
+  var TYPO_ROLES = ['headline', 'body', 'code'];
+  var TYPO_ROLE_LABEL = { headline:'Headlines & titles', body:'Paragraphs & UI', code:'Code & numbers' };
+  var TYPO_ROLE_PLACEHOLDER = { headline:'e.g. Playfair Display', body:'e.g. Inter', code:'e.g. JetBrains Mono' };
+
+  /* Type density — three-step UI knob that scales the ENTIRE
+     font-size ladder by a fixed multiplier. Compact for tight,
+     data-dense surfaces (admin tables, file browsers); Base is
+     the project's published ladder verbatim; Comfortable widens
+     for content-heavy reading apps. Multipliers chosen so the
+     base body size (13px) shifts by ~1px each step:
+       compact:  13 × 0.92 ≈ 12  (tighter UI)
+       base:     13 × 1.00  = 13  (no override)
+       comfort:  13 × 1.08 ≈ 14  (slightly larger) */
+  var TYPO_DENSITY = { compact: 0.92, base: 1, comfortable: 1.08 };
+  /* Line-height pairs to density. Same direction as font-size:
+     compact tightens rows so the whole UI compresses (not just
+     glyph size); comfortable opens them up for reading.
+     Values mirror the --line-height-{snug,normal,relaxed}
+     primitives in packages/tokens/src/primitives.css — picking
+     existing rungs of the LH ladder instead of inventing
+     intermediate ratios. */
+  var TYPO_DENSITY_LH = { compact: 1.375, base: 1.5, comfortable: 1.625 };
+  var TYPO_DENSITY_LABEL = { compact: 'Compact', base: 'Base', comfortable: 'Comfortable' };
+  /* Keep in sync with packages/tokens/src/primitives.css. Each
+     entry is the pixel-anchor name of one --font-size-N token.
+     The ladder is intentionally non-uniform (jumps at the top
+     end) — emitter writes only what we list. */
+  var TYPO_FONT_SIZE_LADDER = [10, 11, 12, 13, 14, 16, 18, 20, 24, 26, 28, 32, 40];
+
+  /* System / built-in fonts (installed on every modern OS, or
+     guaranteed by every modern browser as fallback). These never
+     need a Figma install — what you see in the browser is what
+     you see in Figma. Source: same list the mock's "Built-in
+     fonts" lane describes. */
+  var TYPO_SYSTEM_FAMILIES = {
+    'system ui':1, 'system-ui':1, '-apple-system':1, 'blinkmacsystemfont':1,
+    'segoe ui':1, 'roboto':1, 'helvetica neue':1, 'helvetica':1, 'arial':1,
+    'sans-serif':1, 'serif':1, 'monospace':1,
+    'sf mono':1, 'sf pro':1, 'menlo':1, 'monaco':1, 'consolas':1,
+    'courier new':1, 'courier':1, 'georgia':1, 'times new roman':1, 'times':1,
+    'lucida sans':1, 'lucida grande':1, 'trebuchet ms':1, 'verdana':1, 'tahoma':1
+  };
+  /* Classify a single font family name. Returns one of:
+     'system' — installed everywhere, no Figma action needed
+     'google' — on TYPO_GOOGLE_FONTS safelist, needs install in Figma
+     'custom' — anything else; user owns the install + license */
+  function typoLaneFor(rawFamily) {
+    var name = String(rawFamily || '').trim().replace(/^["']|["']$/g, '');
+    if (!name) return 'system';
+    var lower = name.toLowerCase();
+    if (TYPO_SYSTEM_FAMILIES[lower]) return 'system';
+    /* TYPO_GOOGLE_FONTS keys are case-sensitive display names. */
+    var googleHit = false;
+    for (var k in TYPO_GOOGLE_FONTS) {
+      if (k.toLowerCase() === lower) { googleHit = true; break; }
+    }
+    return googleHit ? 'google' : 'custom';
+  }
+  /* For a preset (or any {headline,body,code} family map), return
+     the worst-case Figma-parity status across its three roles.
+     'system' if all three are system; 'google' if at least one
+     needs Figma install; 'custom' if any is user-owned. */
+  function typoParityFor(fonts) {
+    if (!fonts) return 'system';
+    var ranks = { system:0, google:1, custom:2 };
+    var worst = 'system';
+    TYPO_ROLES.forEach(function (r) {
+      /* fonts.x is a CSS stack like 'Inter, system-ui, sans-serif'
+         — read only the FIRST family. That's what actually paints
+         when the font is available; fallbacks are degraded states. */
+      var first = String(fonts[r] || '').split(',')[0];
+      var lane = typoLaneFor(first);
+      if (ranks[lane] > ranks[worst]) worst = lane;
+    });
+    return worst;
+  }
+  /* Plain-English status text shown at the bottom of each preset
+     tile. Tells the user exactly what they have to do (if
+     anything) for the font to look the same in Figma. Kept short
+     so it fits one line on narrow tiles; the title attribute (set
+     in render) carries the long explanation. */
+  var TYPO_PARITY_LABEL = {
+    system: 'No setup needed',
+    google: 'Install the font in Figma',
+    custom: 'Bring your own font file'
+  };
+  var TYPO_PARITY_TITLE = {
+    system: 'These fonts come with every computer, so Figma already has them. What you see here is exactly what your designers see.',
+    google: 'This is a free Google font. The browser loads it automatically, but Figma needs it installed on each designer\u2019s computer to match.',
+    custom: 'A paid or in-house font. You\u2019re responsible for hosting it on your site and installing it on your team\u2019s computers.'
+  };
+
+  function typoStorageKey() {
+    var pid = (State && State.projectId) || (typeof activeProjectId === 'function' ? activeProjectId() : '');
+    return pid ? ('dtf-typo-overrides-' + pid) : 'dtf-typo-overrides';
+  }
+  /* Baseline = the project's published typography (read from
+     config.json typographyConfig.preset). The dirty count compares
+     the working State.typo against this. Stored on State so the
+     reset / publish flows can see it. */
+  function readTypoBaseline() {
+    try {
+      var cfg = (typeof readProjectConfigSync === 'function') ? readProjectConfigSync() : null;
+      var preset = (cfg && cfg.typographyConfig && cfg.typographyConfig.preset) || 'neutral-system';
+      var density = (cfg && cfg.typographyConfig && cfg.typographyConfig.density) || 'base';
+      return { preset: preset, density: density, overrides: { headline:'', body:'', code:'' }, custom: { headline:'', body:'', code:'' } };
+    } catch (_e) {
+      return { preset: 'neutral-system', density: 'base', overrides: { headline:'', body:'', code:'' }, custom: { headline:'', body:'', code:'' } };
+    }
+  }
+  function loadTypoState() {
+    /* Seed baseline first so dirty checks have a comparator even
+       when no saved overrides exist yet. */
+    State.typoBaseline = readTypoBaseline();
+    /* Initialise working state from baseline, then layer any
+       persisted overrides. This guarantees a fresh editor open on
+       pearl shows "editorial-serif" as the active preset (the
+       project's actual published font), not the hardcoded
+       'neutral-system' default. */
+    State.typo = {
+      preset:    State.typoBaseline.preset,
+      density:   State.typoBaseline.density || 'base',
+      overrides: { headline:'', body:'', code:'' },
+      custom:    { headline:'', body:'', code:'' }
+    };
+    try {
+      var raw = localStorage.getItem(typoStorageKey());
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.preset)    State.typo.preset    = parsed.preset;
+          if (parsed.density)   State.typo.density   = parsed.density;
+          if (parsed.overrides) State.typo.overrides = parsed.overrides;
+          if (parsed.custom)    State.typo.custom    = parsed.custom;
+        }
+      }
+    } catch (_e) {}
+  }
+  /* Returns 1 if any field of State.typo differs from baseline,
+     else 0. We deliberately collapse multi-field changes to "1
+     dirty section" because the change bar counts SECTIONS, not
+     individual deltas (T2 follows the same pattern). */
+  function tierTtChangeCount() {
+    var b = State.typoBaseline || readTypoBaseline();
+    var t = State.typo || {};
+    if ((t.preset || '')  !== (b.preset || ''))  return 1;
+    if ((t.density || 'base') !== (b.density || 'base')) return 1;
+    var roles = ['headline','body','code'];
+    for (var i = 0; i < roles.length; i++) {
+      var r = roles[i];
+      if (((t.overrides || {})[r] || '') !== ((b.overrides || {})[r] || '')) return 1;
+      if (((t.custom    || {})[r] || '') !== ((b.custom    || {})[r] || '')) return 1;
+    }
+    return 0;
+  }
+  function persistTypoState() {
+    try { localStorage.setItem(typoStorageKey(), JSON.stringify(State.typo)); } catch (_e) {}
+  }
+  /* Curated subset of Google Fonts the Custom Fonts dialog
+     suggests. Same list as the <datalist> in index.html; kept
+     here so we can detect when a picked font is a Google Font
+     and lazy-inject the <link rel=stylesheet>. */
+  var TYPO_GOOGLE_FONTS = {
+    'Inter':1, 'Roboto':1, 'Open Sans':1, 'Lato':1, 'Montserrat':1, 'Poppins':1,
+    'Source Sans 3':1, 'Work Sans':1, 'Nunito':1, 'DM Sans':1, 'Manrope':1,
+    'Plus Jakarta Sans':1, 'Playfair Display':1, 'Fraunces':1, 'Merriweather':1,
+    'Lora':1, 'EB Garamond':1, 'Crimson Pro':1, 'JetBrains Mono':1, 'Fira Code':1,
+    'IBM Plex Mono':1, 'Source Code Pro':1, 'Roboto Mono':1, 'Space Mono':1
+  };
+
+  /* Build a CSS font-family stack from a raw user-entered family.
+     Adds quotes + sensible fallbacks based on whether the family is
+     likely a monospaced font. */
+  function typoStackFor(role, raw) {
+    var name = String(raw || '').trim();
+    if (!name) return null;
+    var needsQuote = /\s/.test(name) && !/^"|^'/.test(name);
+    var quoted = needsQuote ? '"' + name + '"' : name;
+    if (role === 'code') return quoted + ', "SF Mono", Menlo, Consolas, monospace';
+    return quoted + ', system-ui, -apple-system, sans-serif';
+  }
+
+  /* Resolve the effective font stack for each role considering
+     preset / custom / per-role override precedence. Returns
+     { headline, body, code } as CSS font-family values. */
+  function typoResolvedFonts() {
+    var preset = TYPO_PRESETS.find(function (p) { return p.id === State.typo.preset; });
+    var out = {};
+    TYPO_ROLES.forEach(function (r) {
+      var override = (State.typo.overrides && State.typo.overrides[r] || '').trim();
+      if (override) { out[r] = override; return; }
+      if (State.typo.preset === 'custom') {
+        var c = (State.typo.custom && State.typo.custom[r] || '').trim();
+        out[r] = c ? typoStackFor(r, c) : '';
+      } else if (preset) {
+        out[r] = preset.fonts[r];
+      } else {
+        out[r] = '';
+      }
+    });
+    return out;
+  }
+
+  /* Bucket the resolved fonts by install-lane (system / google /
+     custom), de-duped across roles. Used by the sticky-footer
+     summary AND the install dialog so both views agree. */
+  function typoInstallBuckets() {
+    var resolved = typoResolvedFonts();
+    var buckets = { system: [], google: [], custom: [] };
+    var seen = {};
+    TYPO_ROLES.forEach(function (r) {
+      var stack = resolved[r] || '';
+      var first = String(stack).split(',')[0].replace(/^["']|["']$/g, '').trim();
+      if (!first) return;
+      var key = first.toLowerCase();
+      if (seen[key]) { seen[key].roles.push(r); return; }
+      var lane = typoLaneFor(first);
+      var entry = { family: first, lane: lane, roles: [r] };
+      buckets[lane].push(entry);
+      seen[key] = entry;
+    });
+    return buckets;
+  }
+  /* Short one-line summary for the sticky footer pill.
+     - All system        → "All fonts ready — no Figma install"
+     - Mixed / Google    → "N font(s) to install in Figma"
+     - Any custom        → adds "+ M custom" suffix */
+  function typoInstallStickyLabel(buckets) {
+    var g = buckets.google.length;
+    var c = buckets.custom.length;
+    if (g === 0 && c === 0) {
+      return { tone: 'ok', label: 'All fonts ready in Figma' };
+    }
+    var parts = [];
+    if (g) parts.push(g + ' to install');
+    if (c) parts.push(c + ' you supply');
+    return { tone: 'warn', label: parts.join(' \u00b7 ') + ' \u2014 for designers' };
+  }
+  /* Build the inner HTML of the install dialog body. Pure
+     string-return so we can swap it back into the modal each
+     time it opens — picking a new preset between opens always
+     shows the fresh list. */
+  function renderTtInstallDialogBody() {
+    var b = typoInstallBuckets();
+    var needsAction = b.google.length + b.custom.length;
+    var html = '';
+    if (needsAction === 0) {
+      html += '<div class="ev2-typo-install-ok">'
+           +    '<span class="ev2-typo-install-ok-dot" aria-hidden="true"></span>'
+           +    '<span><strong>Nothing to install.</strong> All fonts here come with every computer, so Figma already has them.</span>'
+           +  '</div>';
+      return html;
+    }
+    html += '<ul class="ev2-typo-install-list">';
+    b.google.forEach(function (e) {
+      var url = 'https://fonts.google.com/specimen/' + encodeURIComponent(e.family.replace(/\s+/g, '+'));
+      html += '<li class="ev2-typo-install-row" data-lane="google">'
+            +   '<span class="ev2-typo-install-dot" aria-hidden="true"></span>'
+            +   '<span class="ev2-typo-install-body">'
+            +     '<span class="ev2-typo-install-family">' + e.family + '</span>'
+            +     '<span class="ev2-typo-install-roles">' + e.roles.join(' \u00b7 ') + '</span>'
+            +   '</span>'
+            +   '<a class="ev2-typo-install-action" href="' + url + '" target="_blank" rel="noopener">Download \u2197</a>'
+            + '</li>';
+    });
+    b.custom.forEach(function (e) {
+      html += '<li class="ev2-typo-install-row" data-lane="custom">'
+            +   '<span class="ev2-typo-install-dot" aria-hidden="true"></span>'
+            +   '<span class="ev2-typo-install-body">'
+            +     '<span class="ev2-typo-install-family">' + e.family + '</span>'
+            +     '<span class="ev2-typo-install-roles">' + e.roles.join(' \u00b7 ') + ' \u00b7 you supply the file</span>'
+            +   '</span>'
+            + '</li>';
+    });
+    if (b.system.length) {
+      html += '<li class="ev2-typo-install-row" data-lane="system">'
+            +   '<span class="ev2-typo-install-dot" aria-hidden="true"></span>'
+            +   '<span class="ev2-typo-install-body">'
+            +     '<span class="ev2-typo-install-family">' + b.system.map(function (e) { return e.family; }).join(', ') + '</span>'
+            +     '<span class="ev2-typo-install-roles">Pre-installed \u00b7 no action needed</span>'
+            +   '</span>'
+            + '</li>';
+    }
+    html += '</ul>';
+    return html;
+  }
+  function openTtInstallModal() {
+    var modal = document.getElementById('ev2TtInstall');
+    if (!modal) return;
+    var body = document.getElementById('ev2TtInstallBody');
+    if (body) body.innerHTML = renderTtInstallDialogBody();
+    modal.hidden = false;
+    document.body.classList.add('ev2-modal-open');
+  }
+  function closeTtInstallModal() {
+    var modal = document.getElementById('ev2TtInstall');
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.classList.remove('ev2-modal-open');
+  }
+
+  function typoCssBundle() {
+    var fonts = typoResolvedFonts();
+    var lines = [':root {'];
+    /* Emit the three semantic role tokens first — these are the
+       names the editor's list pane and any future per-role demo
+       consumes. */
+    TYPO_ROLES.forEach(function (r) {
+      if (fonts[r]) lines.push('  --font-family-' + r + ': ' + fonts[r] + ';');
+    });
+    /* Bridge to the tokens components actually consume:
+         body → --font-family-sans   (used by EVERY component)
+         code → --font-family-mono   (used by code-content elements)
+       Without this, swapping the Tt pairing only changed the editor
+       list pane but the preview iframe (real components) didn't
+       move because nothing reads --font-family-body/code.        */
+    if (fonts.body) lines.push('  --font-family-sans: ' + fonts.body + ';');
+    if (fonts.code) lines.push('  --font-family-mono: ' + fonts.code + ';');
+    /* Type density — scales the WHOLE font-size ladder by a single
+       multiplier. Token NAMES stay stable (--font-size-14 keeps
+       its semantic anchor), only their VALUES shift. Compact tightens
+       UI for data-dense surfaces; comfortable opens it up for
+       content-heavy ones. Component tokens.css files all reference
+       --font-size-N primitives, so overriding them at :root re-paints
+       every text node in the preview without touching component CSS. */
+    var density = (State.typo && State.typo.density) || 'base';
+    var mult = TYPO_DENSITY[density] || 1;
+    if (mult !== 1) {
+      TYPO_FONT_SIZE_LADDER.forEach(function (px) {
+        /* Round to 1 decimal — pixel-perfect at common multipliers
+           and avoids "13.999999..." float artifacts. Browsers handle
+           sub-pixel sizes fine. */
+        var v = Math.round(px * mult * 10) / 10;
+        lines.push('  --font-size-' + px + ': ' + v + 'px;');
+      });
+    }
+    /* Pair line-height to density. Components reference
+       --line-height-normal as their default LH token (see button,
+       input tokens.css). Compact shifts the "normal" rung to snug
+       (1.375) so rows compress with the smaller glyphs; comfortable
+       shifts it to relaxed (1.625) so reading breathes. Base = no
+       override (1.5 stays as primitives.css ships it). */
+    var lh = TYPO_DENSITY_LH[density];
+    if (lh && lh !== TYPO_DENSITY_LH.base) {
+      lines.push('  --line-height-normal: ' + lh + ';');
+    }
+    lines.push('}');
+    return lines.join('\n');
+  }
+
+  /* Lazy-load Google Fonts <link> tag for any picked family that's
+     in our curated list. Single link is reused; families list is
+     deduped. Safe to call repeatedly. */
+  function ensureGoogleFontsLink() {
+    var families = [];
+    function add(name) {
+      /* Strip wrapping quotes and any trailing fallback list
+         (e.g. "Fraunces, serif" → "Fraunces"). The font-family
+         stack's FIRST item is the only one we need to load — the
+         others are local fallbacks the browser already has. */
+      var first = String(name || '').split(',')[0];
+      var n = first.replace(/^["']|["']$/g, '').trim();
+      if (n && TYPO_GOOGLE_FONTS[n] && families.indexOf(n) < 0) families.push(n);
+    }
+    /* Always load every preset's primary font so the preset cards
+       render in their own typeface. Plus any custom/override pick. */
+    TYPO_PRESETS.forEach(function (p) {
+      TYPO_ROLES.forEach(function (r) { add(p.fonts[r]); });
+    });
+    TYPO_ROLES.forEach(function (r) { add((State.typo.custom || {})[r]); add((State.typo.overrides || {})[r]); });
+    if (!families.length) return;
+    var href = 'https://fonts.googleapis.com/css2?' +
+      families.map(function (n) { return 'family=' + encodeURIComponent(n).replace(/%20/g, '+') + ':wght@400;500;600;700'; }).join('&') +
+      '&display=swap';
+    var link = document.getElementById('ev2-typo-google');
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'ev2-typo-google';
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    if (link.href !== href) link.href = href;
+
+    /* Also tell the preview iframe to load the same fonts. */
+    try {
+      var win = $frame && $frame.contentWindow;
+      if (win) win.postMessage({ type: 'ev2-typo-fonts', href: href }, '*');
+    } catch (_e) {}
+  }
+  function applyTypoToEditor() {
+    /* Editor chrome must NEVER pick up the active preset's fonts —
+       it would shift the entire UI to (say) Fraunces when the user
+       picks Editorial Serif, and the preset cards (which use inline
+       font-family) would lose their value as visual specimens.
+       So this function only ensures Google Fonts <link> is in the
+       editor document — so the preset card samples can render in
+       Inter/Fraunces/Nunito etc. — and removes any prior typo
+       override <style> tag (from older builds that did inject one). */
+    var stale = document.getElementById('ev2-typo-override');
+    if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+    ensureGoogleFontsLink();
+  }
+  function pushTypoToPreview() {
+    /* Reuse the existing ev2-overrides postMessage channel — the
+       iframe listener already injects the CSS into a <style> tag,
+       so font-family-* tokens land alongside color tokens with
+       zero extra plumbing. */
+    try {
+      var win = $frame && $frame.contentWindow;
+      if (!win) return;
+      win.postMessage({ type: 'ev2-overrides', css: typoCssBundle(), scope: 'typo' }, '*');
+    } catch (_e) {}
+  }
+
+  function renderTt() {
+    loadTypoState();
+    var html = '<div class="ev2-typo-panel">';
+
+    /* Single section — 5 preset cards + 1 Custom tile sharing the
+       same grid so they're visually equal-weight peers. */
+    html += '<div class="ev2-typo-section">';
+    html +=   '<div class="ev2-typo-section-head">Font pairing</div>';
+    html +=   '<div class="ev2-typo-help">Pick a preset or use your own &mdash; the right pane shows it across real components.</div>';
+    html +=   '<div class="ev2-typo-presets" id="ttPresets">';
+    TYPO_PRESETS.forEach(function (p) {
+      var fh = p.fonts.headline.replace(/"/g, '&quot;');
+      var fb = p.fonts.body.replace(/"/g, '&quot;');
+      var fc = p.fonts.code.replace(/"/g, '&quot;');
+      var active = (p.id === State.typo.preset) ? ' data-active' : '';
+      var parity = typoParityFor(p.fonts);
+      /* Sample text renders in the preset's OWN fonts — these are
+         labels-as-specimens, so the user sees what each preset
+         looks like. Selection only changes the right-pane preview;
+         it never re-renders the preset cards in the picked font. */
+      html += '<button type="button" class="ev2-typo-preset" data-preset="' + p.id + '" data-parity="' + parity + '"' + active + '>'
+            +   '<div class="ev2-typo-preset-head">'
+            +     '<span class="ev2-typo-preset-label">' + p.name + '</span>'
+            +     '<span class="ev2-typo-preset-meta">' + p.vibe + '</span>'
+            +   '</div>'
+            +   '<div class="ev2-typo-preset-fonts">'
+            +     '<div class="ev2-typo-font-row"><span class="role">Head</span>'
+            +       '<span class="sample" style="font-family:' + fh + '">' + p.display.headline + '</span></div>'
+            +     '<div class="ev2-typo-font-row body"><span class="role">Body</span>'
+            +       '<span class="sample" style="font-family:' + fb + '">' + p.display.body + '</span></div>'
+            +     '<div class="ev2-typo-font-row code"><span class="role">Code</span>'
+            +       '<span class="sample" style="font-family:' + fc + '">' + p.display.code + '</span></div>'
+            +   '</div>'
+            +   '<div class="ev2-typo-preset-parity" data-parity="' + parity + '" title="' + TYPO_PARITY_TITLE[parity] + '">'
+            +     '<span class="dot" aria-hidden="true"></span>'
+            +     '<span class="label">' + TYPO_PARITY_LABEL[parity] + '</span>'
+            +   '</div>'
+            + '</button>';
+    });
+
+    /* Divider between presets and the Custom tile — spans the full
+       grid width via grid-column:1/-1 so it sits on its own row. */
+    html += '<div class="ev2-typo-presets-sep" role="presentation"><span>or bring your own</span></div>';
+
+    /* Custom tile — peer of preset tiles. Empty state shows the
+       "+ Add" affordance; filled state mirrors a preset card. */
+    var hasCustom = State.typo.custom && (State.typo.custom.headline || State.typo.custom.body || State.typo.custom.code);
+    var customActive = (State.typo.preset === 'custom') ? ' data-active' : '';
+    /* Parity for the Custom tile mirrors the worst-case Figma
+       install status of whatever the user has typed. Empty fields
+       fall back to 'system' so an unconfigured tile reads safe. */
+    var customParity = hasCustom
+      ? typoParityFor({
+          headline: State.typo.custom.headline || '',
+          body:     State.typo.custom.body     || '',
+          code:     State.typo.custom.code     || ''
+        })
+      : 'custom';
+    html +=     '<button type="button" class="ev2-typo-preset ev2-typo-preset-custom" id="ttCustomOpen" data-parity="' + customParity + '"' + customActive + '>';
+    if (hasCustom) {
+      var ch = (State.typo.custom.headline || '').trim();
+      var cb = (State.typo.custom.body || '').trim();
+      var cc = (State.typo.custom.code || '').trim();
+      html +=    '<div class="ev2-typo-preset-head">'
+            +      '<span class="ev2-typo-preset-label">Your fonts</span>'
+            +      '<span class="ev2-typo-preset-meta">Edit \u2192</span>'
+            +    '</div>'
+            +    '<div class="ev2-typo-preset-fonts">'
+            +      '<div class="ev2-typo-font-row"><span class="role">Head</span>'
+            +        '<span class="sample"' + (ch ? ' style="font-family:&quot;' + ch.replace(/"/g, '&quot;') + '&quot;,system-ui,sans-serif"' : '') + '>' + (ch || '\u2014') + '</span></div>'
+            +      '<div class="ev2-typo-font-row body"><span class="role">Body</span>'
+            +        '<span class="sample"' + (cb ? ' style="font-family:&quot;' + cb.replace(/"/g, '&quot;') + '&quot;,system-ui,sans-serif"' : '') + '>' + (cb || '\u2014') + '</span></div>'
+            +      '<div class="ev2-typo-font-row code"><span class="role">Code</span>'
+            +        '<span class="sample"' + (cc ? ' style="font-family:&quot;' + cc.replace(/"/g, '&quot;') + '&quot;,monospace"' : '') + '>' + (cc || '\u2014') + '</span></div>'
+            +    '</div>'
+            +    '<div class="ev2-typo-preset-parity" data-parity="' + customParity + '" title="' + TYPO_PARITY_TITLE[customParity] + '">'
+            +      '<span class="dot" aria-hidden="true"></span>'
+            +      '<span class="label">' + TYPO_PARITY_LABEL[customParity] + '</span>'
+            +    '</div>';
+    } else {
+      html +=    '<div class="ev2-typo-preset-head">'
+            +      '<span class="ev2-typo-preset-label">Custom</span>'
+            +      '<span class="ev2-typo-preset-meta">Your fonts</span>'
+            +    '</div>'
+            +    '<div class="ev2-typo-preset-add">'
+            +      '<div class="ev2-typo-preset-add-row">'
+            +        '<span class="ev2-typo-preset-add-icon" aria-hidden="true">+</span>'
+            +        '<span class="ev2-typo-preset-add-text">'
+            +          '<strong>Add fonts</strong>'
+            +          '<em>Google or system</em>'
+            +        '</span>'
+            +      '</div>'
+            +    '</div>'
+            +    '<div class="ev2-typo-preset-parity" data-parity="custom" title="' + TYPO_PARITY_TITLE.custom + '">'
+            +      '<span class="dot" aria-hidden="true"></span>'
+            +      '<span class="label">' + TYPO_PARITY_LABEL.custom + '</span>'
+            +    '</div>';
+    }
+    html +=     '</button>';
+
+    html +=   '</div>'; // /presets
+    html += '</div>';   // /section
+
+    /* ── Type density ───────────────────────────────────────
+       Three-way control that scales the whole size ladder.
+       Lives in its own section so it reads as a distinct knob
+       — not a property of the pairing above. The body sample
+       below the segment shows the current 13px (=Base) shift
+       in real px so users see the impact before clicking. */
+    var curDensity = (State.typo && State.typo.density) || 'base';
+    var bodyPxBase = 13;
+    var bodyPxNow  = Math.round(bodyPxBase * (TYPO_DENSITY[curDensity] || 1) * 10) / 10;
+    html += '<div class="ev2-typo-section">';
+    html +=   '<div class="ev2-typo-section-head">Type density</div>';
+    html +=   '<div class="ev2-typo-help">How tightly text packs. Same fonts, different size and line-height &mdash; pick what feels right for your product.</div>';
+    html +=   '<div class="ev2-typo-density" role="radiogroup" aria-label="Type density">';
+    ['compact','base','comfortable'].forEach(function (d) {
+      var active = (d === curDensity) ? ' data-active' : '';
+      var px = Math.round(bodyPxBase * TYPO_DENSITY[d] * 10) / 10;
+      var lh = TYPO_DENSITY_LH[d];
+      var sub = (d === 'base') ? 'Default' : (d === 'compact' ? 'Tighter UI' : 'Easier reading');
+      /* Show body px AND line-height per option so users see both
+         dimensions of the change before clicking — coupling LH to
+         density is invisible without this label. */
+      html += '<button type="button" class="ev2-typo-density-opt" data-density="' + d + '"' + active + ' role="radio" aria-checked="' + (d === curDensity ? 'true' : 'false') + '">'
+            +   '<span class="ev2-typo-density-label">' + TYPO_DENSITY_LABEL[d] + '</span>'
+            +   '<span class="ev2-typo-density-sample" style="font-size:' + px + 'px;line-height:' + lh + '">Aa ' + px + '</span>'
+            +   '<span class="ev2-typo-density-sub">' + sub + ' &middot; ' + px + 'px / ' + lh + ' lh</span>'
+            + '</button>';
+    });
+    html +=   '</div>';
+    html += '</div>'; // /density section
+
+    /* ── Designer install — sticky footer ───────────────────
+       Compact one-line summary that pins to the bottom of the
+       Tt scroll area. Click → opens the full dialog. Avoids
+       the "scrolls out of sight" problem the section-style had
+       while keeping the info one tap away. */
+    var buckets = typoInstallBuckets();
+    var sticky = typoInstallStickyLabel(buckets);
+    html += '<div class="ev2-typo-install-sticky" data-tone="' + sticky.tone + '">'
+          +   '<button type="button" class="ev2-typo-install-stickybtn" id="ttInstallOpen">'
+          +     '<span class="ev2-typo-install-stickydot" aria-hidden="true"></span>'
+          +     '<span class="ev2-typo-install-stickytxt">' + sticky.label + '</span>'
+          +     '<span class="ev2-typo-install-stickymore">View \u2192</span>'
+          +   '</button>'
+          + '</div>';
+
+    html += '</div>';
+    $body.innerHTML = html;
+
+    /* Bind preset clicks (preset cards only; the Custom card opens the dialog) */
+    $body.querySelectorAll('.ev2-typo-preset:not(.ev2-typo-preset-custom)').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-preset');
+        if (id === State.typo.preset) return;
+        State.typo.preset = id;
+        persistTypoState();
+        applyTypoToEditor();
+        pushTypoToPreview();
+        renderTt();
+        /* Update unsaved-changes pill + Publish button enablement
+           after each pick. Without this the topbar lags behind. */
+        if (typeof refreshChangeBar === 'function') refreshChangeBar();
+      });
+    });
+
+    /* Bind Custom card → open dialog */
+    var customBtn = document.getElementById('ttCustomOpen');
+    if (customBtn) customBtn.addEventListener('click', openTtCustomModal);
+
+    /* Bind density seg-control */
+    $body.querySelectorAll('.ev2-typo-density-opt').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var d = btn.getAttribute('data-density');
+        if (!d || d === State.typo.density) return;
+        State.typo.density = d;
+        persistTypoState();
+        pushTypoToPreview();
+        renderTt();
+        if (typeof refreshChangeBar === 'function') refreshChangeBar();
+      });
+    });
+
+    applyTypoToEditor();
+    pushTypoToPreview();
+  }
+
+  /* ── Custom fonts modal ──────────────────────────────── */
+  function openTtCustomModal() {
+    var modal = document.getElementById('ev2TtCustom');
+    if (!modal) return;
+    /* Seed inputs from saved custom picks. */
+    TYPO_ROLES.forEach(function (r) {
+      var inp = modal.querySelector('input[data-role="' + r + '"]');
+      if (inp) inp.value = (State.typo.custom && State.typo.custom[r]) || '';
+      updateTtCustomSample(r);
+    });
+    modal.hidden = false;
+    setTimeout(function () { var f = modal.querySelector('input'); if (f) f.focus(); }, 0);
+  }
+  function closeTtCustomModal() {
+    var modal = document.getElementById('ev2TtCustom');
+    if (modal) modal.hidden = true;
+  }
+  function updateTtCustomSample(role) {
+    var modal = document.getElementById('ev2TtCustom');
+    if (!modal) return;
+    var inp = modal.querySelector('input[data-role="' + role + '"]');
+    var sample = modal.querySelector('.ev2-tt-modal-sample[data-role="' + role + '"]');
+    if (!inp || !sample) return;
+    var v = inp.value.trim();
+    sample.style.fontFamily = v ? ('"' + v.replace(/"/g, '\\"') + '", system-ui, sans-serif') : '';
+  }
+  function applyTtCustomFromModal() {
+    var modal = document.getElementById('ev2TtCustom');
+    if (!modal) return;
+    TYPO_ROLES.forEach(function (r) {
+      var inp = modal.querySelector('input[data-role="' + r + '"]');
+      State.typo.custom[r] = inp ? inp.value.trim() : '';
+    });
+    /* If user filled at least one role, switch active to 'custom'. */
+    var any = State.typo.custom.headline || State.typo.custom.body || State.typo.custom.code;
+    if (any) State.typo.preset = 'custom';
+    persistTypoState();
+    closeTtCustomModal();
+    if (State.activeTier === 'tt') renderTt();
+    applyTypoToEditor();
+    pushTypoToPreview();
+    if (typeof refreshChangeBar === 'function') refreshChangeBar();
+  }
+
+  /* Wire modal once on first reference. */
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-tt-dismiss]')) { closeTtCustomModal(); return; }
+    if (e.target && e.target.id === 'ttCustomApply') { applyTtCustomFromModal(); return; }
+    if (e.target.closest('[data-tt-install-dismiss]')) { closeTtInstallModal(); return; }
+    if (e.target.closest('#ttInstallOpen')) { openTtInstallModal(); return; }
+  });
+  document.addEventListener('input', function (e) {
+    var inp = e.target.closest('.ev2-tt-modal input[data-role]');
+    if (!inp) return;
+    updateTtCustomSample(inp.getAttribute('data-role'));
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var modal = document.getElementById('ev2TtCustom');
+    if (modal && !modal.hidden) { closeTtCustomModal(); return; }
+    var install = document.getElementById('ev2TtInstall');
+    if (install && !install.hidden) closeTtInstallModal();
+  });
 
   /* ── T2 Surfaces ──────────────────────────────────────
      Build step 4 (per docs §11): render the surface picker + family
@@ -3405,6 +4122,7 @@
     $listTitle.textContent = meta.title;
     $listSub.textContent = meta.sub;
     if (State.activeTier === 't0') renderT0();
+    else if (State.activeTier === 'tt') renderTt();
     else if (State.activeTier === 't1') renderT1();
     else if (State.activeTier === 't2') renderT2();
     else renderTierPlaceholder(State.activeTier);
@@ -3545,6 +4263,18 @@
     } else if (tierId === 't2') {
       State.t2 = makeEmptyT2();
       State.t2SurfacePalette = {};
+    } else if (tierId === 'tt') {
+      /* Reset Type — clear all typography overrides back to the
+         project's published baseline (read from config.json). */
+      var b = State.typoBaseline || readTypoBaseline();
+      State.typo = {
+        preset:    b.preset,
+        density:   b.density || 'base',
+        overrides: { headline: '', body: '', code: '' },
+        custom:    { headline: '', body: '', code: '' }
+      };
+      persistTypoState();
+      pushTypoToPreview();
     }
     scheduleAutosave();
     pushPreview();
@@ -4036,6 +4766,31 @@
       });
     });
     cfg.t1Picks = t1Picks;
+
+    /* Persist Tt (typography) so the next editor boot reads the
+       published preset + any custom-font picks back as the
+       baseline. Reset Type compares against this; the project hub
+       can show the active typeface; future Figma sync can publish
+       FONT_FAMILY variables off the same payload. Only writes
+       non-empty fields so legacy projects stay slim. */
+    if (State.typo) {
+      var typoOut = { preset: State.typo.preset || 'neutral-system' };
+      /* Only persist density when it differs from base. Keeps
+         pre-density projects' config.json untouched on republish. */
+      if (State.typo.density && State.typo.density !== 'base') {
+        typoOut.density = State.typo.density;
+      }
+      var ov = State.typo.overrides || {};
+      var cu = State.typo.custom    || {};
+      var ovKept = {}, cuKept = {};
+      ['headline','body','code'].forEach(function (r) {
+        if (ov[r]) ovKept[r] = ov[r];
+        if (cu[r]) cuKept[r] = cu[r];
+      });
+      if (Object.keys(ovKept).length) typoOut.overrides = ovKept;
+      if (Object.keys(cuKept).length) typoOut.custom    = cuKept;
+      cfg.typographyConfig = typoOut;
+    }
 
     cfg.latestVersion = {
       version: meta.version,
@@ -4876,6 +5631,17 @@
         State.t1Baseline = JSON.parse(JSON.stringify(State.t1));
         State.t2Baseline = JSON.parse(JSON.stringify(State.t2));
         State.t2SurfacePaletteBaseline = JSON.parse(JSON.stringify(State.t2SurfacePalette));
+        /* Tt baseline = whatever we just published. After this,
+           tierTtChangeCount returns 0 until the user changes a
+           preset / override / custom font again. */
+        if (State.typo) {
+          State.typoBaseline = {
+            preset:    State.typo.preset || 'neutral-system',
+            density:   State.typo.density || 'base',
+            overrides: JSON.parse(JSON.stringify(State.typo.overrides || {})),
+            custom:    JSON.parse(JSON.stringify(State.typo.custom    || {}))
+          };
+        }
         State.lastPublishedVersion = nextVer;
         clearDraftFromStorage();
         if (typeof saveUIState === 'function') saveUIState();
@@ -5040,6 +5806,12 @@
     try { $frame.contentWindow.postMessage({ type: 'ev2-theme', mode: mode }, '*'); } catch (e) {}
     try { $frame.contentWindow.postMessage({ type: 'ev2-active-role', role: State.activeRole }, '*'); } catch (e) {}
     pushPreview();
+    /* Also push the saved Tt typography overrides on iframe load so
+       the user's font choices survive a preview reload even when
+       they're not on the Tt tier. Without this, the preview boots
+       with the project's primitives.css fonts and only updates
+       when the user enters Tt. */
+    try { loadTypoState(); pushTypoToPreview(); } catch (_e) {}
   });
 
   var draftStatus = document.getElementById('draftStatus');

@@ -45,7 +45,7 @@
        into T0/T1/T3 previews. Force-hide whenever the attr is set. */
     [hidden]{display:none !important}
     html{background:var(--surface-base-bg)}
-    body{font-family:var(--font-family-sans,system-ui);background:var(--surface-base-bg);color:var(--surface-base-ct-default);padding:24px;line-height:1.5;min-height:100vh}
+    body{font-family:var(--font-family-body,var(--font-family-sans,system-ui));background:var(--surface-base-bg);color:var(--surface-base-ct-default);padding:24px;line-height:1.5;min-height:100vh}
     /* On T2, the whole iframe should read as the active surface so
        scrolling never exposes a contrasting base-bg strip behind the
        canvas. Limited to T2 because T0/T1/T3 sit on base by design. */
@@ -64,10 +64,10 @@
     .pv-alert[data-role="success"] {background:var(--success-container-bg);border-color:var(--success-container-outline);color:var(--success-on-container)}
     .pv-alert[data-role="warning"] {background:var(--warning-container-bg);border-color:var(--warning-container-outline);color:var(--warning-on-container)}
     .pv-alert[data-role="info"]    {background:var(--info-container-bg);border-color:var(--info-container-outline);color:var(--info-on-container)}
-    .pv-alert-title{font-weight:700;margin-bottom:2px}
+    .pv-alert-title{font-family:var(--font-family-headline,var(--font-family-sans,system-ui));font-weight:700;margin-bottom:2px}
     /* Text card to demo content tokens */
     .pv-card{padding:14px 16px;border-radius:8px;border:1px solid var(--surface-base-outline);background:var(--surface-base-bg)}
-    .pv-card .pv-h{font-size:14px;font-weight:700;margin-bottom:6px}
+    .pv-card .pv-h{font-family:var(--font-family-headline,var(--font-family-sans,system-ui));font-size:14px;font-weight:700;margin-bottom:6px}
     .pv-card .pv-h[data-role="brand"]   {color:var(--brand-content-strong)}
     .pv-card .pv-h[data-role="danger"]  {color:var(--danger-content-strong)}
     .pv-card .pv-h[data-role="success"] {color:var(--success-content-strong)}
@@ -772,6 +772,14 @@
     __ev2OverrideStyle.id = 'ev2-overrides';
     document.head.appendChild(__ev2OverrideStyle);
 
+    /* Typography overrides live in their own <style> so that Tt
+       pushes (which only emit --font-family-*) don't wipe T1 color
+       overrides and vice versa. Same channel, different bucket via
+       message.scope === 'typo'. */
+    var __ev2TypoStyle = document.createElement('style');
+    __ev2TypoStyle.id = 'ev2-typo-overrides';
+    document.head.appendChild(__ev2TypoStyle);
+
     // Compare-across-roles accordion: persist open state across reloads.
     // Once a user opens it, keep it open until they manually close it —
     // tab switches and token pushes must NEVER auto-toggle this.
@@ -796,6 +804,12 @@
       var d = e.data || {};
       // Token override push from editor (parent posts CSS string here).
       if (d.type === 'ev2-overrides' && typeof d.css === 'string') {
+        /* Route typo-scoped pushes to their own style tag so they
+           don't clobber T1 color overrides. */
+        if (d.scope === 'typo') {
+          if (__ev2TypoStyle.textContent !== d.css) __ev2TypoStyle.textContent = d.css;
+          return;
+        }
         if (__ev2OverrideStyle.textContent !== d.css) __ev2OverrideStyle.textContent = d.css;
         // Reveal the preview now that project tokens are applied.
         // Two rAFs so the new <style> actually paints before the
@@ -808,6 +822,18 @@
             });
           });
         }
+        return;
+      }
+      // Lazy-load Google Fonts requested by the Tt Custom Fonts dialog.
+      if (d.type === 'ev2-typo-fonts' && typeof d.href === 'string') {
+        var gLink = document.getElementById('ev2-typo-google');
+        if (!gLink) {
+          gLink = document.createElement('link');
+          gLink.id = 'ev2-typo-google';
+          gLink.rel = 'stylesheet';
+          document.head.appendChild(gLink);
+        }
+        if (gLink.href !== d.href) gLink.href = d.href;
         return;
       }
       // Custom palette injection from the T0 Palettes manager.
