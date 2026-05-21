@@ -66,9 +66,9 @@
     "dim": "greyscale",
     "deep": "greyscale",
     "accent": "brand",
-    "container": "greyscale",
     "float": "greyscale",
-    "inverse": "greyscale"
+    "inverse": "greyscale",
+    "card": "greyscale"
   },
   "surfaceMap": {
     "light": {

@@ -27,10 +27,13 @@ const DEFAULT_OUTPUT = path.resolve(
   __dirname, '../../figma-plugin/dtf-figma-tokens.json'
 );
 
-// Surface names ordered longest-first so "over-container" matches before "container"
+// Surface names ordered longest-first so "over-container" matches before "container".
+// Includes back-compat aliases (container, over-container) so legacy CSS still parses
+// into a recognisable Figma path; new names are card / modal / float.
 const SURFACE_NAMES = [
   'over-container', 'container',
-  'bright', 'base', 'dim', 'deep', 'accent', 'float', 'inverse'
+  'bright', 'base', 'dim', 'deep', 'accent',
+  'card', 'modal', 'float', 'inverse'
 ];
 
 // ── CSS Parsing ───────────────────────────────────────────────
@@ -94,7 +97,7 @@ function toFigmaPath(name, category) {
   }
 
   if (category === 'surfaces') {
-    // e.g. surface-over-container-ct-default → surface/over-container/ct-default
+    // e.g. surface-modal-ct-default → surface/modal/ct-default
     const rest = parts.slice(1).join('-'); // strip "surface"
     for (const sn of SURFACE_NAMES) {
       if (rest.startsWith(sn + '-')) {

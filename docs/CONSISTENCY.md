@@ -21,7 +21,7 @@ editor + demo surface) speaking the same language so users learn it once.
 |-------------|--------------|---------------------------|--------------------------------------|
 | `t0`        | Palette      | "Palette" / "T0 Palette"  | 22-step neutral + role ladders       |
 | `t1`        | Roles        | "Roles" / "T1 Roles"      | Per-role fill / content / container  |
-| `t2`        | Surfaces     | "Surfaces" / "T2 Surfaces"| 8 surface presets × 16 tokens        |
+| `t2`        | Surfaces     | "Surfaces" / "T2 Surfaces"| 9 surface presets × 16 tokens — split into **canvas** (`bright`, `base`, `dim`, `deep`, `accent`, `inverse`) and **elevation** (`card`, `modal`, `float`) tiers |
 | `t3`        | Components   | "Components" / "T3 …"     | (Not yet shipped — Step 7)           |
 
 - Code uses **lowercase shorthand** (`t0`, `t1`, …). Display strings use **Title Case**.
@@ -50,15 +50,22 @@ end-user task, not the data shape.
 - Never mix `L`/`D`, `lite`, "Day/Night", etc.
 - **Levers** (T1): `fill`, `content`, `container` (lowercase ids; Title Case labels).
 - **Derived T1 tokens**: `border`, `separator`, `onComponent`, `onContainer`.
-- **Surfaces** (T2, ordered): `bright`, `base`, `dim`, `deep`, `accent`, `container`,
-  `float`, `inverse`. Display labels are Title Case.
+- **Surfaces** (T2) split into two tiers; both share the same 16-token kit but answer different questions:
+  - **Canvas surfaces** (page tones, ordered): `bright`, `base`, `dim`, `deep`, `accent`, `inverse`.
+  - **Elevation surfaces** (lifted layers, low → high): `card`, `modal`, `float`.
+  Display labels are Title Case (`Bright`, `Card`, `Modal`, `Float`, …). The old
+  names `container` / `over-container` were renamed to `card` / `modal` in May 2026 to
+  make the canvas/elevation distinction obvious in code. Back-compat aliases
+  (`--surface-container-*` → `--surface-card-*`, `--surface-over-container-*` →
+  `--surface-modal-*`) ship in `surfaces.css` and will be removed in v2. Do **not**
+  introduce new code that consumes the old names.
 - **Surface → source palette** is **user-overridable** via a custom popover picker
   (grouped sections, not a native `<select>` — needed for labeled groups + separators
   + an empty-state slot for the Custom group). Two groups, both surfaced for every
   project:
   - **Default palettes** (system-level, ship with every project):
     - `greyscale` — brand-coupled, chroma 0 (true achromatic). Hue tracks brand but
-      is invisible at C=0. Default for `bright`, `base`, `dim`, `deep`, `container`,
+      is invisible at C=0. Default for `bright`, `base`, `dim`, `deep`, `card`, `modal`,
       `float`, `inverse`.
     - `desaturated` — brand-coupled, low chroma (≈0.04 OKLCH C, close to Tailwind
       `slate`). Hue tracks brand. Reads as branded gray.

@@ -123,14 +123,16 @@ DTF / Semantic Roles     [Light | Dark]
   └ info/
 
 DTF / Surfaces           [Light | Dark]
+  — Canvas tones (page surfaces)
   ├ surface/bright/   (bg, hover, pressed, outline, ct-default, …)
   ├ surface/base/
   ├ surface/dim/
   ├ surface/deep/
   ├ surface/accent/
-  ├ surface/container/
-  ├ surface/over-container/
-  └ surface/float/
+  — Elevation tones (lifted regions)
+  ├ surface/card/         (resting lift — cards, panels)
+  ├ surface/modal/        (blocking overlay — dialogs, sheets)
+  └ surface/float/        (transient overlay — menus, dropdowns, tooltips)
 
 DTF / Extras
   ├ radius/       (none, xs, sm, md, DEFAULT, lg, …)
@@ -152,7 +154,7 @@ Once imported, variables are available in:
 
 - **CSS → JSON parsing** — regex extracts `:root` (light) and `[data-theme="dark"]` (dark) blocks
 - **Type detection** — hex → COLOR, numeric → FLOAT, composite → STRING
-- **Figma path grouping** — `--surface-over-container-bg` → `surface/over-container/bg`
+- **Figma path grouping** — `--surface-modal-bg` → `surface/modal/bg`
 - **Light/Dark modal** — Figma mode switching works on semantic + surface collections
 - **538 variables** across 4 collections — full token system imported in one click
 - **Incremental sync** — scans existing DTF collections, computes per-variable diff, applies only changes

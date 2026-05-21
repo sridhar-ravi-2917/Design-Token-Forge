@@ -171,16 +171,21 @@
      are derived from per-surface anchor steps + signed offsets that
      pass through tonalDir(mode) — so dark mode mirrors automatically
      and no inline `± constant` ever leaks in (decision D4). */
+  /* T2 surfaces split into two tiers:
+       • Canvases (bright, base, dim, deep, accent, inverse)  — page tones
+       • Elevations (card, modal, float)                       — lifted regions
+     `card` was previously `container`; `modal` was previously `over-container`.
+     Old IDs are migrated on State load (see migrateLegacyT2Keys()). */
   var T2_SURFACES = [
-    { id:'bright',         label:'Bright',         palette:'greyscale', desc:'Brightest page background'              },
-    { id:'base',           label:'Base',           palette:'greyscale', desc:'Base page background'                   },
-    { id:'dim',            label:'Dim',            palette:'greyscale', desc:'Recessed background'                    },
-    { id:'deep',           label:'Deep',           palette:'greyscale', desc:'Most recessed background'               },
-    { id:'accent',         label:'Accent',         palette:'brand',     desc:'Branded panels'                         },
-    { id:'container',      label:'Container',      palette:'greyscale', desc:'Cards and tiles that sit on a surface' },
-    { id:'over-container', label:'Over container', palette:'greyscale', desc:'Popovers, top-level dropdowns, modals'  },
-    { id:'float',          label:'Float',          palette:'greyscale', desc:'Tooltips, menus, popups'                },
-    { id:'inverse',        label:'Inverse',        palette:'greyscale', desc:'Dark on light, light on dark'           }
+    { id:'bright',  label:'Bright',  palette:'greyscale', tier:'canvas',    desc:'Brightest page background'              },
+    { id:'base',    label:'Base',    palette:'greyscale', tier:'canvas',    desc:'Base page background'                   },
+    { id:'dim',     label:'Dim',     palette:'greyscale', tier:'canvas',    desc:'Recessed background'                    },
+    { id:'deep',    label:'Deep',    palette:'greyscale', tier:'canvas',    desc:'Most recessed background'               },
+    { id:'accent',  label:'Accent',  palette:'brand',     tier:'canvas',    desc:'Branded panels'                         },
+    { id:'card',    label:'Card',    palette:'greyscale', tier:'elevation', desc:'Resting lift — cards, panels on a surface' },
+    { id:'modal',   label:'Modal',   palette:'greyscale', tier:'elevation', desc:'Blocking overlay — dialogs, sheets (has backdrop)' },
+    { id:'float',   label:'Float',   palette:'greyscale', tier:'elevation', desc:'Transient overlay — menus, dropdowns, tooltips' },
+    { id:'inverse', label:'Inverse', palette:'greyscale', tier:'canvas',    desc:'Dark on light, light on dark'           }
   ];
 
   /* Anchor step for each surface's `bg` per mode. All other props on
@@ -191,10 +196,30 @@
      escape hatch when a surface needs a different anchor. */
   var T2_BASE_STEPS = {
     light: { bright:'white', base:'25',  dim:'50',  deep:'75',
-             accent:'25',  container:'white', 'over-container':'white', float:'white', inverse:'900' },
+             accent:'25',  card:'white', modal:'white', float:'white', inverse:'900' },
     dark:  { bright:'850',  base:'900', dim:'900', deep:'black',
-             accent:'900', container:'850',   'over-container':'800',   float:'750',   inverse:'900' }
+             accent:'900', card:'850',   modal:'800',   float:'750',   inverse:'900' }
   };
+
+  /* One-shot key migration. Older config.json files keyed t2 state by
+     the legacy surface IDs (container, over-container). Rewrite to the
+     canonical (card, modal) the first time we see them, so downstream
+     resolvers don't have to know about the rename. */
+  var T2_LEGACY_RENAME = { container: 'card', 'over-container': 'modal' };
+  function migrateLegacyT2Keys(t2) {
+    if (!t2) return t2;
+    ['light','dark'].forEach(function (mode) {
+      var bag = t2[mode]; if (!bag) return;
+      Object.keys(T2_LEGACY_RENAME).forEach(function (oldK) {
+        if (Object.prototype.hasOwnProperty.call(bag, oldK)) {
+          var newK = T2_LEGACY_RENAME[oldK];
+          bag[newK] = Object.assign({}, bag[newK] || {}, bag[oldK]);
+          delete bag[oldK];
+        }
+      });
+    });
+    return t2;
+  }
 
   /* The 16 properties per surface. Default offsets are signed in
      "lighter→darker" steps and get multiplied by tonalDir(mode) at
@@ -1420,6 +1445,7 @@
       // ids so a stale or corrupted draft can't poison the override
       // map. Unknown keys are silently dropped.
       if (d.t2 && typeof d.t2 === 'object') {
+        migrateLegacyT2Keys(d.t2);  // container/over-container \u2192 card/modal (in-place)
         var PROP_OK = {};
         T2_PROP_DEFS.forEach(function (p) { PROP_OK[p.id] = true; });
         ['light','dark'].forEach(function (mode) {
@@ -1446,6 +1472,14 @@
       // palette ids AND discovered custom palettes (so a custom
       // pick saved in a prior session survives draft load).
       if (d.t2SurfacePalette && typeof d.t2SurfacePalette === 'object') {
+        // Migrate legacy ids (container/over-container \u2192 card/modal) before validation.
+        Object.keys(T2_LEGACY_RENAME).forEach(function (oldK) {
+          if (Object.prototype.hasOwnProperty.call(d.t2SurfacePalette, oldK)) {
+            var newK = T2_LEGACY_RENAME[oldK];
+            if (!d.t2SurfacePalette[newK]) d.t2SurfacePalette[newK] = d.t2SurfacePalette[oldK];
+            delete d.t2SurfacePalette[oldK];
+          }
+        });
         T2_SURFACES.forEach(function (s) {
           var v = d.t2SurfacePalette[s.id];
           if (typeof v === 'string' && isValidSurfacePalette(v)) {
@@ -2852,13 +2886,17 @@
     html += '</div>'; // /density section
 
     /* ── Designer install — sticky footer ───────────────────
-       Compact one-line summary that pins to the bottom of the
-       Tt scroll area. Click → opens the full dialog. Avoids
-       the "scrolls out of sight" problem the section-style had
-       while keeping the info one tap away. */
+       Compact one-line summary, rendered into the sibling
+       #ttStickyMount node (NOT into $body). A sticky child of the
+       scroll container would pin ON TOP of the last section's
+       content (the Aa density cards) because position:sticky;
+       bottom:0 anchors to the scroll-port, regardless of how the
+       content below it lays out. Mounting outside the scroll
+       container as a flex-sibling sidesteps the overlap entirely.
+       Click → opens the full dialog. */
     var buckets = typoInstallBuckets();
     var sticky = typoInstallStickyLabel(buckets);
-    html += '<div class="ev2-typo-install-sticky" data-tone="' + sticky.tone + '">'
+    var stickyHtml = '<div class="ev2-typo-install-sticky" data-tone="' + sticky.tone + '">'
           +   '<button type="button" class="ev2-typo-install-stickybtn" id="ttInstallOpen">'
           +     '<span class="ev2-typo-install-stickydot" aria-hidden="true"></span>'
           +     '<span class="ev2-typo-install-stickytxt">' + sticky.label + '</span>'
@@ -2868,6 +2906,12 @@
 
     html += '</div>';
     $body.innerHTML = html;
+
+    var $stickyMount = document.getElementById('ttStickyMount');
+    if ($stickyMount) {
+      $stickyMount.innerHTML = stickyHtml;
+      $stickyMount.hidden = false;
+    }
 
     /* Bind preset clicks (preset cards only; the Custom card opens the dialog) */
     $body.querySelectorAll('.ev2-typo-preset:not(.ev2-typo-preset-custom)').forEach(function (btn) {
@@ -4497,6 +4541,14 @@
     var meta = TIER_META[State.activeTier];
     $listTitle.textContent = meta.title;
     $listSub.textContent = meta.sub;
+    /* Clear the sibling sticky-mount before each tier render. Only
+       Tt populates it; without this it would persist across tier
+       switches and overlap unrelated tier UI. */
+    var $stickyMount = document.getElementById('ttStickyMount');
+    if ($stickyMount && State.activeTier !== 'tt') {
+      $stickyMount.innerHTML = '';
+      $stickyMount.hidden = true;
+    }
     if (State.activeTier === 't0') renderT0();
     else if (State.activeTier === 'tt') renderTt();
     else if (State.activeTier === 't1') renderT1();
@@ -5086,6 +5138,20 @@
     lines.push('}');
     lines.push('[data-theme="dark"] {');
     surfaceVarsLinesForMode('dark').forEach(function (l) { lines.push(l); });
+    lines.push('}');
+    // Back-compat aliases: old names container/over-container map to card/modal.
+    // Kept until v2 cutover so any legacy consumer keeps resolving.
+    var ALIAS_MAP = { container: 'card', 'over-container': 'modal' };
+    var PROPS_FOR_ALIAS = T2_PROP_DEFS.map(function (p) { return p.id; });
+    lines.push('');
+    lines.push('/* Back-compat aliases (deprecated) \u2014 container/over-container \u2192 card/modal */');
+    lines.push(':root {');
+    Object.keys(ALIAS_MAP).forEach(function (oldN) {
+      var newN = ALIAS_MAP[oldN];
+      PROPS_FOR_ALIAS.forEach(function (prop) {
+        lines.push('  --surface-' + oldN + '-' + prop + ': var(--surface-' + newN + '-' + prop + ');');
+      });
+    });
     lines.push('}');
     return lines.join('\n') + '\n';
   }

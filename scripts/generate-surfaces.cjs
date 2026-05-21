@@ -484,6 +484,31 @@ function generate() {
   }
   out += `}\n`;
 
+  // Back-compat aliases: old names (container, over-container) → new (card, modal).
+  // Theme-agnostic — they resolve through the var chain, so light/dark cascade
+  // naturally without re-emitting per theme. Keep until v2 cutover.
+  const ALIAS_MAP = { container: 'card', 'over-container': 'modal' };
+  const PROP_ORDER = [
+    'bg','hover','pressed','outline','separator',
+    'ct-default','ct-strong','ct-subtle','ct-faint',
+    'cm-bg','cm-bg-hover','cm-bg-pressed',
+    'cm-outline','cm-outline-hover','cm-outline-pressed',
+    'cm-separator'
+  ];
+  out += `\n/* ── Back-compat aliases (deprecated) ──────────────────────────────\n`;
+  out += `   Old surface names container/over-container are now card/modal.\n`;
+  out += `   These aliases keep legacy consumers working through the migration.\n`;
+  out += `   New code should reference --surface-card-* and --surface-modal-*.\n`;
+  out += `   ──────────────────────────────────────────────────────────────── */\n`;
+  out += `:root {\n`;
+  for (const [oldName, newName] of Object.entries(ALIAS_MAP)) {
+    for (const prop of PROP_ORDER) {
+      out += `  --surface-${oldName}-${prop}: var(--surface-${newName}-${prop});\n`;
+    }
+    out += `\n`;
+  }
+  out += `}\n`;
+
   return out;
 }
 

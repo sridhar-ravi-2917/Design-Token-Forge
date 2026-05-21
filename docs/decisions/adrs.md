@@ -306,7 +306,7 @@ The proof-of-concept validates the core mechanics:
 | Variables exported | 538 (173 color + 64 float + 9 string primitives, 108 semantic colors, 128 surface colors, 35 float + 21 string extras) |
 | Collections | 4 (Primitives, Semantic Roles, Surfaces, Extras) |
 | Light/Dark modes | Semantic + Surface collections get dual-mode support |
-| Figma path grouping | `--surface-over-container-bg` → `surface/over-container/bg` — native tree hierarchy |
+| Figma path grouping | `--surface-modal-bg` → `surface/modal/bg` — native tree hierarchy |
 | Type mapping | Hex → COLOR, numeric → FLOAT, composite → STRING |
 | Parsing accuracy | 100% of CSS custom properties extracted |
 

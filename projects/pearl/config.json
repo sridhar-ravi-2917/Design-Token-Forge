@@ -62,10 +62,10 @@
     "dim": "greyscale",
     "deep": "greyscale",
     "accent": "brand",
-    "container": "greyscale",
-    "over-container": "greyscale",
     "float": "greyscale",
-    "inverse": "greyscale"
+    "inverse": "greyscale",
+    "card": "greyscale",
+    "modal": "greyscale"
   },
   "typographyConfig": {
     "preset": "editorial-serif"

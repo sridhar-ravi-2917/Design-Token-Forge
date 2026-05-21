@@ -133,30 +133,62 @@ The core pattern is **step inversion**:
 ## T2 — Surface Context Tokens
 
 **File:** `packages/tokens/src/surfaces.css`  
-**Count:** 8 surfaces × 16 tokens × 2 themes = **256 tokens**
+**Count:** 9 surfaces × 16 tokens × 2 themes = **288 tokens** (+ deprecated aliases for `container` / `over-container`)
 
-### Surface Hierarchy
+### Two tiers of surface
+
+T2 surfaces split into two distinct roles. Both share the same 16-token kit, but they answer different questions:
+
+| Tier          | Surfaces                                  | Question it answers                  |
+|:--------------|:------------------------------------------|:-------------------------------------|
+| **Canvas**    | `bright`, `base`, `dim`, `deep`, `accent`, `inverse` | *What is the page tone?*             |
+| **Elevation** | `card`, `modal`, `float`                  | *What sits **on** the canvas?*       |
+
+A region picks **one** canvas surface for its page tone. Elevated layers (card, modal, float) sit **on top of** a canvas and are positioned higher in the z-stack. They are not interchangeable with canvas surfaces — a `modal` is not a "type of page," it is a layer placed over a page.
+
+### Nesting rule
+
+```
+canvas (bright / base / dim / deep / accent)   ← always at the bottom
+  └─ card                                       ← resting lift, can nest
+       └─ modal                                 ← blocking overlay (has backdrop)
+            └─ float                            ← transient overlay (no backdrop)
+```
+
+- A **card** sits on a canvas. Always. A card is never the canvas itself.
+- A **modal** sits over the entire app (focal, with backdrop). Use for dialogs, sheets, confirmations.
+- A **float** sits over anything (non-blocking, no backdrop). Use for menus, dropdowns, tooltips, comboboxes, date pickers, hover cards.
+
+> **Naming note.** The old names `container` and `over-container` were renamed to `card` and `modal` in May 2026 to make the canvas/elevation tier distinction obvious in code. Back-compat aliases (`--surface-container-*` → `--surface-card-*`, `--surface-over-container-*` → `--surface-modal-*`) ship in `surfaces.css` and will be removed in v2.
+
+### Canvas surfaces
 
 **Brightness order** (lightest → darkest in light theme):
 ```
 Bright > Base > Dim > Deep
 ```
 
-**Elevation order** (highest → lowest):
+| Surface  | Light bg   | Dark bg   | Use Case                          |
+|:---------|:----------:|:---------:|-----------------------------------|
+| `bright` | `#FFFFFF`  | `#1E1E1E` | Highlighted areas, lifted regions |
+| `base`   | `#FAFAFA`  | `#141414` | Default page canvas               |
+| `dim`    | `#F2F2F2`  | `#101010` | Muted / recessed areas            |
+| `deep`   | `#E8E8E8`  | `#0A0A0A` | Sidebars, wells                   |
+| `accent` | `#EFF4FF`  | `#0C1428` | Primary-tinted backgrounds        |
+| `inverse`| `#1E1E1E`  | `#1E1E1E` | Snackbars / toasts (fixed dark)   |
+
+### Elevation surfaces
+
+**Elevation order** (lowest → highest):
 ```
-Float > Over-container > Container > Base
+Card < Modal < Float
 ```
 
-| Surface          | Light bg   | Dark bg   | Use Case                         |
-|:----------------|:----------:|:---------:|----------------------------------|
-| `bright`         | `#FFFFFF`  | `#1E1E1E` | Elevated cards, highlighted areas |
-| `base`           | `#FAFAFA`  | `#141414` | Default page canvas              |
-| `container`      | `#FFFFFF`  | `#1E1E1E` | Cards, panels (above base)       |
-| `over-container` | `#FFFFFF`  | `#282828` | Modals, dialogs                  |
-| `float`          | `#FFFFFF`  | `#303030` | Menus, dropdowns, popups         |
-| `dim`            | `#F2F2F2`  | `#101010` | Muted / recessed areas           |
-| `deep`           | `#E8E8E8`  | `#0A0A0A` | Sidebars, wells                  |
-| `accent`         | `#EFF4FF`  | `#0C1428` | Primary-tinted backgrounds       |
+| Surface | Light bg  | Dark bg   | Use Case                                                |
+|:--------|:---------:|:---------:|---------------------------------------------------------|
+| `card`  | `#FFFFFF` | `#1E1E1E` | Resting lift — cards, panels on a surface               |
+| `modal` | `#FFFFFF` | `#282828` | Blocking overlay — dialogs, sheets, confirmations       |
+| `float` | `#FFFFFF` | `#303030` | Transient overlay — menus, dropdowns, tooltips, popovers |
 
 ### 16-Token Structure Per Surface
 

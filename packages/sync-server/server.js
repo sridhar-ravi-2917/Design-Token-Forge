@@ -126,9 +126,14 @@ const startedAt    = new Date().toISOString();
 //   T3  Status Context     (modes per semantic role, aliases T1)
 //   +   Extras             (raw numbers, 1 mode: Value)
 
+// Canonical surface names. Order matters — the longest-matching prefix wins
+// when parsing token names, so multi-word names would go before their shorter
+// counterparts (none currently, but keep the order stable).
 const SURFACE_NAMES = [
   'bright', 'base', 'dim', 'deep', 'accent',
-  'container', 'over-container', 'float', 'inverse'
+  'card', 'modal', 'float', 'inverse',
+  // Back-compat aliases (deprecated — read for legacy CSS, write under new names).
+  'container', 'over-container'
 ];
 
 const SEMANTIC_ROLES = [

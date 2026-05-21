@@ -296,7 +296,7 @@ Grades: `aaa` (≥7) · `aa` (≥4.5) · `aa-large` (≥3) · `fail` (<3).
 ```
 ┌─ Page (surface-base-bg) ────────────────────────────┐
 │  H1 + body copy              [Brand Button][Outline]│
-│  ┌─ Card (surface-container) ──────────────────────┐│
+│  ┌─ Card (surface-card) ──────────────────────────┐│
 │  │  H3 + body                                      ││
 │  │  [Inputs][Select][Toggle]   [Primary][Danger]   ││
 │  │  ┌─ Inline panel (surface-accent) ────────────┐ ││

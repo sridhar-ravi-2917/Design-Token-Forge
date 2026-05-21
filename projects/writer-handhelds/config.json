@@ -416,10 +416,10 @@
     "dim": "neutral",
     "deep": "neutral",
     "accent": "brand",
-    "container": "neutral",
-    "over-container": "neutral",
     "float": "neutral",
-    "inverse": "neutral"
+    "inverse": "neutral",
+    "card": "neutral",
+    "modal": "neutral"
   },
   "owner": "sridhar-ravi-2917",
   "paletteAnchor": "exact",
