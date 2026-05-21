@@ -4317,19 +4317,34 @@
 
   function slotsTableHTML(roleId) {
     var t = t1For(roleId);
+    var mode = State.editingMode;
     var fillStep      = t.fill;
     var contentStep   = t.content;
     var containerStep = t.container;
+    var dir = tonalDir(mode);
+    /* Mirrors semanticVarsFor() so the "Resulting slots" table is
+       a 1:1 read-out of what gets published to the project file.
+       Previously this table dropped component-outline-*,
+       component-separator, container-separator, container-pressed
+       and content-faint \u2014 making it look like the role only had
+       9 of its 17 published vars. */
     var rows = [
       { slot: 'component-bg-default',     step: fillStep },
       { slot: 'component-bg-hover',       step: stepRel(fillStep, 1) },
       { slot: 'component-bg-pressed',     step: stepRel(fillStep, 2) },
+      { slot: 'component-outline-default', step: stepRel(fillStep, -2) },
+      { slot: 'component-outline-hover',   step: stepRel(fillStep, -2) },
+      { slot: 'component-outline-pressed', step: stepRel(fillStep, -1) },
+      { slot: 'component-separator',      step: stepRel(fillStep, -4) },
       { slot: 'content-default',          step: contentStep },
       { slot: 'content-strong',           step: stepRel(contentStep, 1) },
       { slot: 'content-subtle',           step: stepRel(contentStep, -2) },
+      { slot: 'content-faint',            step: stepRel(contentStep, -3) },
       { slot: 'container-bg',             step: containerStep },
-      { slot: 'container-hover',          step: stepRel(containerStep, 1) },
-      { slot: 'container-outline',        step: stepRel(containerStep, 6) }
+      { slot: 'container-hover',          step: stepRel(containerStep, 1 * dir) },
+      { slot: 'container-pressed',        step: stepRel(containerStep, 2 * dir) },
+      { slot: 'container-outline',        step: resolveBorderStep(roleId, mode) },
+      { slot: 'container-separator',      step: resolveSeparatorStep(roleId, mode) }
     ];
     return '<div class="ev2-slots">'
       + rows.map(function (r) {
