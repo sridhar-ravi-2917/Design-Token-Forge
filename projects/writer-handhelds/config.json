@@ -425,10 +425,10 @@
   "paletteAnchor": "exact",
   "schemaVersion": 2,
   "latestVersion": {
-    "version": "v1.0.8",
-    "name": "May21 10:56",
-    "description": "",
-    "savedAt": "2026-05-21T05:26:47.135Z",
+    "version": "v1.0.9",
+    "name": "May21 13:55",
+    "description": "(Dark mode mapping fix)",
+    "savedAt": "2026-05-21T08:26:02.190Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
@@ -508,16 +508,16 @@
         "onContainerStep": "200"
       },
       "success": {
-        "fill": "500",
+        "fill": "600",
         "content": "200",
         "container": "850",
         "borderStep": "400",
         "separatorStep": "300",
-        "onComponent": "black",
+        "onComponent": "white",
         "onContainerStep": "200"
       },
       "warning": {
-        "fill": "550",
+        "fill": "600",
         "content": "200",
         "container": "850",
         "borderStep": "450",
@@ -526,12 +526,12 @@
         "onContainerStep": "200"
       },
       "info": {
-        "fill": "450",
+        "fill": "700",
         "content": "200",
         "container": "850",
         "borderStep": "350",
         "separatorStep": "250",
-        "onComponent": "black",
+        "onComponent": "white",
         "onContainerStep": "200"
       },
       "neutral": {
