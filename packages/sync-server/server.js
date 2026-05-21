@@ -921,6 +921,30 @@ function startWatching() {
   } catch (e) {
     console.error(`  ✗ Cannot watch component tokens: ${e.message}`);
   }
+
+  // Watch the active project's config.json so a fresh publish (or a
+  // git pull on the local clone) flows into Figma without restarting
+  // the server. Typography/T1/T2 overrides all come through this
+  // path — without the watcher, publishes were invisible to Figma
+  // until the next manual restart.
+  if (PROJECT_ID) {
+    const configPath = path.join(ROOT_DIR, 'projects', PROJECT_ID, 'config.json');
+    if (fs.existsSync(configPath)) {
+      try {
+        fs.watchFile(configPath, { interval: 500 }, () => {
+          if (pending) clearTimeout(pending);
+          pending = setTimeout(async () => {
+            pending = null;
+            await loadProjectOverrides();
+            rebuildTokens('configchange', ['projects/' + PROJECT_ID + '/config.json']);
+          }, debounceMs);
+        });
+        if (VERBOSE) console.log(`  👁  Watching: projects/${PROJECT_ID}/config.json`);
+      } catch (e) {
+        console.error(`  ✗ Cannot watch config.json: ${e.message}`);
+      }
+    }
+  }
 }
 
 function rebuildTokens(trigger, files) {

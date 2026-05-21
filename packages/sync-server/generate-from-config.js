@@ -206,14 +206,52 @@ function generatePrimitiveTokens(palettes) {
  * If no typographyConfig is present we fall back to the default preset
  * (Neutral System) so every project ships with valid font tokens.
  */
+// Density scales the size ladder + line-height-normal so the editor's
+// compact/comfortable choice ships to Figma. Mirrors TYPO_DENSITY in
+// demo/editor-v2/editor-v2.js — keep in lockstep or Figma will diverge
+// from the web preview the moment a designer toggles density.
+const TYPO_DENSITY_SCALE = { compact: 0.92, base: 1, comfortable: 1.08 };
+const TYPO_DENSITY_LH    = { compact: 1.375, base: 1.5, comfortable: 1.625 };
+
+// Build a CSS font-family stack from a bare family name (the shape the
+// editor stores in `overrides`/`custom`). Mirrors typoStackFor() in
+// demo/editor-v2/editor-v2.js so the sync server emits the same stack
+// the web preview is showing — if these drift, Figma swatches a font
+// the browser was actually substituting from a fallback.
+function typoStackFor(role, raw) {
+  const name = String(raw || '').trim();
+  if (!name) return null;
+  const needsQuote = /\s/.test(name) && !/^["']/.test(name);
+  const quoted = needsQuote ? `"${name}"` : name;
+  if (role === 'code') return `${quoted}, "SF Mono", Menlo, Consolas, monospace`;
+  return `${quoted}, system-ui, -apple-system, sans-serif`;
+}
+
 function generateTypographyTokens(typoConfig) {
   const cfg = typoConfig && typoConfig.preset
     ? typoConfig
     : { preset: DEFAULT_TYPOGRAPHY_PRESET };
 
-  // Resolve preset → fonts. Custom configs may override fonts directly.
-  const preset = TYPOGRAPHY_PRESETS[cfg.preset] || TYPOGRAPHY_PRESETS[DEFAULT_TYPOGRAPHY_PRESET];
+  // Resolve preset → fonts. The editor uses preset === 'custom' for
+  // "bring your own"; for that case start with the neutral-system
+  // stack so unspecified roles still ship a valid family, then
+  // overlay the designer's picks below.
+  const isCustomPreset = cfg.preset === 'custom';
+  const preset = TYPOGRAPHY_PRESETS[cfg.preset]
+              || TYPOGRAPHY_PRESETS[DEFAULT_TYPOGRAPHY_PRESET];
   const fonts = (cfg.fonts && Object.keys(cfg.fonts).length) ? cfg.fonts : preset.fonts;
+
+  // Apply per-role overrides + custom picks the editor writes. Editor
+  // stores these as bare family names ("Inter", "Playfair Display");
+  // we wrap them through typoStackFor() so the shipped font-family
+  // value matches the web preview's stack exactly.
+  const overrides = (cfg.overrides && typeof cfg.overrides === 'object') ? cfg.overrides : {};
+  const customs   = (cfg.custom    && typeof cfg.custom    === 'object') ? cfg.custom    : {};
+
+  // Density scales font-size + line-height-normal. Defaults to base
+  // so legacy configs (no density key) keep their original ladder.
+  const density = (cfg.density && TYPO_DENSITY_SCALE[cfg.density]) ? cfg.density : 'base';
+  const scale   = TYPO_DENSITY_SCALE[density];
 
   // Ladder: every preset shares the same scale today (Phase 1). Custom
   // configs may override individual ladders for advanced users.
@@ -225,18 +263,58 @@ function generateTypographyTokens(typoConfig) {
 
   const light = {};
 
-  for (const [role, font] of Object.entries(fonts)) {
-    if (font && font.stack) light[`font-family-${role}`] = font.stack;
+  // 1. Base font-families from preset (skipped entirely for 'custom'
+  //    so the overlay step is the only source — otherwise a partial
+  //    custom config inherits neutral-system fallbacks unintentionally
+  //    on roles the designer left blank).
+  if (!isCustomPreset) {
+    for (const [role, font] of Object.entries(fonts)) {
+      if (font && font.stack) light[`font-family-${role}`] = font.stack;
+    }
   }
+  // 2. Custom-preset role picks overlay first (only applies when the
+  //    designer selected the Custom card). Bare family name → full stack.
+  if (isCustomPreset) {
+    for (const role of ['headline', 'body', 'code']) {
+      const fam = customs[role];
+      const stack = typoStackFor(role, fam);
+      if (stack) light[`font-family-${role}`] = stack;
+    }
+  }
+  // 3. Per-role overrides take precedence over both preset and custom
+  //    — same precedence as typoResolvedFonts() in the editor.
+  for (const role of ['headline', 'body', 'code']) {
+    const fam = overrides[role];
+    const stack = typoStackFor(role, fam);
+    if (stack) light[`font-family-${role}`] = stack;
+  }
+
+  // 4. Sizes — scaled by density, rounded to .1px so Figma's number
+  //    picker doesn't show 14.72000004. We keep the original token
+  //    NAME (font-size-14) even when scaled, so existing component
+  //    aliases (var(--font-size-14)) still resolve — only the value
+  //    moves with density.
   for (const px of sizes) {
-    light[`font-size-${px}`] = `${px}px`;
+    const scaled = Math.round(px * scale * 10) / 10;
+    light[`font-size-${px}`] = `${scaled}px`;
   }
+
+  // 5. Weights — unchanged by density.
   for (const [name, val] of Object.entries(weights)) {
     light[`font-weight-${name}`] = String(val);
   }
+
+  // 6. Line-heights — density only retunes the 'normal' rung (1.375 /
+  //    1.5 / 1.625). The other rungs (tight/snug/relaxed/loose) keep
+  //    their absolute values because they are explicit designer
+  //    choices, not density-derived.
+  const lhOverrides = { normal: TYPO_DENSITY_LH[density] };
   for (const [name, val] of Object.entries(lineHeights)) {
-    light[`line-height-${name}`] = String(val);
+    const final = (lhOverrides[name] != null) ? lhOverrides[name] : val;
+    light[`line-height-${name}`] = String(final);
   }
+
+  // 7. Letter-spacings — unchanged by density.
   for (const [name, val] of Object.entries(letterSpacings)) {
     light[`letter-spacing-${name}`] = String(val);
   }
