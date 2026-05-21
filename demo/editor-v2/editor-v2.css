@@ -2746,7 +2746,15 @@ body.ev2-modal-open{overflow:hidden}
    structure of T0/T1 cards — section heads + per-section
    controls — using its own scoped classes so it can coexist
    with palette/role widgets without selector collisions. */
-.ev2-typo-panel{display:flex;flex-direction:column;gap:14px;min-height:100%;box-sizing:border-box}
+/* Panel layout for the Tt tier rail. min-height:100% lets the
+   `margin-top:auto` on the sticky footer push it to the bottom of
+   the list-body when content is short. padding-block-end gives
+   the last scrolling section (density) enough clearance to scroll
+   fully ABOVE the pinned sticky — without this, the Aa cards at
+   the bottom of the density section sit BEHIND the sticky bar
+   because position:sticky;bottom:0 pins at scrollport-bottom and
+   nothing reserves space for it. */
+.ev2-typo-panel{display:flex;flex-direction:column;gap:14px;min-height:100%;box-sizing:border-box;padding-block-end:80px}
 .ev2-typo-section{display:flex;flex-direction:column;gap:6px}
 .ev2-typo-section-head{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--demo-fg-strong,#111);margin:0;padding-bottom:4px;border-bottom:1px solid var(--ev2-chrome-outline,#e5e5e5)}
 .ev2-typo-help{font-size:11px;line-height:1.4;color:var(--demo-fg-subtle,#555);margin:0 0 2px}

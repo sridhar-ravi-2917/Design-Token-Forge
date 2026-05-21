@@ -104,6 +104,22 @@
     if (t.separatorStep && ALL_STEPS.indexOf(t.separatorStep) >= 0) return t.separatorStep;
     return stepRelToward(t.container, 2, mode);
   }
+  /* Component-family equivalents: the outline + separator drawn on
+     the COMPONENT fill (not the container). Defaults sit -2 steps
+     from fill (outline) and -4 steps from fill (separator), matching
+     the values semanticVarsFor() previously hardcoded inline. Users
+     can override these from their Property Cards just like
+     container-border / container-separator. */
+  function resolveCmBorderStep(roleId, mode) {
+    var t = State.t1[mode][roleId];
+    if (t.cmBorderStep && ALL_STEPS.indexOf(t.cmBorderStep) >= 0) return t.cmBorderStep;
+    return stepRel(t.fill, -2);
+  }
+  function resolveCmSeparatorStep(roleId, mode) {
+    var t = State.t1[mode][roleId];
+    if (t.cmSeparatorStep && ALL_STEPS.indexOf(t.cmSeparatorStep) >= 0) return t.cmSeparatorStep;
+    return stepRel(t.fill, -4);
+  }
 
   /* Per-role per-mode default step picks. Hand-tuned so every role
      ships AA-clean out of the box — derived from the prior preset
@@ -821,6 +837,8 @@
        borderStep, separatorStep, onComponent, onContainerStep
      Each is undefined when following the derivation. */
   var T1_DERIVED = [
+    { id: 'cmBorder',     label: 'Component outline',   sub: 'Outline drawn around the component fill (border on outlined/ghost variants)' },
+    { id: 'cmSeparator',  label: 'Component separator', sub: 'Dividers drawn on the component fill (split-buttons, segmented controls)' },
     { id: 'border',       label: 'Container border',    sub: 'Outline drawn around the container surface' },
     { id: 'separator',    label: 'Container separator', sub: 'Dividers inside the container surface' },
     { id: 'onComponent',  label: 'On-component',        sub: 'Text + icons on the component fill. Picker shows white, black, and any palette step that passes AA on every fill state.' },
@@ -837,6 +855,8 @@
     return t.fill !== b.fill || t.content !== b.content || t.container !== b.container
         || (t.borderStep      || null) !== (b.borderStep      || null)
         || (t.separatorStep   || null) !== (b.separatorStep   || null)
+        || (t.cmBorderStep    || null) !== (b.cmBorderStep    || null)
+        || (t.cmSeparatorStep || null) !== (b.cmSeparatorStep || null)
         || (t.onComponent     || null) !== (b.onComponent     || null)
         || (t.onContainerStep || null) !== (b.onContainerStep || null);
   }
@@ -865,6 +885,7 @@
       // published file \u2014 producing 8 phantom diffs per role
       // (4 levers x 2 modes) that disagreed with the topbar.
       [['borderStep','border'], ['separatorStep','separator'],
+       ['cmBorderStep','cmBorder'], ['cmSeparatorStep','cmSeparator'],
        ['onComponent','onComponent'], ['onContainerStep','onContainer']
       ].forEach(function (pair) {
         var key = pair[0], label = pair[1];
@@ -884,7 +905,8 @@
     if (!diffs.length) return '';
     var labels = {
       fill:'Fill', content:'Content', container:'Container',
-      border:'Border', separator:'Separator',
+      border:'Container border', separator:'Container separator',
+      cmBorder:'Component outline', cmSeparator:'Component separator',
       onComponent:'On-component', onContainer:'On-container'
     };
     return diffs.map(function (d) {
@@ -1087,9 +1109,10 @@
     lines.push('  --' + p + '-component-bg-default: ' + get(fillStep) + ';');
     lines.push('  --' + p + '-component-bg-hover: '   + get(stepRel(fillStep, 1)) + ';');
     lines.push('  --' + p + '-component-bg-pressed: ' + get(stepRel(fillStep, 2)) + ';');
-    lines.push('  --' + p + '-component-outline-default: ' + get(stepRel(fillStep, -2)) + ';');
-    lines.push('  --' + p + '-component-outline-hover: '   + get(stepRel(fillStep, -2)) + ';');
-    lines.push('  --' + p + '-component-outline-pressed: ' + get(stepRel(fillStep, -1)) + ';');
+    var cmBorderStep = resolveCmBorderStep(roleId, mode);
+    lines.push('  --' + p + '-component-outline-default: ' + get(cmBorderStep) + ';');
+    lines.push('  --' + p + '-component-outline-hover: '   + get(cmBorderStep) + ';');
+    lines.push('  --' + p + '-component-outline-pressed: ' + get(stepRel(cmBorderStep, 1)) + ';');
     lines.push('  --' + p + '-on-component: ' + onComponentColor(roleId, mode) + ';');
     // Content family
     lines.push('  --' + p + '-content-default: ' + get(contentStep) + ';');
@@ -1103,7 +1126,7 @@
     lines.push('  --' + p + '-container-pressed: '  + get(stepRel(containerStep, 2 * dir)) + ';');
     lines.push('  --' + p + '-container-outline: ' + get(resolveBorderStep(roleId, mode)) + ';');
     lines.push('  --' + p + '-container-separator: ' + get(resolveSeparatorStep(roleId, mode)) + ';');
-    lines.push('  --' + p + '-component-separator: ' + get(stepRel(fillStep, -4)) + ';');
+    lines.push('  --' + p + '-component-separator: ' + get(resolveCmSeparatorStep(roleId, mode)) + ';');
     lines.push('  --' + p + '-on-container: ' + onContainerColor(roleId, mode) + ';');
     return lines;
   }
@@ -3394,6 +3417,14 @@
       if (ALL_STEPS.indexOf(newStep) < 0) return;
       if (t.separatorStep === newStep) return;
       t.separatorStep = newStep;
+    } else if (derivedId === 'cmBorder') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.cmBorderStep === newStep) return;
+      t.cmBorderStep = newStep;
+    } else if (derivedId === 'cmSeparator') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.cmSeparatorStep === newStep) return;
+      t.cmSeparatorStep = newStep;
     } else if (derivedId === 'onContainer') {
       if (ALL_STEPS.indexOf(newStep) < 0) return;
       if (t.onContainerStep === newStep) return;
@@ -3410,6 +3441,8 @@
     var changed = false;
     if (derivedId === 'border' && t.borderStep) { delete t.borderStep; changed = true; }
     else if (derivedId === 'separator' && t.separatorStep) { delete t.separatorStep; changed = true; }
+    else if (derivedId === 'cmBorder' && t.cmBorderStep) { delete t.cmBorderStep; changed = true; }
+    else if (derivedId === 'cmSeparator' && t.cmSeparatorStep) { delete t.cmSeparatorStep; changed = true; }
     else if (derivedId === 'onComponent' && t.onComponent) { delete t.onComponent; changed = true; }
     else if (derivedId === 'onContainer' && t.onContainerStep) { delete t.onContainerStep; changed = true; }
     if (!changed) return;
@@ -3644,6 +3677,8 @@
     var t = State.t1[mode][roleId];
     if (derivedId === 'border')      return t.borderStep ? t.borderStep : stepRelToward(t.container, 6, mode);
     if (derivedId === 'separator')   return t.separatorStep ? t.separatorStep : stepRelToward(t.container, 2, mode);
+    if (derivedId === 'cmBorder')    return resolveCmBorderStep(roleId, mode);
+    if (derivedId === 'cmSeparator') return resolveCmSeparatorStep(roleId, mode);
     if (derivedId === 'onComponent') {
       var allowed = onComponentAllowedSteps(roleId, mode);
       if (t.onComponent && allowed.indexOf(t.onComponent) >= 0) return t.onComponent;
@@ -3663,6 +3698,8 @@
     var t = State.t1[mode][roleId];
     if (derivedId === 'border')    return stepRelToward(t.container, 6, mode);
     if (derivedId === 'separator') return stepRelToward(t.container, 2, mode);
+    if (derivedId === 'cmBorder')    return stepRel(t.fill, -2);
+    if (derivedId === 'cmSeparator') return stepRel(t.fill, -4);
     if (derivedId === 'onComponent') {
       var fills = [
         stepHexByName(roleId, t.fill),
@@ -3699,6 +3736,8 @@
     }
     if (derivedId === 'border')      return neq(t.borderStep,      baseEntry.borderStep);
     if (derivedId === 'separator')   return neq(t.separatorStep,   baseEntry.separatorStep);
+    if (derivedId === 'cmBorder')    return neq(t.cmBorderStep,    baseEntry.cmBorderStep);
+    if (derivedId === 'cmSeparator') return neq(t.cmSeparatorStep, baseEntry.cmSeparatorStep);
     if (derivedId === 'onComponent') return neq(t.onComponent,     baseEntry.onComponent);
     if (derivedId === 'onContainer') return neq(t.onContainerStep, baseEntry.onContainerStep);
     return false;
@@ -3726,6 +3765,15 @@
         large: true
       };
     }
+    if (derivedId === 'cmBorder' || derivedId === 'cmSeparator') {
+      var fillHexB = ladder[t.fill] || stepHexByName(roleId, t.fill) || '#000';
+      return {
+        hex: fillHexB,
+        token: '--' + prefix + '-component-bg-default',
+        intent: 'edge',
+        large: true
+      };
+    }
     if (derivedId === 'onComponent') {
       var fillHex = stepHexByName(roleId, t.fill) || '#000';
       return {
@@ -3749,6 +3797,8 @@
     var prefix = role ? role.prefix : roleId;
     if (derivedId === 'border')      return '--' + prefix + '-container-outline';
     if (derivedId === 'separator')   return '--' + prefix + '-container-separator';
+    if (derivedId === 'cmBorder')    return '--' + prefix + '-component-outline-default';
+    if (derivedId === 'cmSeparator') return '--' + prefix + '-component-separator';
     if (derivedId === 'onComponent') return '--' + prefix + '-on-component';
     if (derivedId === 'onContainer') return '--' + prefix + '-on-container';
     return '--' + prefix + '-' + derivedId;
@@ -4234,6 +4284,8 @@
     var T1_DISPLAY_ORDER = [
       { kind:'lever',   id:'fill' },
       { kind:'derived', id:'onComponent' },
+      { kind:'derived', id:'cmBorder' },
+      { kind:'derived', id:'cmSeparator' },
       { kind:'lever',   id:'container' },
       { kind:'derived', id:'onContainer' },
       { kind:'derived', id:'border' },
@@ -4342,10 +4394,10 @@
         { slot: 'component-bg-default',      step: fillStep },
         { slot: 'component-bg-hover',        step: stepRel(fillStep, 1) },
         { slot: 'component-bg-pressed',      step: stepRel(fillStep, 2) },
-        { slot: 'component-outline-default', step: stepRel(fillStep, -2) },
-        { slot: 'component-outline-hover',   step: stepRel(fillStep, -2) },
-        { slot: 'component-outline-pressed', step: stepRel(fillStep, -1) },
-        { slot: 'component-separator',       step: stepRel(fillStep, -4) },
+        { slot: 'component-outline-default', step: resolveCmBorderStep(roleId, mode) },
+        { slot: 'component-outline-hover',   step: resolveCmBorderStep(roleId, mode) },
+        { slot: 'component-outline-pressed', step: stepRel(resolveCmBorderStep(roleId, mode), 1) },
+        { slot: 'component-separator',       step: resolveCmSeparatorStep(roleId, mode) },
         { slot: 'on-component',              step: onCompStep, hex: onCompHex, stepLabel: (onCompStep === 'white' || onCompStep === 'black') ? onCompStep : ('step ' + onCompStep) }
       ]},
       { label: 'Container', rows: [
@@ -5080,6 +5132,8 @@
         if (t.container)        pick.container        = t.container;
         if (t.borderStep)       pick.borderStep       = t.borderStep;
         if (t.separatorStep)    pick.separatorStep    = t.separatorStep;
+        if (t.cmBorderStep)     pick.cmBorderStep     = t.cmBorderStep;
+        if (t.cmSeparatorStep)  pick.cmSeparatorStep  = t.cmSeparatorStep;
         if (t.onComponent)      pick.onComponent      = t.onComponent;
         if (t.onContainerStep)  pick.onContainerStep  = t.onContainerStep;
         if (Object.keys(pick).length) t1Picks[mode][r.id] = pick;
@@ -6756,6 +6810,8 @@
         if (pick.container       && STEP_OK[pick.container])       dest.container       = pick.container;
         if (pick.borderStep      && STEP_OK[pick.borderStep])      dest.borderStep      = pick.borderStep;
         if (pick.separatorStep   && STEP_OK[pick.separatorStep])   dest.separatorStep   = pick.separatorStep;
+        if (pick.cmBorderStep    && STEP_OK[pick.cmBorderStep])    dest.cmBorderStep    = pick.cmBorderStep;
+        if (pick.cmSeparatorStep && STEP_OK[pick.cmSeparatorStep]) dest.cmSeparatorStep = pick.cmSeparatorStep;
         if (pick.onComponent)                                       dest.onComponent     = pick.onComponent;
         if (pick.onContainerStep && STEP_OK[pick.onContainerStep]) dest.onContainerStep = pick.onContainerStep;
       });
@@ -6925,8 +6981,10 @@
         var fillHex   = vars[pref + 'component-bg-default'];
         var contentHex= vars[pref + 'content-default'];
         var contHex   = vars[pref + 'container-bg'];
-        var borderHex = vars[pref + 'component-outline-default'];
-        var sepHex    = vars[pref + 'component-separator'];
+        var cmBorderHex = vars[pref + 'component-outline-default'];
+        var cmSepHex    = vars[pref + 'component-separator'];
+        var borderHex   = vars[pref + 'container-outline'];
+        var sepHex      = vars[pref + 'container-separator'];
         var onCompHex = vars[pref + 'on-component'];
         var onContHex = vars[pref + 'on-container'];
 
@@ -6968,6 +7026,14 @@
         var autoSep = stepRelToward(dest.container, 2, mode);
         var sepStep = findStep(r.id, mode, sepHex);
         if (sepStep && sepStep !== autoSep) dest.separatorStep = sepStep;
+        // Same pattern for the component-side outline + separator
+        // (auto-derived from the fill instead of the container).
+        var autoCmBorder = stepRel(dest.fill, -2);
+        var cmBorderStep = findStep(r.id, mode, cmBorderHex);
+        if (cmBorderStep && cmBorderStep !== autoCmBorder) dest.cmBorderStep = cmBorderStep;
+        var autoCmSep = stepRel(dest.fill, -4);
+        var cmSepStep = findStep(r.id, mode, cmSepHex);
+        if (cmSepStep && cmSepStep !== autoCmSep) dest.cmSeparatorStep = cmSepStep;
       });
       State.editingMode = savedMode;
     });
