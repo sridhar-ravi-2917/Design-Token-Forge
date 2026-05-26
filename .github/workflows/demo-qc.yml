@@ -1,0 +1,71 @@
+name: Demo QC
+
+on:
+  pull_request:
+    paths:
+      - 'demo/**'
+      - 'tests/visual/**'
+      - 'packages/components/src/**'
+      - 'packages/tokens/src/**'
+      - 'playwright.config.js'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'scripts/**'
+      - '.github/workflows/demo-qc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'demo/**'
+      - 'tests/visual/**'
+      - 'packages/components/src/**'
+      - 'packages/tokens/src/**'
+      - 'playwright.config.js'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'scripts/**'
+      - '.github/workflows/demo-qc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  demo-qc:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run demo QC tests
+        run: pnpm run test:demo-qc:ci
+
+      - name: Build demo QC summary
+        if: always()
+        run: pnpm run test:demo-qc:report
+
+      - name: Upload demo QC artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-qc-artifacts
+          path: |
+            artifacts/demo-qc/**
+            playwright-report/**
+            test-results/**
+          if-no-files-found: warn

@@ -16,6 +16,8 @@
     "gen:manifests": "node scripts/generate-token-manifest.cjs --all",
     "test:editor": "playwright test tests/editor-v2",
     "test:demo-qc": "playwright test tests/visual/components.spec.js tests/visual/demo-logical.spec.js tests/visual/demo-consistency.spec.js",
+    "test:demo-qc:ci": "mkdir -p artifacts/demo-qc && PLAYWRIGHT_JSON_OUTPUT_DIR=artifacts/demo-qc PLAYWRIGHT_JSON_OUTPUT_NAME=results.json playwright test tests/visual/components.spec.js tests/visual/demo-logical.spec.js tests/visual/demo-consistency.spec.js --reporter=line,json",
+    "test:demo-qc:report": "node scripts/summarize-demo-qc.cjs artifacts/demo-qc/results.json artifacts/demo-qc/summary.md",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
