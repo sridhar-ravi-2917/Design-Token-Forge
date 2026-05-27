@@ -321,9 +321,11 @@
 <script src="dtf-topbar.js?v=9"></script>
 <script src="nav.js?v=3"></script>
 <script src="shared.js?v=1103"></script>
+<script src="shared-page.js"></script>
 <script>
 (function(){
   'use strict';
+  var P = window.DTFPage;
 
   /* ── Constants ─────────────────────────────────────── */
   var ROLES    = ['brand','success','warning','danger'];
@@ -549,26 +551,12 @@
   }
 
   function renderSurfaceContext() {
-    var el = clr('surfaceStrip');
-    var surfaces = [
-      { label:'Base',     bg:'var(--surface-base-bg)' },
-      { label:'Elevated', bg:'var(--surface-base-cm-bg)' },
-      { label:'Sunken',   bg:'var(--surface-base-cm-bg-pressed)' }
-    ];
-    surfaces.forEach(function(s) {
-      var panel = document.createElement('div');
-      panel.className = 'surface-panel';
-      panel.style.background = s.bg;
-      var lbl = document.createElement('div');
-      lbl.className = 'surface-label';
-      lbl.textContent = s.label;
-      panel.appendChild(lbl);
+    P.renderSurfacePanels('surfaceStrip', function(panel){
       var container = document.createElement('div');
       container.className = 'toast-container';
       container.dataset.demo = '';
       container.appendChild(makeToast({ role:G.role, variant:G.variant||undefined }));
       panel.appendChild(container);
-      el.appendChild(panel);
     });
   }
 

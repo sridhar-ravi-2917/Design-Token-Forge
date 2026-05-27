@@ -399,9 +399,11 @@
 <script src="dtf-topbar.js?v=9"></script>
 <script src="nav.js?v=3"></script>
 <script src="shared.js?v=1103"></script>
+<script src="shared-page.js"></script>
 <script>
 (function(){
   'use strict';
+  var P = window.DTFPage;
 
   var VARIANTS = ['outline','filled'];
   var MODES    = ['dropzone','button'];
@@ -660,25 +662,11 @@
   }
 
   function renderSurface() {
-    var el = clr('surfaceStrip');
-    var surfaces = [
-      { label:'Base',     bg:'var(--surface-base-bg)' },
-      { label:'Elevated', bg:'var(--surface-base-cm-bg)' },
-      { label:'Sunken',   bg:'var(--surface-base-cm-bg-pressed)' }
-    ];
-    surfaces.forEach(function(s) {
-      var panel = document.createElement('div');
-      panel.className = 'surface-panel';
-      panel.style.background = s.bg;
-      var lbl = document.createElement('div');
-      lbl.className = 'surface-label';
-      lbl.textContent = s.label;
-      panel.appendChild(lbl);
+    P.renderSurfacePanels('surfaceStrip', function(panel){
       var fu = makeFU({ label:false, hint:'Drop files here' });
       fu.style.maxWidth = '320px';
       fu.style.marginTop = '12px';
       panel.appendChild(fu);
-      el.appendChild(panel);
     });
   }
 
