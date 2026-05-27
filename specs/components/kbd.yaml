@@ -1,0 +1,118 @@
+component: kbd
+prefix: kbd
+category: Display & Feedback
+description: Keyboard shortcut indicator. Renders as a styled key-cap label.
+
+classification:
+  type: display-feedback
+  has_variants: true
+  has_roles: false
+  density_modes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+variants:
+  structural:
+    - name: filled
+      description: Solid surface background (default)
+      default: true
+    - name: outlined
+      description: Transparent background with border
+    - name: ghost
+      description: Minimal — no border or background
+
+roles: []
+
+slots:
+  - name: separator
+    element: .kbd__sep
+    tokens: [color, opacity, margin]
+
+states:
+  - default
+  - disabled
+
+variables:
+  shape:
+    - name: --kbd-radius-{size}
+      per_density: true
+      count: 10
+    - name: --kbd-border-width
+      default: 1px
+    - name: --kbd-border-style
+      default: solid
+    - name: --kbd-shadow
+      default: "0 1px 0 1px var(--surface-base-outline)"
+
+  dimension:
+    - name: --kbd-height-{size}
+      per_density: true
+      count: 10
+      range: [16px, 40px]
+    - name: --kbd-padding-x-{size}
+      per_density: true
+      count: 10
+    - name: --kbd-padding-y-{size}
+      per_density: true
+      count: 10
+    - name: --kbd-gap-{size}
+      per_density: true
+      count: 10
+
+  surface:
+    - name: --kbd-filled-bg
+      default: var(--surface-base-subtle)
+    - name: --kbd-filled-fg
+      default: var(--surface-base-ct-default)
+    - name: --kbd-filled-border-color
+      default: var(--surface-base-outline)
+    - name: --kbd-outlined-bg
+      default: transparent
+    - name: --kbd-outlined-fg
+      default: var(--surface-base-ct-default)
+    - name: --kbd-outlined-border-color
+      default: var(--surface-base-outline)
+    - name: --kbd-ghost-bg
+      default: transparent
+    - name: --kbd-ghost-fg
+      default: var(--surface-base-ct-subtle)
+    - name: --kbd-ghost-border-color
+      default: transparent
+
+  typography:
+    - name: --kbd-font-family
+      default: var(--font-family-mono)
+    - name: --kbd-font-size-{size}
+      per_density: true
+      count: 10
+    - name: --kbd-font-weight
+      default: var(--font-weight-medium)
+    - name: --kbd-line-height
+      default: 1
+    - name: --kbd-letter-spacing
+      default: var(--letter-spacing-normal)
+
+  slots:
+    separator:
+      - name: --kbd-sep-color
+        default: var(--surface-base-ct-faint)
+      - name: --kbd-sep-margin
+        default: 0 2px
+
+  motion:
+    - name: --kbd-transition-property
+      default: background-color, border-color, box-shadow, opacity
+    - name: --kbd-transition-duration
+      default: var(--duration-fast)
+    - name: --kbd-transition-easing
+      default: var(--easing-in-out)
+
+  a11y:
+    - name: --kbd-min-tap-target
+      default: 0px
+      description: Non-interactive display element
+
+summary:
+  total_variables: ~75
+  per_density_tokens: 50
+  variant_count: 3
+  role_count: 0
+  slot_count: 1
