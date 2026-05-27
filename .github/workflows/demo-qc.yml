@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'demo/**'
+      - 'docs/**'
       - 'tests/visual/**'
       - 'packages/components/src/**'
       - 'packages/tokens/src/**'
@@ -16,6 +17,7 @@ on:
     branches: [main]
     paths:
       - 'demo/**'
+      - 'docs/**'
       - 'tests/visual/**'
       - 'packages/components/src/**'
       - 'packages/tokens/src/**'
