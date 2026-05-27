@@ -27,15 +27,16 @@
 
 <div class="page-layout">
 <aside class="sidebar-nav" id="sidebarNav" aria-label="Section navigation">
-  <a href="#sec-hero"><span class="sn-num">1</span>Hero Preview</a>
+  <a href="#sec-hero"><span class="sn-num">1</span>Hero Inspector</a>
   <a href="#sec-variants"><span class="sn-num">2</span>Variant Gallery</a>
   <a href="#sec-density"><span class="sn-num">3</span>Density Scale</a>
   <a href="#sec-states"><span class="sn-num">4</span>State Matrix</a>
-  <a href="#sec-slots"><span class="sn-num">5</span>Slots &amp; Anatomy</a>
-  <a href="#sec-comparison"><span class="sn-num">6</span>Variant Comparison</a>
-  <a href="#sec-a11y"><span class="sn-num">7</span>Accessibility</a>
-  <a href="#sec-playground"><span class="sn-num">8</span>Context Playground<span class="sn-tag">New</span></a>
-  <a href="#sec-framework"><span class="sn-num">9</span>Use in Framework</a>
+  <a href="#sec-surface"><span class="sn-num">5</span>Surface Context</a>
+  <a href="#sec-slots"><span class="sn-num">6</span>Slots &amp; Anatomy</a>
+  <a href="#sec-comparison"><span class="sn-num">7</span>Variant Comparison</a>
+  <a href="#sec-a11y"><span class="sn-num">8</span>Accessibility</a>
+  <a href="#sec-playground"><span class="sn-num">9</span>Context Playground<span class="sn-tag">New</span></a>
+  <a href="#sec-framework"><span class="sn-num">10</span>Use in Framework</a>
 </aside>
 <div class="page-content">
 
@@ -84,7 +85,7 @@
   <!-- ═══════════ 1. HERO + INSPECTOR ═══════════ -->
   <section class="section" id="sec-hero">
     <div class="section-header">
-      <h2>Hero Preview</h2>
+      <h2>Hero Inspector</h2>
       <span class="section-tag">Interactive</span>
     </div>
     <p class="section-desc">Live input with inspector showing resolved token values. Try typing, focusing, and hovering.</p>
@@ -258,7 +259,16 @@
     </div>
   </section>
 
-  <!-- ═══════════ 5. SLOTS SHOWCASE ═══════════ -->
+  <!-- ═══════════ 5. SURFACE CONTEXT ═══════════ -->
+  <section class="section" id="sec-surface">
+    <div class="section-header"><h2>Surface Context</h2><span class="section-tag">Surface</span></div>
+    <p class="section-desc">Inputs on base, subtle, and deep backgrounds to verify contrast and border visibility.</p>
+    <div class="section-body">
+      <div class="surface-strip" id="surfaceStrip"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 6. SLOTS SHOWCASE ═══════════ -->
   <section class="section" id="sec-slots">
     <div class="section-header">
       <h2>Slots &amp; Anatomy</h2>
@@ -641,15 +651,44 @@
 <script src="dtf-topbar.js?v=9"></script>
 <script src="nav.js?v=3"></script>
 <script src="shared.js?v=1103"></script>
+<script src="shared-page.js"></script>
 <script>
 /* ── Global Controls ─────────────────────────────────── */
 let currentVariant = 'outlined';
 let currentSize = 'base';
+var P = window.DTFPage;
+
+function renderSurface() {
+  P.renderSurfacePanels('surfaceStrip', function(panel) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;flex-direction:column;gap:12px;margin-top:12px';
+    ['outlined','filled','underline'].forEach(function(v) {
+      var g = document.createElement('div');
+      g.className = 'input-group';
+      g.setAttribute('data-variant', v);
+      g.setAttribute('data-size', currentSize);
+      var lbl = document.createElement('label');
+      lbl.className = 'input__label';
+      lbl.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+      g.appendChild(lbl);
+      var field = document.createElement('div');
+      field.className = 'input-field';
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.placeholder = 'Placeholder text';
+      field.appendChild(inp);
+      g.appendChild(field);
+      row.appendChild(g);
+    });
+    panel.appendChild(row);
+  });
+}
 
 function applyGlobals() {
   const hero = document.getElementById('heroInput');
   hero.setAttribute('data-variant', currentVariant);
   hero.setAttribute('data-size', currentSize);
+  renderSurface();
   updateInspector();
 }
 
