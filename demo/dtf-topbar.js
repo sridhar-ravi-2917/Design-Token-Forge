@@ -56,7 +56,8 @@
     { label: 'Toast',           href: 'toast.html',           hint: '~90 vars'  },
     { label: 'Progress Bar',    href: 'progress-bar.html',    hint: '~60 vars'  },
     { label: 'Progress Circle', href: 'progress-circle.html', hint: '~50 vars'  },
-    { label: 'Spinner',         href: 'spinner.html',         hint: '~85 vars'  }
+    { label: 'Spinner',         href: 'spinner.html',         hint: '~85 vars'  },
+    { label: 'KBD',              href: 'kbd.html',             hint: '~75 vars'  }
   ];
   window.DtfTopbarNavItems = NAV_ITEMS;
 

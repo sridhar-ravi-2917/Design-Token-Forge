@@ -27,7 +27,7 @@
 @import './progress-ring/index.css';
 @import './spinner/index.css';
 /* @import './skeleton/index.css'; */
-/* @import './kbd/index.css'; */
+@import './kbd/index.css';
 
 /* Layout & Structure */
 /* @import './card/index.css'; */
