@@ -28,7 +28,7 @@
   --tooltip-padding-y-base: var(--spacing-6);
   --tooltip-padding-x-base: var(--spacing-10);
   --tooltip-padding-y-large: var(--spacing-8);
-  --tooltip-padding-x-large: var(--spacing-14);
+  --tooltip-padding-x-large: var(--spacing-12);
 
   /* Max width */
   --tooltip-max-width-small: 180px;

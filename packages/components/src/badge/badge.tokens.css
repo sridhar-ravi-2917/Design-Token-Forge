@@ -60,7 +60,7 @@
   --badge-padding-x-big: var(--spacing-14);
   --badge-padding-x-huge: var(--spacing-16);
   --badge-padding-x-mega: var(--spacing-18);
-  --badge-padding-x-ultra: var(--spacing-24);
+  --badge-padding-x-ultra: var(--spacing-22);
 
   /* Gap */
   --badge-gap-micro: var(--spacing-2);
@@ -163,8 +163,8 @@
   /* Font size per density */
   --badge-font-size-micro: var(--font-size-10);
   --badge-font-size-tiny: var(--font-size-10);
-  --badge-font-size-small: var(--font-size-10);
-  --badge-font-size-base: var(--font-size-11);
+  --badge-font-size-small: var(--font-size-11);
+  --badge-font-size-base: var(--font-size-12);
   --badge-font-size-medium: var(--font-size-12);
   --badge-font-size-large: var(--font-size-13);
   --badge-font-size-big: var(--font-size-14);

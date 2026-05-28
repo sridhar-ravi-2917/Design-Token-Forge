@@ -20,7 +20,7 @@
   /* ────────────────────────────────────────────────────────────
      2 · PER-SIZE: SMALL  (8 vars)
      ──────────────────────────────────────────────────────────── */
-  --toast-padding-y-small:       var(--spacing-8);
+  --toast-padding-y-small:       var(--spacing-10);
   --toast-padding-x-small:       var(--spacing-12);
   --toast-gap-small:             var(--spacing-8);
   --toast-content-gap-small:     var(--spacing-2);
