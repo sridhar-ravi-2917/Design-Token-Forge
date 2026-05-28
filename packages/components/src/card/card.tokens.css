@@ -1,17 +1,29 @@
 /* ════════════════════════════════════════════════════════════════
    Design Token Forge — Card Token Defaults
-   Layer 0: System defaults for ~75 card variables.
+   Layer 0: System defaults for ~90 card variables.
    All values reference global tokens — zero hardcoded visuals.
    ────────────────────────────────────────────────────────────────
-   ANATOMY:
-     .card (container)
-       ├─ .card__header   (optional title area)
-       ├─ .card__media    (optional image/video)
-       ├─ .card__body     (main content)
-       └─ .card__footer   (optional actions area)
+   ANATOMY (vertical — default):
+     .card
+       ├─ .card__media        (optional hero image/video)
+       ├─ .card__header       (structured: avatar + title-group + action)
+       │    ├─ .card__avatar
+       │    ├─ .card__title-group
+       │    │    ├─ .card__title
+       │    │    └─ .card__subtitle
+       │    └─ .card__header-action
+       ├─ .card__body         (main content)
+       └─ .card__footer       (actions bar)
+            └─ .card__actions
 
-   VARIANTS  (data-variant):  raised (default) | outlined | flat | ghost
-   ROLES:    none
+   ANATOMY (horizontal — data-direction="horizontal"):
+     .card
+       ├─ .card__media        (side image, fixed width)
+       └─ .card__content      (wraps header + body + footer)
+
+   VARIANTS  (data-variant):  raised | outlined | flat | ghost
+   DIRECTION (data-direction): vertical (default) | horizontal
+   STATES:   data-interactive, data-selected, data-disabled
    ════════════════════════════════════════════════════════════════ */
 
 .card {
@@ -20,7 +32,6 @@
      📐 SHAPE  (14 vars)
      ──────────────────────────────────────────────────────────── */
 
-  /* Radius per density */
   --card-radius-micro:   var(--radius-sm);
   --card-radius-tiny:    var(--radius-sm);
   --card-radius-small:   var(--radius-md);
@@ -32,15 +43,13 @@
   --card-radius-mega:    var(--radius-xl);
   --card-radius-ultra:   var(--radius-2xl);
 
-  /* Border */
   --card-border-width:   1px;
 
-  /* Shadows */
   --card-shadow-raised:  var(--shadow-sm);
   --card-shadow-hover:   var(--shadow-md);
 
   /* ────────────────────────────────────────────────────────────
-     📏 DIMENSION  (40 vars)
+     📏 DIMENSION  (50 vars)
      ──────────────────────────────────────────────────────────── */
 
   /* Body padding per density */
@@ -91,8 +100,21 @@
   --card-gap-mega:    var(--spacing-24);
   --card-gap-ultra:   var(--spacing-28);
 
+  /* Horizontal layout */
+  --card-horizontal-media-width: 200px;
+  --card-horizontal-media-min:   120px;
+  --card-horizontal-media-max:   320px;
+
+  /* Header structure */
+  --card-header-gap:    var(--spacing-10);
+  --card-avatar-size:   40px;
+  --card-avatar-radius: var(--radius-full);
+
+  /* Footer actions */
+  --card-actions-gap:   var(--spacing-8);
+
   /* ────────────────────────────────────────────────────────────
-     🎨 SURFACE  (4 vars)
+     🎨 SURFACE  (7 vars)
      ──────────────────────────────────────────────────────────── */
 
   --card-bg:                   var(--surface-base-cm-bg);
@@ -100,23 +122,33 @@
   --card-header-border-color:  var(--surface-base-separator);
   --card-footer-border-color:  var(--surface-base-separator);
 
+  --card-selected-ring-color:  var(--focus-ring-color);
+  --card-selected-ring-width:  2px;
+  --card-selected-bg:          color-mix(in srgb, var(--focus-ring-color) 5%, transparent);
+
   /* ────────────────────────────────────────────────────────────
-     🔤 TYPOGRAPHY  (11 vars)
+     🔤 TYPOGRAPHY  (16 vars)
      ──────────────────────────────────────────────────────────── */
 
-  /* Header font size per density */
-  --card-header-font-size-micro:   var(--font-size-xs);
-  --card-header-font-size-tiny:    var(--font-size-xs);
-  --card-header-font-size-small:   var(--font-size-sm);
-  --card-header-font-size-base:    var(--font-size-md);
-  --card-header-font-size-medium:  var(--font-size-md);
-  --card-header-font-size-large:   var(--font-size-lg);
-  --card-header-font-size-big:     var(--font-size-lg);
-  --card-header-font-size-huge:    var(--font-size-xl);
-  --card-header-font-size-mega:    var(--font-size-xl);
-  --card-header-font-size-ultra:   var(--font-size-2xl);
+  --card-title-font-size-micro:   var(--font-size-xs);
+  --card-title-font-size-tiny:    var(--font-size-xs);
+  --card-title-font-size-small:   var(--font-size-sm);
+  --card-title-font-size-base:    var(--font-size-md);
+  --card-title-font-size-medium:  var(--font-size-md);
+  --card-title-font-size-large:   var(--font-size-lg);
+  --card-title-font-size-big:     var(--font-size-lg);
+  --card-title-font-size-huge:    var(--font-size-xl);
+  --card-title-font-size-mega:    var(--font-size-xl);
+  --card-title-font-size-ultra:   var(--font-size-2xl);
 
-  --card-header-font-weight:       var(--font-weight-semibold);
+  --card-title-font-weight:       var(--font-weight-semibold);
+  --card-title-line-clamp:        2;
+
+  --card-subtitle-font-size:   var(--font-size-sm);
+  --card-subtitle-font-weight: var(--font-weight-normal);
+  --card-subtitle-color:       var(--color-text-muted);
+
+  --card-body-line-clamp:      none;
 
   /* ────────────────────────────────────────────────────────────
      🧩 SLOTS  (1 var)
