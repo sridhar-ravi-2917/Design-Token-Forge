@@ -59,7 +59,8 @@
     { label: 'Spinner',         href: 'spinner.html',         hint: '~85 vars'  },
     { label: 'Skeleton',         href: 'skeleton.html',        hint: '~45 vars'  },
     { label: 'KBD',              href: 'kbd.html',             hint: '~75 vars'  },
-    { label: 'Card',             href: 'card.html',            hint: '~75 vars'  }
+    { label: 'Card',             href: 'card.html',            hint: '~75 vars'  },
+    { label: 'Divider',          href: 'divider.html',         hint: '~30 vars'  }
   ];
   window.DtfTopbarNavItems = NAV_ITEMS;
 
