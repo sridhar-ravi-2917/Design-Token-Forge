@@ -31,7 +31,7 @@
 
 /* Layout & Structure */
 @import './card/index.css';
-/* @import './divider/index.css'; */
+@import './divider/index.css';
 /* @import './accordion/index.css'; */
 /* @import './tabs/index.css'; */
 /* @import './table/index.css'; */

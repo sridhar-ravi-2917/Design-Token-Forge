@@ -1,0 +1,125 @@
+# /specs/components/divider.yaml
+component:
+  name: "Divider"
+  tag: "hr"
+  prefix: "div"
+  description: "A horizontal or vertical separator line for visually dividing content sections."
+  category: "layout"
+
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+variants: [solid, dashed, dotted, double]
+
+states: []  # Non-interactive — no states
+
+orientation: [horizontal, vertical]
+
+variables:
+
+  # ──────────────────────────────────────────
+  # 📐 SHAPE
+  # ──────────────────────────────────────────
+  shape:
+    thickness:
+      - name: "--div-thickness"
+        default: "1px"
+        description: "Line thickness (border-width equivalent)"
+    style:
+      - name: "--div-style"
+        default: "solid"
+        options: [solid, dashed, dotted, double]
+        description: "Line style — driven by variant data-attribute"
+
+  # ──────────────────────────────────────────
+  # 📏 DIMENSION
+  # ──────────────────────────────────────────
+  dimension:
+    spacing:
+      - name: "--div-spacing-{size}"
+        per_size: true
+        description: "Block margin (vertical space above and below for horizontal divider)"
+        defaults:
+          micro: "var(--spacing-2)"
+          tiny: "var(--spacing-4)"
+          small: "var(--spacing-6)"
+          base: "var(--spacing-8)"
+          medium: "var(--spacing-10)"
+          large: "var(--spacing-12)"
+          big: "var(--spacing-14)"
+          huge: "var(--spacing-16)"
+          mega: "var(--spacing-20)"
+          ultra: "var(--spacing-24)"
+    indent:
+      - name: "--div-indent-start"
+        default: "0px"
+        description: "Inset from the start edge (logical: inline-start)"
+      - name: "--div-indent-end"
+        default: "0px"
+        description: "Inset from the end edge (logical: inline-end)"
+
+  # ──────────────────────────────────────────
+  # 🎨 SURFACE
+  # ──────────────────────────────────────────
+  surface:
+    color:
+      - name: "--div-color"
+        default: "var(--color-border)"
+        description: "Line color (maps to border-color)"
+      - name: "--div-color-strong"
+        default: "var(--color-border-strong)"
+        description: "Emphasized line color for strong variant"
+      - name: "--div-color-subtle"
+        default: "var(--color-border-subtle)"
+        description: "Muted line color for subtle contexts"
+
+  # ──────────────────────────────────────────
+  # 🔤 TYPOGRAPHY (label slot)
+  # ──────────────────────────────────────────
+  typography:
+    label:
+      - name: "--div-label-font-size"
+        default: "var(--font-size-xs)"
+        description: "Font size of the optional inline label"
+      - name: "--div-label-font-weight"
+        default: "var(--font-weight-medium)"
+        description: "Font weight of the inline label"
+      - name: "--div-label-color"
+        default: "var(--color-text-muted)"
+        description: "Text color of the inline label"
+      - name: "--div-label-gap"
+        default: "var(--spacing-8)"
+        description: "Gap between the label and the line segments"
+
+  # ──────────────────────────────────────────
+  # 🧩 SLOTS
+  # ──────────────────────────────────────────
+  slots:
+    - name: "label"
+      element: ".divider__label"
+      description: "Optional text label displayed between the two line segments (e.g. 'OR', 'Section')"
+
+  # ──────────────────────────────────────────
+  # 🎬 MOTION
+  # ──────────────────────────────────────────
+  motion:
+    - name: "--div-transition-duration"
+      default: "var(--duration-fast)"
+      description: "Transition speed for color changes"
+    - name: "--div-transition-easing"
+      default: "var(--easing-in-out)"
+      description: "Transition easing curve"
+
+  # ──────────────────────────────────────────
+  # ♿ ACCESSIBILITY
+  # ──────────────────────────────────────────
+  a11y:
+    notes:
+      - "Uses role='separator' implicitly (native <hr>)"
+      - "aria-orientation='vertical' required for vertical dividers"
+      - "Decorative dividers should use role='none' or aria-hidden='true'"
+      - "Forced-colors: ensures line is visible via CanvasText"
+
+  # ──────────────────────────────────────────
+  # 🔢 VARIABLE COUNT
+  # ──────────────────────────────────────────
+  variable_count: "~30 CSS custom properties"

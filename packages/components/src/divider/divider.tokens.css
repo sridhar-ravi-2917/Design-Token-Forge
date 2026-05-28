@@ -1,0 +1,43 @@
+/* ═══════════════════════════════════════════════════════════════
+   DIVIDER — Token Defaults
+   Prefix: --div-*
+   ~30 CSS custom properties across 7 axes
+   ═══════════════════════════════════════════════════════════════ */
+
+:where(.divider) {
+
+  /* ── SHAPE ─────────────────────────────────────────────────── */
+  --div-thickness: 1px;
+  --div-style: solid;
+
+  /* ── DIMENSION: spacing per density ────────────────────────── */
+  --div-spacing-micro: var(--spacing-2);
+  --div-spacing-tiny:  var(--spacing-4);
+  --div-spacing-small: var(--spacing-6);
+  --div-spacing-base:  var(--spacing-8);
+  --div-spacing-medium: var(--spacing-10);
+  --div-spacing-large: var(--spacing-12);
+  --div-spacing-big:   var(--spacing-14);
+  --div-spacing-huge:  var(--spacing-16);
+  --div-spacing-mega:  var(--spacing-20);
+  --div-spacing-ultra: var(--spacing-24);
+
+  /* ── DIMENSION: indent (inset from edges) ──────────────────── */
+  --div-indent-start: 0px;
+  --div-indent-end:   0px;
+
+  /* ── SURFACE ───────────────────────────────────────────────── */
+  --div-color:        var(--color-border);
+  --div-color-strong: var(--color-border-strong);
+  --div-color-subtle: var(--color-border-subtle);
+
+  /* ── TYPOGRAPHY (label slot) ───────────────────────────────── */
+  --div-label-font-size:   var(--font-size-xs);
+  --div-label-font-weight: var(--font-weight-medium);
+  --div-label-color:       var(--color-text-muted);
+  --div-label-gap:         var(--spacing-8);
+
+  /* ── MOTION ────────────────────────────────────────────────── */
+  --div-transition-duration: var(--duration-fast);
+  --div-transition-easing:   var(--easing-in-out);
+}
