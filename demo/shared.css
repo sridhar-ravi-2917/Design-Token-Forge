@@ -299,7 +299,7 @@ html[data-theme="dark"] .nav-acct-signout:hover{background:rgba(220,38,38,.15);c
 .sidebar-nav a.active{color:var(--demo-fg-strong);font-weight:600;border-left-color:var(--brand-component-bg-default);background:var(--demo-surface-alt)}
 .sidebar-nav .sn-num{font-size:var(--font-size-10,10px);color:var(--demo-fg-faint);font-weight:600;min-width:16px}
 .sidebar-nav .sn-tag{margin-left:auto;font-size:8px;font-weight:600;color:var(--demo-fg-faint);text-transform:uppercase;letter-spacing:0.04em;opacity:0.6}
-.page-content{min-width:0}
+.page-content{min-width:0;position:relative;z-index:0}
 .demo-main{max-width:1400px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:48px;min-width:0}
 
 /* ── Sections ──────────────────────────────────────────── */
