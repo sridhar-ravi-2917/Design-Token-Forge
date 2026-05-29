@@ -598,8 +598,8 @@
       "size": null,
       "state": null,
       "property": "bg",
-      "value": "var(--surface-base-cn-bg)",
-      "aliasOf": "--surface-base-cn-bg",
+      "value": "var(--surface-base-cm-bg)",
+      "aliasOf": "--surface-base-cm-bg",
       "literal": false
     },
     "--toast-fg": {
@@ -994,8 +994,8 @@
       "size": null,
       "state": null,
       "property": "soft-bg",
-      "value": "var(--surface-base-cn-bg)",
-      "aliasOf": "--surface-base-cn-bg",
+      "value": "var(--surface-base-cm-bg)",
+      "aliasOf": "--surface-base-cm-bg",
       "literal": false
     },
     "--toast-success-filled-bg": {

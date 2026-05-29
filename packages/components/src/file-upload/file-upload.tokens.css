@@ -69,25 +69,25 @@
   --file-upload-padding-x-micro: var(--spacing-8);
   --file-upload-padding-x-tiny: var(--spacing-10);
   --file-upload-padding-x-small: var(--spacing-12);
-  --file-upload-padding-x-base: var(--spacing-16);
-  --file-upload-padding-x-medium: var(--spacing-18);
-  --file-upload-padding-x-large: var(--spacing-20);
-  --file-upload-padding-x-big: var(--spacing-24);
-  --file-upload-padding-x-huge: var(--spacing-28);
-  --file-upload-padding-x-mega: var(--spacing-32);
-  --file-upload-padding-x-ultra: var(--spacing-40);
+  --file-upload-padding-x-base: var(--spacing-14);
+  --file-upload-padding-x-medium: var(--spacing-16);
+  --file-upload-padding-x-large: var(--spacing-18);
+  --file-upload-padding-x-big: var(--spacing-20);
+  --file-upload-padding-x-huge: var(--spacing-24);
+  --file-upload-padding-x-mega: var(--spacing-28);
+  --file-upload-padding-x-ultra: var(--spacing-36);
 
   /* Vertical padding per density */
   --file-upload-padding-y-micro: var(--spacing-6);
   --file-upload-padding-y-tiny: var(--spacing-8);
   --file-upload-padding-y-small: var(--spacing-10);
-  --file-upload-padding-y-base: var(--spacing-16);
-  --file-upload-padding-y-medium: var(--spacing-18);
-  --file-upload-padding-y-large: var(--spacing-20);
-  --file-upload-padding-y-big: var(--spacing-24);
-  --file-upload-padding-y-huge: var(--spacing-28);
-  --file-upload-padding-y-mega: var(--spacing-32);
-  --file-upload-padding-y-ultra: var(--spacing-40);
+  --file-upload-padding-y-base: var(--spacing-12);
+  --file-upload-padding-y-medium: var(--spacing-14);
+  --file-upload-padding-y-large: var(--spacing-16);
+  --file-upload-padding-y-big: var(--spacing-20);
+  --file-upload-padding-y-huge: var(--spacing-24);
+  --file-upload-padding-y-mega: var(--spacing-28);
+  --file-upload-padding-y-ultra: var(--spacing-36);
 
   /* Gap (between icon / text / CTA) */
   --file-upload-gap-micro: var(--spacing-4);

@@ -28,7 +28,7 @@
   --tooltip-padding-y-base: var(--spacing-6);
   --tooltip-padding-x-base: var(--spacing-10);
   --tooltip-padding-y-large: var(--spacing-8);
-  --tooltip-padding-x-large: var(--spacing-14);
+  --tooltip-padding-x-large: var(--spacing-12);
 
   /* Max width */
   --tooltip-max-width-small: 180px;
@@ -52,14 +52,14 @@
 
   /* ── DEFAULT (dark bg, light text) ────────────────── */
   --tooltip-bg: var(--surface-base-ct-default);
-  --tooltip-fg: var(--surface-base-cn-bg);
+  --tooltip-fg: var(--surface-base-cm-bg);
   --tooltip-arrow-color: var(--surface-base-ct-default);
 
   /* ── LIGHT (inverted — light bg, dark text) ────────── */
-  --tooltip-light-bg: var(--surface-base-cn-bg);
+  --tooltip-light-bg: var(--surface-base-cm-bg);
   --tooltip-light-fg: var(--surface-base-ct-default);
   --tooltip-light-border-color: var(--surface-base-cm-outline);
-  --tooltip-light-arrow-color: var(--surface-base-cn-bg);
+  --tooltip-light-arrow-color: var(--surface-base-cm-bg);
 
   /* ── DANGER (error feedback) ────────────────────────────── */
   --tooltip-danger-bg: var(--danger-component-bg-default);
