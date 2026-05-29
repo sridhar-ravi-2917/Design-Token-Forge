@@ -867,7 +867,13 @@
     { id: 'border',       label: 'Container border',    sub: 'Outline drawn around the container surface' },
     { id: 'separator',    label: 'Container separator', sub: 'Dividers inside the container surface' },
     { id: 'onComponent',  label: 'On-component',        sub: 'Text + icons on the component fill. Picker shows white, black, and any palette step that passes AA on every fill state.' },
-    { id: 'onContainer',  label: 'On-container',        sub: 'Text drawn on the container surface' }
+    { id: 'onContainer',  label: 'On-container',        sub: 'Text drawn on the container surface' },
+    { id: 'contentSubtle',  label: 'Content subtle',       sub: 'De-emphasized text (captions, placeholders). Lighter than content-default.' },
+    { id: 'contentStrong',  label: 'Content strong',       sub: 'Emphasized text (headings, active links). Darker than content-default.' },
+    { id: 'fillHover',       label: 'Component fill hover',   sub: 'Fill on pointer hover (buttons, chips). One step darker than default.' },
+    { id: 'fillPressed',     label: 'Component fill pressed', sub: 'Fill on press/active state. Two steps darker than default.' },
+    { id: 'cmBorderHover',   label: 'Outline hover',          sub: 'Component outline on pointer hover.' },
+    { id: 'cmBorderPressed', label: 'Outline pressed',        sub: 'Component outline on press/active state.' }
   ];
 
   function isChanged(roleId) {
@@ -883,7 +889,13 @@
         || (t.cmBorderStep    || null) !== (b.cmBorderStep    || null)
         || (t.cmSeparatorStep || null) !== (b.cmSeparatorStep || null)
         || (t.onComponent     || null) !== (b.onComponent     || null)
-        || (t.onContainerStep || null) !== (b.onContainerStep || null);
+        || (t.onContainerStep || null) !== (b.onContainerStep || null)
+        || (t.contentSubtleStep    || null) !== (b.contentSubtleStep    || null)
+        || (t.contentStrongStep    || null) !== (b.contentStrongStep    || null)
+        || (t.fillHoverStep        || null) !== (b.fillHoverStep        || null)
+        || (t.fillPressedStep      || null) !== (b.fillPressedStep      || null)
+        || (t.cmBorderHoverStep    || null) !== (b.cmBorderHoverStep    || null)
+        || (t.cmBorderPressedStep  || null) !== (b.cmBorderPressedStep  || null);
   }
   function isT1Changed(roleId) {
     return isT1ChangedInMode(roleId, 'light') || isT1ChangedInMode(roleId, 'dark');
@@ -911,7 +923,10 @@
       // (4 levers x 2 modes) that disagreed with the topbar.
       [['borderStep','border'], ['separatorStep','separator'],
        ['cmBorderStep','cmBorder'], ['cmSeparatorStep','cmSeparator'],
-       ['onComponent','onComponent'], ['onContainerStep','onContainer']
+       ['onComponent','onComponent'], ['onContainerStep','onContainer'],
+       ['contentSubtleStep','contentSubtle'], ['contentStrongStep','contentStrong'],
+       ['fillHoverStep','fillHover'], ['fillPressedStep','fillPressed'],
+       ['cmBorderHoverStep','cmBorderHover'], ['cmBorderPressedStep','cmBorderPressed']
       ].forEach(function (pair) {
         var key = pair[0], label = pair[1];
         var tv = t[key] || null;
@@ -932,7 +947,10 @@
       fill:'Fill', content:'Content', container:'Container',
       border:'Container border', separator:'Container separator',
       cmBorder:'Component outline', cmSeparator:'Component separator',
-      onComponent:'On-component', onContainer:'On-container'
+      onComponent:'On-component', onContainer:'On-container',
+      contentSubtle:'Content subtle', contentStrong:'Content strong',
+      fillHover:'Fill hover', fillPressed:'Fill pressed',
+      cmBorderHover:'Outline hover', cmBorderPressed:'Outline pressed'
     };
     return diffs.map(function (d) {
       var modeLabel = d.mode === 'dark' ? 'Dark' : 'Light';
@@ -1003,12 +1021,14 @@
       if (ovHex) return ovHex;
     }
     var fillStep = t.fill;
-    // Fills derived the same way semanticVarsFor() does (stepRel
-    // +0, +1, +2) so the AA test sees exactly the values that ship.
+    // Fills derived the same way semanticVarsFor() does — respect
+    // overrides so the AA test sees exactly the values that ship.
+    var hoverStep   = t.fillHoverStep   || stepRel(fillStep, 1);
+    var pressedStep = t.fillPressedStep || stepRel(fillStep, 2);
     var fills = [
       stepHexByName(roleId, fillStep),
-      stepHexByName(roleId, stepRel(fillStep, 1)),
-      stepHexByName(roleId, stepRel(fillStep, 2))
+      stepHexByName(roleId, hoverStep),
+      stepHexByName(roleId, pressedStep)
     ].filter(Boolean);
     if (!fills.length) fills = ['#000'];
     return DTFSolver.deriveOnComponent(fills);
@@ -1041,10 +1061,12 @@
     var base = ['white', 'black'];
     var t = State.t1[mode][roleId];
     if (!t) return base;
+    var hoverStep   = t.fillHoverStep   || stepRel(t.fill, 1);
+    var pressedStep = t.fillPressedStep || stepRel(t.fill, 2);
     var fills = [
       stepHexByName(roleId, t.fill),
-      stepHexByName(roleId, stepRel(t.fill, 1)),
-      stepHexByName(roleId, stepRel(t.fill, 2))
+      stepHexByName(roleId, hoverStep),
+      stepHexByName(roleId, pressedStep)
     ].filter(Boolean);
     if (!fills.length) return base;
     var ladder = ladderFor(roleId);
@@ -1130,19 +1152,25 @@
     var get = function (name) { return stepHexByName(roleId, name); };
     var p = roleId; // semantic prefix matches role id (brand, danger, ...)
     var lines = [];
-    // Component fill family
+    // Component fill family — respect overrides
+    var fillHoverStep   = t1DerivedStep(roleId, 'fillHover', mode);
+    var fillPressedStep = t1DerivedStep(roleId, 'fillPressed', mode);
     lines.push('  --' + p + '-component-bg-default: ' + get(fillStep) + ';');
-    lines.push('  --' + p + '-component-bg-hover: '   + get(stepRel(fillStep, 1)) + ';');
-    lines.push('  --' + p + '-component-bg-pressed: ' + get(stepRel(fillStep, 2)) + ';');
+    lines.push('  --' + p + '-component-bg-hover: '   + get(fillHoverStep) + ';');
+    lines.push('  --' + p + '-component-bg-pressed: ' + get(fillPressedStep) + ';');
     var cmBorderStep = resolveCmBorderStep(roleId, mode);
+    var cmBorderHoverStep   = t1DerivedStep(roleId, 'cmBorderHover', mode);
+    var cmBorderPressedStep = t1DerivedStep(roleId, 'cmBorderPressed', mode);
     lines.push('  --' + p + '-component-outline-default: ' + get(cmBorderStep) + ';');
-    lines.push('  --' + p + '-component-outline-hover: '   + get(cmBorderStep) + ';');
-    lines.push('  --' + p + '-component-outline-pressed: ' + get(stepRel(cmBorderStep, 1)) + ';');
+    lines.push('  --' + p + '-component-outline-hover: '   + get(cmBorderHoverStep) + ';');
+    lines.push('  --' + p + '-component-outline-pressed: ' + get(cmBorderPressedStep) + ';');
     lines.push('  --' + p + '-on-component: ' + onComponentColor(roleId, mode) + ';');
-    // Content family
+    // Content family — respect overrides
+    var contentStrongStep = t1DerivedStep(roleId, 'contentStrong', mode);
+    var contentSubtleStep = t1DerivedStep(roleId, 'contentSubtle', mode);
     lines.push('  --' + p + '-content-default: ' + get(contentStep) + ';');
-    lines.push('  --' + p + '-content-strong: '  + get(stepRel(contentStep, 1)) + ';');
-    lines.push('  --' + p + '-content-subtle: '  + get(stepRel(contentStep, -2)) + ';');
+    lines.push('  --' + p + '-content-strong: '  + get(contentStrongStep) + ';');
+    lines.push('  --' + p + '-content-subtle: '  + get(contentSubtleStep) + ';');
     lines.push('  --' + p + '-content-faint: '   + get(stepRel(contentStep, -3)) + ';');
     // Container family
     var dir = tonalDir(mode);
@@ -3473,6 +3501,30 @@
       if (ALL_STEPS.indexOf(newStep) < 0) return;
       if (t.onContainerStep === newStep) return;
       t.onContainerStep = newStep;
+    } else if (derivedId === 'contentSubtle') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.contentSubtleStep === newStep) return;
+      t.contentSubtleStep = newStep;
+    } else if (derivedId === 'contentStrong') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.contentStrongStep === newStep) return;
+      t.contentStrongStep = newStep;
+    } else if (derivedId === 'fillHover') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.fillHoverStep === newStep) return;
+      t.fillHoverStep = newStep;
+    } else if (derivedId === 'fillPressed') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.fillPressedStep === newStep) return;
+      t.fillPressedStep = newStep;
+    } else if (derivedId === 'cmBorderHover') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.cmBorderHoverStep === newStep) return;
+      t.cmBorderHoverStep = newStep;
+    } else if (derivedId === 'cmBorderPressed') {
+      if (ALL_STEPS.indexOf(newStep) < 0) return;
+      if (t.cmBorderPressedStep === newStep) return;
+      t.cmBorderPressedStep = newStep;
     } else { return; }
     scheduleAutosave();
     refreshChangeBar();
@@ -3489,6 +3541,12 @@
     else if (derivedId === 'cmSeparator' && t.cmSeparatorStep) { delete t.cmSeparatorStep; changed = true; }
     else if (derivedId === 'onComponent' && t.onComponent) { delete t.onComponent; changed = true; }
     else if (derivedId === 'onContainer' && t.onContainerStep) { delete t.onContainerStep; changed = true; }
+    else if (derivedId === 'contentSubtle' && t.contentSubtleStep) { delete t.contentSubtleStep; changed = true; }
+    else if (derivedId === 'contentStrong' && t.contentStrongStep) { delete t.contentStrongStep; changed = true; }
+    else if (derivedId === 'fillHover' && t.fillHoverStep) { delete t.fillHoverStep; changed = true; }
+    else if (derivedId === 'fillPressed' && t.fillPressedStep) { delete t.fillPressedStep; changed = true; }
+    else if (derivedId === 'cmBorderHover' && t.cmBorderHoverStep) { delete t.cmBorderHoverStep; changed = true; }
+    else if (derivedId === 'cmBorderPressed' && t.cmBorderPressedStep) { delete t.cmBorderPressedStep; changed = true; }
     if (!changed) return;
     scheduleAutosave();
     refreshChangeBar();
@@ -3735,6 +3793,32 @@
       return DTFSolver.deriveOnComponent(fills) === '#FFFFFF' ? 'white' : 'black';
     }
     if (derivedId === 'onContainer') return onContainerStepName(roleId, mode);
+    if (derivedId === 'contentSubtle') {
+      if (t.contentSubtleStep && ALL_STEPS.indexOf(t.contentSubtleStep) >= 0) return t.contentSubtleStep;
+      return stepRel(t.content, -2);
+    }
+    if (derivedId === 'contentStrong') {
+      if (t.contentStrongStep && ALL_STEPS.indexOf(t.contentStrongStep) >= 0) return t.contentStrongStep;
+      return stepRel(t.content, 1);
+    }
+    if (derivedId === 'fillHover') {
+      if (t.fillHoverStep && ALL_STEPS.indexOf(t.fillHoverStep) >= 0) return t.fillHoverStep;
+      return stepRel(t.fill, 1);
+    }
+    if (derivedId === 'fillPressed') {
+      if (t.fillPressedStep && ALL_STEPS.indexOf(t.fillPressedStep) >= 0) return t.fillPressedStep;
+      return stepRel(t.fill, 2);
+    }
+    if (derivedId === 'cmBorderHover') {
+      var cmB = resolveCmBorderStep(roleId, mode);
+      if (t.cmBorderHoverStep && ALL_STEPS.indexOf(t.cmBorderHoverStep) >= 0) return t.cmBorderHoverStep;
+      return cmB; // default: same as outline-default
+    }
+    if (derivedId === 'cmBorderPressed') {
+      var cmB2 = resolveCmBorderStep(roleId, mode);
+      if (t.cmBorderPressedStep && ALL_STEPS.indexOf(t.cmBorderPressedStep) >= 0) return t.cmBorderPressedStep;
+      return stepRel(cmB2, 1);
+    }
     return null;
   }
   // What the derivation would pick if no override were set.
@@ -3758,6 +3842,12 @@
       var containerHex = ladder[t.container] || surfaceBgFor(mode);
       return DTFSolver.deriveOnContainer(ladder, t.content, containerHex).step;
     }
+    if (derivedId === 'contentSubtle')    return stepRel(t.content, -2);
+    if (derivedId === 'contentStrong')    return stepRel(t.content, 1);
+    if (derivedId === 'fillHover')        return stepRel(t.fill, 1);
+    if (derivedId === 'fillPressed')      return stepRel(t.fill, 2);
+    if (derivedId === 'cmBorderHover')    return resolveCmBorderStep(roleId, mode);
+    if (derivedId === 'cmBorderPressed')  return stepRel(resolveCmBorderStep(roleId, mode), 1);
     return null;
   }
   // True when user has overridden this derived value.
@@ -3784,6 +3874,12 @@
     if (derivedId === 'cmSeparator') return neq(t.cmSeparatorStep, baseEntry.cmSeparatorStep);
     if (derivedId === 'onComponent') return neq(t.onComponent,     baseEntry.onComponent);
     if (derivedId === 'onContainer') return neq(t.onContainerStep, baseEntry.onContainerStep);
+    if (derivedId === 'contentSubtle')    return neq(t.contentSubtleStep,    baseEntry.contentSubtleStep);
+    if (derivedId === 'contentStrong')    return neq(t.contentStrongStep,    baseEntry.contentStrongStep);
+    if (derivedId === 'fillHover')        return neq(t.fillHoverStep,        baseEntry.fillHoverStep);
+    if (derivedId === 'fillPressed')      return neq(t.fillPressedStep,      baseEntry.fillPressedStep);
+    if (derivedId === 'cmBorderHover')    return neq(t.cmBorderHoverStep,    baseEntry.cmBorderHoverStep);
+    if (derivedId === 'cmBorderPressed')  return neq(t.cmBorderPressedStep,  baseEntry.cmBorderPressedStep);
     return false;
   }
   // Hex currently painted by a derived id.
@@ -3827,6 +3923,34 @@
         large: false
       };
     }
+    if (derivedId === 'contentSubtle' || derivedId === 'contentStrong') {
+      var pageBgCS = surfaceBgFor(mode);
+      return {
+        hex: pageBgCS,
+        token: '--surface-base-bg',
+        intent: 'text',
+        large: false
+      };
+    }
+    if (derivedId === 'fillHover' || derivedId === 'fillPressed') {
+      // Judged as text-on-fill (on-component readability)
+      var onCompHex = onComponentColor(roleId, mode) || '#FFF';
+      return {
+        hex: onCompHex,
+        token: '--' + prefix + '-on-component',
+        intent: 'text',
+        large: false
+      };
+    }
+    if (derivedId === 'cmBorderHover' || derivedId === 'cmBorderPressed') {
+      var fillHexOL = ladder[t.fill] || stepHexByName(roleId, t.fill) || '#000';
+      return {
+        hex: fillHexOL,
+        token: '--' + prefix + '-component-bg-default',
+        intent: 'edge',
+        large: true
+      };
+    }
     // onContainer
     var contHex2 = ladder[t.container] || surfaceBgFor(mode);
     return {
@@ -3845,6 +3969,12 @@
     if (derivedId === 'cmSeparator') return '--' + prefix + '-component-separator';
     if (derivedId === 'onComponent') return '--' + prefix + '-on-component';
     if (derivedId === 'onContainer') return '--' + prefix + '-on-container';
+    if (derivedId === 'contentSubtle')    return '--' + prefix + '-content-subtle';
+    if (derivedId === 'contentStrong')    return '--' + prefix + '-content-strong';
+    if (derivedId === 'fillHover')        return '--' + prefix + '-component-bg-hover';
+    if (derivedId === 'fillPressed')      return '--' + prefix + '-component-bg-pressed';
+    if (derivedId === 'cmBorderHover')    return '--' + prefix + '-component-outline-hover';
+    if (derivedId === 'cmBorderPressed')  return '--' + prefix + '-component-outline-pressed';
     return '--' + prefix + '-' + derivedId;
   }
   // Per-step pass mark for the ladder, mirroring t1LeverLadderHTML.
@@ -3860,10 +3990,12 @@
     if (derivedId === 'onComponent') {
       hex = onComponentHexFor(roleId, step) || '#000';
       var t = State.t1[mode][roleId];
+      var hStep = t.fillHoverStep   || stepRel(t.fill, 1);
+      var pStep = t.fillPressedStep || stepRel(t.fill, 2);
       var fills = [
         stepHexByName(roleId, t.fill),
-        stepHexByName(roleId, stepRel(t.fill, 1)),
-        stepHexByName(roleId, stepRel(t.fill, 2))
+        stepHexByName(roleId, hStep),
+        stepHexByName(roleId, pStep)
       ].filter(Boolean);
       if (!fills.length) fills = [base.hex];
       var minR = Infinity;
@@ -4331,9 +4463,15 @@
     // looks like" — matching the Resulting-slots panel grouping.
     var T1_DISPLAY_ORDER = [
       { kind:'lever',   id:'content' },
+      { kind:'derived', id:'contentStrong' },
+      { kind:'derived', id:'contentSubtle' },
       { kind:'lever',   id:'fill' },
+      { kind:'derived', id:'fillHover' },
+      { kind:'derived', id:'fillPressed' },
       { kind:'derived', id:'onComponent' },
       { kind:'derived', id:'cmBorder' },
+      { kind:'derived', id:'cmBorderHover' },
+      { kind:'derived', id:'cmBorderPressed' },
       { kind:'derived', id:'cmSeparator' },
       { kind:'lever',   id:'container' },
       { kind:'derived', id:'onContainer' },
@@ -4434,17 +4572,17 @@
     var groups = [
       { label: 'Content', rows: [
         { slot: 'content-default', step: contentStep },
-        { slot: 'content-strong',  step: stepRel(contentStep, 1) },
-        { slot: 'content-subtle',  step: stepRel(contentStep, -2) },
+        { slot: 'content-strong',  step: t1DerivedStep(roleId, 'contentStrong', mode) },
+        { slot: 'content-subtle',  step: t1DerivedStep(roleId, 'contentSubtle', mode) },
         { slot: 'content-faint',   step: stepRel(contentStep, -3) }
       ]},
       { label: 'Component', rows: [
         { slot: 'component-bg-default',      step: fillStep },
-        { slot: 'component-bg-hover',        step: stepRel(fillStep, 1) },
-        { slot: 'component-bg-pressed',      step: stepRel(fillStep, 2) },
+        { slot: 'component-bg-hover',        step: t1DerivedStep(roleId, 'fillHover', mode) },
+        { slot: 'component-bg-pressed',      step: t1DerivedStep(roleId, 'fillPressed', mode) },
         { slot: 'component-outline-default', step: resolveCmBorderStep(roleId, mode) },
-        { slot: 'component-outline-hover',   step: resolveCmBorderStep(roleId, mode) },
-        { slot: 'component-outline-pressed', step: stepRel(resolveCmBorderStep(roleId, mode), 1) },
+        { slot: 'component-outline-hover',   step: t1DerivedStep(roleId, 'cmBorderHover', mode) },
+        { slot: 'component-outline-pressed', step: t1DerivedStep(roleId, 'cmBorderPressed', mode) },
         { slot: 'component-separator',       step: resolveCmSeparatorStep(roleId, mode) },
         { slot: 'on-component',              step: onCompStep, hex: onCompHex, stepLabel: (onCompStep === 'white' || onCompStep === 'black') ? onCompStep : ('step ' + onCompStep) }
       ]},
@@ -5206,6 +5344,12 @@
         if (t.cmSeparatorStep)  pick.cmSeparatorStep  = t.cmSeparatorStep;
         if (t.onComponent)      pick.onComponent      = t.onComponent;
         if (t.onContainerStep)  pick.onContainerStep  = t.onContainerStep;
+        if (t.contentSubtleStep)    pick.contentSubtleStep    = t.contentSubtleStep;
+        if (t.contentStrongStep)    pick.contentStrongStep    = t.contentStrongStep;
+        if (t.fillHoverStep)        pick.fillHoverStep        = t.fillHoverStep;
+        if (t.fillPressedStep)      pick.fillPressedStep      = t.fillPressedStep;
+        if (t.cmBorderHoverStep)    pick.cmBorderHoverStep    = t.cmBorderHoverStep;
+        if (t.cmBorderPressedStep)  pick.cmBorderPressedStep  = t.cmBorderPressedStep;
         if (Object.keys(pick).length) t1Picks[mode][r.id] = pick;
       });
     });
@@ -6151,6 +6295,12 @@
     }).catch(function (err) {
       // Step 1 failed \u2014 nothing committed to GitHub.
       var msg = (err && err.message) ? err.message : String(err);
+      var isAuthErr = /token|401|403|not accessible|credential|auth/i.test(msg);
+      if (isAuthErr) {
+        // Clear stale token so "Try again" will re-prompt for a new one.
+        localStorage.removeItem('dtf-gh-pat');
+        localStorage.removeItem('dtf-gh-user');
+      }
       setTimelineStep('save', 'fail', msg);
       setTimelineStep('figma', 'pending', 'Skipped because the save failed');
       setTimelineStep('done', 'pending', '');
@@ -6202,8 +6352,16 @@
       if (mode === 'form') {
         saveAsDefault();
       } else if (mode === 'error') {
-        // Re-open the form preserving whatever the user typed.
-        openPublishDialog();
+        // Auth error: clear stale token, prompt for new one, then retry publish directly.
+        localStorage.removeItem('dtf-gh-pat');
+        localStorage.removeItem('dtf-gh-user');
+        ensureGhCredentials().then(function () {
+          // Credentials accepted — retry publish immediately (form data is still filled).
+          saveAsDefault();
+        }).catch(function () {
+          // User cancelled the prompt — go back to form.
+          openPublishDialog();
+        });
       } else {
         // success / partial \u2014 just close.
         if (dlg) dlg._publishing = false;
@@ -6884,6 +7042,12 @@
         if (pick.cmSeparatorStep && STEP_OK[pick.cmSeparatorStep]) dest.cmSeparatorStep = pick.cmSeparatorStep;
         if (pick.onComponent)                                       dest.onComponent     = pick.onComponent;
         if (pick.onContainerStep && STEP_OK[pick.onContainerStep]) dest.onContainerStep = pick.onContainerStep;
+        if (pick.contentSubtleStep    && STEP_OK[pick.contentSubtleStep])    dest.contentSubtleStep    = pick.contentSubtleStep;
+        if (pick.contentStrongStep    && STEP_OK[pick.contentStrongStep])    dest.contentStrongStep    = pick.contentStrongStep;
+        if (pick.fillHoverStep        && STEP_OK[pick.fillHoverStep])        dest.fillHoverStep        = pick.fillHoverStep;
+        if (pick.fillPressedStep      && STEP_OK[pick.fillPressedStep])      dest.fillPressedStep      = pick.fillPressedStep;
+        if (pick.cmBorderHoverStep    && STEP_OK[pick.cmBorderHoverStep])    dest.cmBorderHoverStep    = pick.cmBorderHoverStep;
+        if (pick.cmBorderPressedStep  && STEP_OK[pick.cmBorderPressedStep])  dest.cmBorderPressedStep  = pick.cmBorderPressedStep;
       });
     });
   }
@@ -7104,6 +7268,41 @@
         var autoCmSep = stepRel(dest.fill, -4);
         var cmSepStep = findStep(r.id, mode, cmSepHex);
         if (cmSepStep && cmSepStep !== autoCmSep) dest.cmSeparatorStep = cmSepStep;
+
+        // New derived slots: content-subtle, content-strong, fill-hover,
+        // fill-pressed, outline-hover, outline-pressed. Only pin when
+        // the file value differs from the auto-derived default.
+        var contentSubtleHex  = vars[pref + 'content-subtle'];
+        var contentStrongHex  = vars[pref + 'content-strong'];
+        var fillHoverHex      = vars[pref + 'component-bg-hover'];
+        var fillPressedHex    = vars[pref + 'component-bg-pressed'];
+        var cmBorderHoverHex  = vars[pref + 'component-outline-hover'];
+        var cmBorderPressedHex= vars[pref + 'component-outline-pressed'];
+
+        var autoContentSubtle = stepRel(dest.content, -2);
+        var csStep = findStep(r.id, mode, contentSubtleHex);
+        if (csStep && csStep !== autoContentSubtle) dest.contentSubtleStep = csStep;
+
+        var autoContentStrong = stepRel(dest.content, 1);
+        var csStrStep = findStep(r.id, mode, contentStrongHex);
+        if (csStrStep && csStrStep !== autoContentStrong) dest.contentStrongStep = csStrStep;
+
+        var autoFillHover = stepRel(dest.fill, 1);
+        var fhStep = findStep(r.id, mode, fillHoverHex);
+        if (fhStep && fhStep !== autoFillHover) dest.fillHoverStep = fhStep;
+
+        var autoFillPressed = stepRel(dest.fill, 2);
+        var fpStep = findStep(r.id, mode, fillPressedHex);
+        if (fpStep && fpStep !== autoFillPressed) dest.fillPressedStep = fpStep;
+
+        var resolvedCmBorder = dest.cmBorderStep || stepRel(dest.fill, -2);
+        var autoCmBorderHover = resolvedCmBorder; // default = same as outline-default
+        var cbhStep = findStep(r.id, mode, cmBorderHoverHex);
+        if (cbhStep && cbhStep !== autoCmBorderHover) dest.cmBorderHoverStep = cbhStep;
+
+        var autoCmBorderPressed = stepRel(resolvedCmBorder, 1);
+        var cbpStep = findStep(r.id, mode, cmBorderPressedHex);
+        if (cbpStep && cbpStep !== autoCmBorderPressed) dest.cmBorderPressedStep = cbpStep;
       });
       State.editingMode = savedMode;
     });
