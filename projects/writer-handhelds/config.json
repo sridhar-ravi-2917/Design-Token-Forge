@@ -470,12 +470,12 @@
         "onContainerStep": "750"
       },
       "info": {
-        "fill": "550",
+        "fill": "600",
         "content": "700",
         "container": "50",
         "borderStep": "450",
         "separatorStep": "350",
-        "onComponent": "black",
+        "onComponent": "white",
         "onContainerStep": "700"
       },
       "neutral": {
