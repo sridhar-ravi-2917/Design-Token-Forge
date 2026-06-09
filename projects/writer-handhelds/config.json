@@ -4,7 +4,7 @@
   "description": "",
   "created": "2026-05-06",
   "paletteKeys": {
-    "brand": "#286CE5",
+    "brand": "#3366F0",
     "danger": "#DC2626",
     "warning": "#D97706",
     "info": "#0EA5E9",
@@ -425,10 +425,10 @@
   "paletteAnchor": "exact",
   "schemaVersion": 2,
   "latestVersion": {
-    "version": "v1.0.11",
-    "name": "May22 11:51",
+    "version": "v1.0.12",
+    "name": "Jun9 14:07",
     "description": "",
-    "savedAt": "2026-05-22T06:21:33.823Z",
+    "savedAt": "2026-06-09T08:37:45.764Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
