@@ -218,6 +218,9 @@ end-user task, not the data shape.
 
 ## 9. Brand / version strings
 
+- Writer Handhelds v1.0.12 is the aligned reference for the updated Brand ladder and
+  matching semantic/surface mappings in the project files.
+
 - The product name **"Design Token Forge"** appears **only** in `<title>` and `<h1>` —
   never elsewhere in the editor chrome.
 - Editor version surfaces as **"Token Editor v2 · preview"** (index.html `.ev2-title-sub`).
