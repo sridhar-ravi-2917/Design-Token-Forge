@@ -1367,10 +1367,14 @@ var _mem = {};
 function storageGet(k){ try { return localStorage.getItem(k); } catch(e){ return _mem[k]||null; } }
 function storageSet(k,v){ try { localStorage.setItem(k,v); } catch(e){ _mem[k]=v; } }
 
+/* Purge any stale dtf-gh-username left in localStorage by older plugin versions.
+   Username is now exclusively sourced from figma.clientStorage (account-scoped). */
+try { localStorage.removeItem('dtf-gh-username'); } catch(e) {}
+
 var DEFAULT_SERVER = 'https://sridhar-ravi-2917.github.io/Design-Token-Forge';
 var SERVER        = storageGet('dtf-server-url') || DEFAULT_SERVER;
 var CURRENT_PROJECT = storageGet('dtf-project-id') || '';
-var GH_USERNAME   = storageGet('dtf-gh-username') || '';
+var GH_USERNAME   = '';                /* never seeded from localStorage — always from figma.clientStorage via creds-restored to prevent cross-user leakage */
 var GH_PAT        = '';                /* hydrated from figma.clientStorage via code.js (creds-restored msg) */
 var credsRestoredYet = false;          /* false until the first creds-restored OR a short timeout */
 var ADMIN_USER    = 'sridhar-ravi-2917';
@@ -2550,7 +2554,6 @@ menuDisconnect.addEventListener('click', function(){
   closeMenu();
   GH_USERNAME = '';
   GH_PAT = '';
-  storageSet('dtf-gh-username', '');
   parent.postMessage({ pluginMessage:{ type:'clear-creds' } }, '*');
   /* Wipe in-memory state that would otherwise paint stale banners
      (rebind warning, "Project not deployed" hero, dropdown options)
@@ -3257,7 +3260,6 @@ window.onmessage = function(event){
     if (msg.username) GH_USERNAME = msg.username;
     if (msg.pat)      GH_PAT = msg.pat;
     if (GH_USERNAME){
-      storageSet('dtf-gh-username', GH_USERNAME);
       projectsFetched = false;
       fetchProjects();
     }
@@ -4130,7 +4132,11 @@ document.querySelectorAll('.comp-pick').forEach(function(box){
    START
    ════════════════════════════════════════════════════ */
 setTab('sync');
-fetchProjects();
+/* fetchProjects() is NOT called here — GH_USERNAME is always '' at startup
+   (no longer seeded from localStorage). It will be called by the creds-restored
+   handler once figma.clientStorage resolves the credentials. Calling it here
+   would race against that and could overwrite the correct project list with an
+   empty-filtered result. */
 startPolling();
 render();
 
