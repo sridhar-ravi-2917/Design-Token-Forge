@@ -2476,8 +2476,12 @@
          same role — the file IS the source of truth (we can render
          it locally + ship it in config.json), the text name might
          be a future install the user planned. */
-      if (files[r] && files[r].family && files[r].dataUrl) {
-        out[r] = typoStackFor(r, files[r].family);
+      var fdata = files[r];
+      if (fdata && fdata.family && (
+        fdata.dataUrl ||
+        (fdata.files && fdata.files.length && fdata.files.some(function (fw) { return !!fw.dataUrl; }))
+      )) {
+        out[r] = typoStackFor(r, fdata.family);
         return;
       }
       if (State.typo.preset === 'custom') {
@@ -3122,11 +3126,13 @@
       ops.setAttribute('data-embedded', '');
       nameEl.hidden = false;
       if (draft.files && draft.files.length) {
-        /* Multi-weight: show detected weight labels */
-        var labels = draft.files
+        /* Multi-weight: show deduplicated weight labels */
+        var seen = {};
+        var wLabels = draft.files
           .filter(function (fw) { return !!fw.dataUrl; })
-          .map(function (fw) { return weightLabel(fw.weight || 400); });
-        nameEl.textContent = (draft.family || '') + ' \u00b7 ' + labels.join(', ');
+          .map(function (fw) { return weightLabel(fw.weight || 400); })
+          .filter(function (l) { return seen[l] ? false : (seen[l] = true); });
+        nameEl.textContent = (draft.family || '') + ' \u00b7 ' + wLabels.join(', ');
       } else {
         nameEl.textContent = draft.fileName || draft.family || 'font file';
       }
@@ -3171,7 +3177,10 @@
       && ttModalDraft.headline.family === ttModalDraft.body.family
       && ttModalDraft.headline.family === ttModalDraft.code.family;
     if (sharedFamily && summary) {
-      var wLabels = ttModalDraft.headline.files.map(function (fw) { return weightLabel(fw.weight || 400); });
+      var seen = {};
+      var wLabels = ttModalDraft.headline.files
+        .map(function (fw) { return weightLabel(fw.weight || 400); })
+        .filter(function (l) { return seen[l] ? false : (seen[l] = true); });
       summary.textContent = ttModalDraft.headline.family + ' \u00b7 ' + wLabels.join(', ');
       summary.hidden = false;
       if (fclear) fclear.hidden = false;
