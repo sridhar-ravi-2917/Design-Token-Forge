@@ -2879,9 +2879,9 @@ body.ev2-modal-open{overflow:hidden}
 .ev2-tt-family-zone{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--ev2-chrome-outline,#d4d4d4);border-radius:8px;background:var(--demo-surface-alt,#f8f8f8);flex-wrap:wrap}
 .ev2-tt-family-pick{font-size:12px;font-weight:600;padding:6px 12px}
 .ev2-tt-family-pick::before{content:"\2191\00a0";font-weight:700}
-.ev2-tt-family-summary{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:var(--success-component-bg-default,#16a34a);color:var(--success-on-component,#fff);font-size:11px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev2-tt-family-summary{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:var(--ev2-chrome-outline,#e5e5e5);color:var(--demo-fg,#222);font-size:11px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--ev2-chrome-outline,#d4d4d4)}
 .ev2-tt-family-summary[hidden]{display:none !important}
-.ev2-tt-family-summary::before{content:"\2713\00a0";font-weight:700}
+.ev2-tt-family-summary::before{content:"\2713\00a0";color:var(--success-content-default,#0a7d3e);font-weight:700}
 .ev2-tt-family-divider{display:flex;align-items:center;gap:8px;color:var(--demo-fg-faint,#aaa);font-size:11px;margin:2px 0}
 .ev2-tt-family-divider::before,.ev2-tt-family-divider::after{content:'';flex:1;height:1px;background:var(--ev2-chrome-outline,#e5e5e5)}
 .ev2-tt-modal-row{display:grid;grid-template-columns:90px 1fr 44px;align-items:center;gap:10px 10px;grid-template-areas:"label input sample" ". fileops fileops"}
@@ -2904,15 +2904,15 @@ body.ev2-modal-open{overflow:hidden}
 .ev2-tt-modal-file-pick:focus-within{outline:2px solid var(--brand-content-default,#3D5EFC);outline-offset:2px}
 .ev2-tt-modal-file-pick::before{content:"\2191";font-weight:700;line-height:1}
 .ev2-tt-modal-fileops[data-embedded] .ev2-tt-modal-file-pick{display:none}
-.ev2-tt-modal-file-name{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;background:var(--success-component-bg-default,#16a34a);color:var(--success-on-component,#fff);font-size:11px;font-weight:500;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev2-tt-modal-file-name{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;background:var(--ev2-chrome-outline,#e5e5e5);color:var(--demo-fg,#222);font-size:11px;font-weight:500;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--ev2-chrome-outline,#d4d4d4)}
 .ev2-tt-modal-file-name[hidden]{display:none !important}
-.ev2-tt-modal-file-name::before{content:"\2713";font-weight:700}
+.ev2-tt-modal-file-name::before{content:"\2713";color:var(--success-content-default,#0a7d3e);font-weight:700}
 .ev2-tt-modal-file-clear{appearance:none;border:none;background:transparent;color:var(--demo-fg-subtle,#666);font-size:18px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:4px}
 .ev2-tt-modal-file-clear[hidden]{display:none !important}
 .ev2-tt-modal-file-clear:hover{background:var(--demo-surface-alt,#f0f0f0);color:var(--danger-content-default,#dc2626)}
 .ev2-tt-modal-hint{margin:6px 0 0;padding:8px 10px;border-radius:6px;background:var(--danger-component-bg-default,#fee2e2);color:var(--danger-on-component,#7f1d1d);font-size:12px;line-height:1.45}
 .ev2-tt-modal-hint[hidden]{display:none !important}
-.ev2-tt-modal-hint[data-tone="ok"]{background:var(--success-component-bg-default,#dcfce7);color:var(--success-on-component,#14532d)}
+.ev2-tt-modal-hint[data-tone="ok"]{background:var(--demo-surface-alt,#f3f4f6);color:var(--demo-fg,#222);border:1px solid var(--ev2-chrome-outline,#e5e5e5)}
 /* Breathing room between the last field row and the Cancel/Apply
    actions — the default ev2-modal-actions sits flush against the
    field, which crowds the primary action. */
