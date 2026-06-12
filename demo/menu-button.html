@@ -489,8 +489,15 @@
     var el=clr('densityScale');
     SIZES.forEach(function(s){
       var it=document.createElement('div');it.className='density-item';
-      it.appendChild(makeMB(curStruct,curRole,s,cap(s),{iconStart:true,noSync:true}));
-      var m=document.createElement('div');m.className='density-meta';m.textContent=SIZE_HT[s];it.appendChild(m);el.appendChild(it);
+      var btn=makeMB(curStruct,curRole,s,cap(s),{iconStart:true,noSync:true});
+      it.appendChild(btn);
+      var m=document.createElement('div');m.className='density-meta';
+      requestAnimationFrame(function(){
+        var v=getComputedStyle(btn).getPropertyValue('--menu-btn-height-'+s).trim();
+        m.textContent=v||'\u2014';
+      });
+      m.textContent='\u2026';
+      it.appendChild(m);el.appendChild(it);
     });
   }
 
