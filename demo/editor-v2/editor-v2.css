@@ -2870,6 +2870,20 @@ body.ev2-modal-open{overflow:hidden}
 /* Modal — reuses the ev2-modal shell. */
 .ev2-tt-modal .ev2-modal-card{max-width:480px;width:90vw}
 .ev2-tt-modal-fields{display:flex;flex-direction:column;gap:12px;margin:14px 0 6px}
+
+/* ── Font-family upload zone ─────────────────────────── */
+/* Sits above the per-role rows as the primary upload path.
+   Reuses .ev2-tt-modal-file-pick styling for the button and
+   adds a summary strip that shows "FamilyName · Regular, Bold"
+   once files are staged. */
+.ev2-tt-family-zone{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--ev2-chrome-outline,#d4d4d4);border-radius:8px;background:var(--demo-surface-alt,#f8f8f8);flex-wrap:wrap}
+.ev2-tt-family-pick{font-size:12px;font-weight:600;padding:6px 12px}
+.ev2-tt-family-pick::before{content:"\2191\00a0";font-weight:700}
+.ev2-tt-family-summary{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:var(--success-component-bg-default,#16a34a);color:var(--success-on-component,#fff);font-size:11px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev2-tt-family-summary[hidden]{display:none !important}
+.ev2-tt-family-summary::before{content:"\2713\00a0";font-weight:700}
+.ev2-tt-family-divider{display:flex;align-items:center;gap:8px;color:var(--demo-fg-faint,#aaa);font-size:11px;margin:2px 0}
+.ev2-tt-family-divider::before,.ev2-tt-family-divider::after{content:'';flex:1;height:1px;background:var(--ev2-chrome-outline,#e5e5e5)}
 .ev2-tt-modal-row{display:grid;grid-template-columns:90px 1fr 44px;align-items:center;gap:10px 10px;grid-template-areas:"label input sample" ". fileops fileops"}
 .ev2-tt-modal-row > label{grid-area:label}
 .ev2-tt-modal-row > input[type="text"]{grid-area:input}

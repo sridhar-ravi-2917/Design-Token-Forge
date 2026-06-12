@@ -2497,7 +2497,11 @@
      embedded fonts as a separate, no-action-required category. */
   function typoIsEmbedded(role) {
     var f = (State.typo.customFontFiles || {})[role];
-    return !!(f && f.dataUrl && f.family);
+    if (!f || !f.family) return false;
+    /* New multi-weight format: { family, files: [{dataUrl, weight, ...}] } */
+    if (f.files && f.files.length) return f.files.some(function (fw) { return !!fw.dataUrl; });
+    /* Legacy single-file format: { family, dataUrl, ... } */
+    return !!(f.dataUrl);
   }
 
   /* Bucket the resolved fonts by install-lane (system / google /
@@ -2625,21 +2629,44 @@
     var lines = [];
     /* Emit @font-face blocks FIRST so the families they declare
        resolve before any consumer (component or preset card)
-       references them. One block per role that has an uploaded
-       file; format() helps the browser pick the right decoder
-       even though we always set a real format hint. */
+       references them. Deduplicated by dataUrl so two roles sharing
+       the same uploaded family don't produce duplicate blocks.
+       New multi-weight format emits one block per weight with a
+       specific font-weight value; legacy single-file format uses
+       the variable range 100 900. */
     var files = State.typo.customFontFiles || {};
+    var seenUrls = {};
     TYPO_ROLES.forEach(function (r) {
       var f = files[r];
-      if (!(f && f.dataUrl && f.family)) return;
-      var fmt = f.format || 'woff2';
-      lines.push('@font-face {');
-      lines.push('  font-family: "' + String(f.family).replace(/"/g, '\\"') + '";');
-      lines.push('  src: url("' + f.dataUrl + '") format("' + fmt + '");');
-      lines.push('  font-weight: 100 900;');
-      lines.push('  font-style: normal;');
-      lines.push('  font-display: swap;');
-      lines.push('}');
+      if (!f || !f.family) return;
+      var family = '"' + String(f.family).replace(/"/g, '\\"') + '"';
+      if (f.files && f.files.length) {
+        /* Multi-weight format */
+        f.files.forEach(function (fw) {
+          if (!fw || !fw.dataUrl || seenUrls[fw.dataUrl]) return;
+          seenUrls[fw.dataUrl] = true;
+          var fmt = fw.format || 'woff2';
+          var wt  = fw.weight || 400;
+          lines.push('@font-face {');
+          lines.push('  font-family: ' + family + ';');
+          lines.push('  src: url("' + fw.dataUrl + '") format("' + fmt + '");');
+          lines.push('  font-weight: ' + wt + ';');
+          lines.push('  font-style: normal;');
+          lines.push('  font-display: swap;');
+          lines.push('}');
+        });
+      } else if (f.dataUrl && !seenUrls[f.dataUrl]) {
+        /* Legacy single-file — variable weight range */
+        seenUrls[f.dataUrl] = true;
+        var fmt = f.format || 'woff2';
+        lines.push('@font-face {');
+        lines.push('  font-family: ' + family + ';');
+        lines.push('  src: url("' + f.dataUrl + '") format("' + fmt + '");');
+        lines.push('  font-weight: 100 900;');
+        lines.push('  font-style: normal;');
+        lines.push('  font-display: swap;');
+        lines.push('}');
+      }
     });
     lines.push(':root {');
     /* Emit the three semantic role tokens first — these are the
@@ -2748,13 +2775,26 @@
     var faces = document.getElementById('ev2-typo-faces');
     var files = (State.typo && State.typo.customFontFiles) || {};
     var blocks = [];
+    var seenUrls = {};
     TYPO_ROLES.forEach(function (r) {
       var f = files[r];
-      if (!(f && f.dataUrl && f.family)) return;
-      var fmt = f.format || 'woff2';
-      blocks.push('@font-face{font-family:"' + String(f.family).replace(/"/g, '\\"')
-               + '";src:url("' + f.dataUrl + '") format("' + fmt
-               + '");font-weight:100 900;font-style:normal;font-display:swap;}');
+      if (!f || !f.family) return;
+      var family = '"' + String(f.family).replace(/"/g, '\\"') + '"';
+      if (f.files && f.files.length) {
+        f.files.forEach(function (fw) {
+          if (!fw || !fw.dataUrl || seenUrls[fw.dataUrl]) return;
+          seenUrls[fw.dataUrl] = true;
+          var fmt = fw.format || 'woff2';
+          blocks.push('@font-face{font-family:' + family + ';src:url("' + fw.dataUrl
+                   + '") format("' + fmt + '");font-weight:' + (fw.weight || 400)
+                   + ';font-style:normal;font-display:swap;}');
+        });
+      } else if (f.dataUrl && !seenUrls[f.dataUrl]) {
+        seenUrls[f.dataUrl] = true;
+        var fmt = f.format || 'woff2';
+        blocks.push('@font-face{font-family:' + family + ';src:url("' + f.dataUrl
+                 + '") format("' + fmt + '");font-weight:100 900;font-style:normal;font-display:swap;}');
+      }
     });
     if (!blocks.length) {
       if (faces && faces.parentNode) faces.parentNode.removeChild(faces);
@@ -2984,6 +3024,55 @@
      larger files keeps config.json and localStorage well under
      their practical limits even with three roles populated. */
   var TYPO_MAX_FONT_BYTES = 1024 * 1024;
+
+  /* ── Font-family weight detection helpers ────────────── */
+  /* Order matters: ExtraBold (800) must precede Bold (700)
+     so "Roboto-ExtraBold" doesn't match "bold" at weight 700. */
+  var FONT_WEIGHT_MAP = [
+    { re: /black|950/i,                                              w: 900 },
+    { re: /extrabold|extra[-_\s]?bold|800/i,                         w: 800 },
+    { re: /\bbold\b|[-_]bold[-_]|[-_]bold\.|bold$/i,                 w: 700 },
+    { re: /semibold|semi[-_\s]?bold|demibold|demi[-_\s]?bold|600/i,  w: 600 },
+    { re: /\bmedium\b|[-_]medium[-_\.]|medium$|500/i,                w: 500 },
+    { re: /regular|roman|400/i,                                      w: 400 },
+    { re: /extralight|extra[-_\s]?light|200/i,                       w: 200 },
+    { re: /\blight\b|[-_]light[-_\.]|light$|300/i,                   w: 300 },
+    { re: /\bthin\b|[-_]thin[-_\.]|thin$|100/i,                      w: 100 }
+  ];
+
+  function detectWeightFromFileName(name) {
+    var base = String(name || '').replace(/\.(woff2?|ttf|otf)$/i, '');
+    for (var i = 0; i < FONT_WEIGHT_MAP.length; i++) {
+      if (FONT_WEIGHT_MAP[i].re.test(base)) return FONT_WEIGHT_MAP[i].w;
+    }
+    return 400; /* default: Regular */
+  }
+
+  function weightLabel(w) {
+    return ({ 100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular',
+              500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold',
+              900: 'Black' })[w] || ('W' + w);
+  }
+
+  /* Headline → prefer heaviest; Body/Code → prefer 400, then nearest above. */
+  function pickWeightForRole(role, weights) {
+    if (!weights || !weights.length) return null;
+    var sorted = weights.slice().sort(function (a, b) { return a - b; });
+    if (role === 'headline') return sorted[sorted.length - 1];
+    for (var i = 0; i < sorted.length; i++) { if (sorted[i] >= 400) return sorted[i]; }
+    return sorted[0];
+  }
+
+  /* Strip weight keywords + trailing separators from a filename
+     to infer the shared family name.
+     "Inter-SemiBold.woff2" → "Inter", "Roboto_Bold.ttf" → "Roboto" */
+  function deriveFamilyFromFile(fileName) {
+    var base = String(fileName || '').replace(/\.(woff2?|ttf|otf)$/i, '');
+    base = base.replace(
+      /[-_\s]*(black|extrabold|extra[-_]?bold|bold|semibold|semi[-_]?bold|demibold|medium|regular|roman|light|extralight|extra[-_]?light|thin|italic|oblique|\d{3})(\b|[-_]|$)/gi,
+      '');
+    return base.replace(/[-_\s]+$/, '').replace(/^[-_\s]+/, '').trim() || base;
+  }
   /* Working draft of the modal — files picked here do NOT touch
      State.typo until Apply. Cancel discards the entire draft so
      uploads can be tried + abandoned without polluting persisted
@@ -3025,10 +3114,22 @@
     var nameEl = modal.querySelector('.ev2-tt-modal-file-name[data-role="' + role + '"]');
     var clear  = modal.querySelector('.ev2-tt-modal-file-clear[data-role="' + role + '"]');
     if (!ops || !nameEl || !clear) return;
-    if (draft && draft.dataUrl) {
+    var hasFiles = draft && (
+      (draft.files && draft.files.length && draft.files.some(function (fw) { return !!fw.dataUrl; })) ||
+      draft.dataUrl
+    );
+    if (hasFiles) {
       ops.setAttribute('data-embedded', '');
       nameEl.hidden = false;
-      nameEl.textContent = draft.fileName || draft.family || 'font file';
+      if (draft.files && draft.files.length) {
+        /* Multi-weight: show detected weight labels */
+        var labels = draft.files
+          .filter(function (fw) { return !!fw.dataUrl; })
+          .map(function (fw) { return weightLabel(fw.weight || 400); });
+        nameEl.textContent = (draft.family || '') + ' \u00b7 ' + labels.join(', ');
+      } else {
+        nameEl.textContent = draft.fileName || draft.family || 'font file';
+      }
       clear.hidden = false;
     } else {
       ops.removeAttribute('data-embedded');
@@ -3060,6 +3161,24 @@
       updateTtCustomSample(r);
     });
     ttModalSetHint(null);
+    /* Seed or reset the family-upload summary strip */
+    var summary = document.getElementById('ttFamilySummary');
+    var fclear  = document.getElementById('ttFamilyClear');
+    var sharedFamily = ttModalDraft.headline
+      && ttModalDraft.headline.files
+      && ttModalDraft.body   && ttModalDraft.body.files
+      && ttModalDraft.code   && ttModalDraft.code.files
+      && ttModalDraft.headline.family === ttModalDraft.body.family
+      && ttModalDraft.headline.family === ttModalDraft.code.family;
+    if (sharedFamily && summary) {
+      var wLabels = ttModalDraft.headline.files.map(function (fw) { return weightLabel(fw.weight || 400); });
+      summary.textContent = ttModalDraft.headline.family + ' \u00b7 ' + wLabels.join(', ');
+      summary.hidden = false;
+      if (fclear) fclear.hidden = false;
+    } else {
+      if (summary) { summary.hidden = true; summary.textContent = ''; }
+      if (fclear)  fclear.hidden = true;
+    }
     modal.hidden = false;
     setTimeout(function () { var f = modal.querySelector('input[type="text"]'); if (f) f.focus(); }, 0);
   }
@@ -3069,6 +3188,10 @@
     /* Drop the draft so the next open re-seeds from State. */
     ttModalDraft = { headline: null, body: null, code: null };
     ttModalSetHint(null);
+    var summary = document.getElementById('ttFamilySummary');
+    var fclear  = document.getElementById('ttFamilyClear');
+    if (summary) { summary.hidden = true; summary.textContent = ''; }
+    if (fclear)  fclear.hidden = true;
   }
   function updateTtCustomSample(role) {
     var modal = document.getElementById('ev2TtCustom');
@@ -3076,13 +3199,17 @@
     var inp = modal.querySelector('input[data-role="' + role + '"][type="text"]');
     var sample = modal.querySelector('.ev2-tt-modal-sample[data-role="' + role + '"]');
     if (!inp || !sample) return;
-    /* If a file is staged for this role, the sample renders in
-       THAT family (the @font-face block in #ev2-typo-faces will
-       resolve it). Otherwise fall back to the typed name + system
-       fallback so the typeahead suggestion previews live too. */
     var draft = ttModalDraft[role];
     var fam = (draft && draft.family) || inp.value.trim();
     sample.style.fontFamily = fam ? ('"' + fam.replace(/"/g, '\\"') + '", system-ui, sans-serif') : '';
+    /* Render the sample in the role's preferred weight so Headline
+       actually looks bold when a bold file is attached. */
+    var wt = 400;
+    if (draft && draft.files && draft.files.length) {
+      var available = draft.files.map(function (fw) { return fw.weight || 400; });
+      wt = pickWeightForRole(role, available) || 400;
+    }
+    sample.style.fontWeight = String(wt);
   }
 
   /* Read a File as a base64 data URL. Resolves to { dataUrl,
@@ -3127,7 +3254,11 @@
          the text input after picking a file, the typed name wins —
          the file is stored under the user's chosen identifier. */
       var draft = ttModalDraft[r];
-      if (draft && draft.dataUrl) {
+      var hasDraft = draft && (
+        (draft.files && draft.files.length && draft.files.some(function (fw) { return !!fw.dataUrl; })) ||
+        draft.dataUrl
+      );
+      if (hasDraft) {
         var typed = inp ? inp.value.trim() : '';
         if (typed) draft.family = typed;
         State.typo.customFontFiles[r] = draft;
@@ -3154,6 +3285,25 @@
     if (e.target && e.target.id === 'ttCustomApply') { applyTtCustomFromModal(); return; }
     if (e.target.closest('[data-tt-install-dismiss]')) { closeTtInstallModal(); return; }
     if (e.target.closest('#ttInstallOpen')) { openTtInstallModal(); return; }
+    /* "Clear font family" button — wipes all three role drafts. */
+    if (e.target.closest('#ttFamilyClear')) {
+      TYPO_ROLES.forEach(function (r) {
+        ttModalDraft[r] = null;
+        ttModalRenderRoleFile(r);
+        updateTtCustomSample(r);
+        var modal = document.getElementById('ev2TtCustom');
+        if (modal) {
+          var inp = modal.querySelector('input[data-role="' + r + '"][type="text"]');
+          if (inp) inp.value = '';
+        }
+      });
+      var sum = document.getElementById('ttFamilySummary');
+      var fclear = document.getElementById('ttFamilyClear');
+      if (sum)    { sum.hidden = true; sum.textContent = ''; }
+      if (fclear) fclear.hidden = true;
+      ttModalSetHint(null);
+      return;
+    }
     /* Per-role "remove uploaded file" buttons inside the Custom
        modal — drop the draft, repaint the row, refresh the sample
        so it falls back to the typed family name (if any). */
@@ -3175,12 +3325,81 @@
     /* As the user retypes the family name, keep the draft's
        family in sync — Apply will commit it. */
     var role = inp.getAttribute('data-role');
-    if (ttModalDraft[role] && ttModalDraft[role].dataUrl) {
-      ttModalDraft[role].family = inp.value.trim() || ttModalDraft[role].family;
+    var d = ttModalDraft[role];
+    if (d) {
+      /* Keep family in sync whether it's the legacy single-file
+         format (.dataUrl) or the new multi-weight format (.files). */
+      d.family = inp.value.trim() || d.family;
     }
     updateTtCustomSample(role);
   });
   document.addEventListener('change', function (e) {
+    /* ── Font-family upload (multiple files at once) ─────── */
+    var familyInput = e.target.closest('#ttCustomFamilyFiles');
+    if (familyInput) {
+      var allFiles = Array.prototype.slice.call(familyInput.files || []);
+      if (!allFiles.length) return;
+      for (var vi = 0; vi < allFiles.length; vi++) {
+        var vf = allFiles[vi];
+        if (!/\.(woff2|woff|ttf|otf)$/i.test(vf.name)) {
+          ttModalSetHint('Only .woff2, .woff, .ttf, or .otf files are supported.');
+          familyInput.value = '';
+          return;
+        }
+        if (vf.size > TYPO_MAX_FONT_BYTES) {
+          ttModalSetHint(vf.name + ' is ' + Math.round(vf.size / 1024) + ' KB; limit is 1024 KB. Use a subset .woff2.');
+          familyInput.value = '';
+          return;
+        }
+      }
+      ttModalSetHint('Reading ' + allFiles.length + ' file' + (allFiles.length !== 1 ? 's' : '') + '\u2026', 'ok');
+      Promise.all(allFiles.map(function (f) {
+        return ttModalReadFontFile(f, null, '').then(function (payload) {
+          payload.weight = detectWeightFromFileName(f.name);
+          return payload;
+        });
+      })).then(function (payloads) {
+        var familyName = deriveFamilyFromFile(payloads[0].fileName || payloads[0].family || '');
+        payloads.forEach(function (p) { p.family = familyName; });
+        /* Inject @font-face blocks immediately so samples render */
+        var faceBlocks = payloads.map(function (p) {
+          return '@font-face{font-family:"' + familyName.replace(/"/g, '\\"')
+               + '";src:url("' + p.dataUrl + '") format("' + p.format + '");font-weight:'
+               + p.weight + ';font-style:normal;font-display:swap;}';
+        });
+        var faces = document.getElementById('ev2-typo-faces');
+        if (!faces) {
+          faces = document.createElement('style');
+          faces.id = 'ev2-typo-faces';
+          document.head.appendChild(faces);
+        }
+        faces.textContent = faceBlocks.join('\n');
+        /* Auto-map all weights to every role */
+        var modal = document.getElementById('ev2TtCustom');
+        TYPO_ROLES.forEach(function (r) {
+          ttModalDraft[r] = { family: familyName, files: payloads };
+          if (modal) {
+            var inp = modal.querySelector('input[data-role="' + r + '"][type="text"]');
+            if (inp) inp.value = familyName;
+          }
+          ttModalRenderRoleFile(r);
+          updateTtCustomSample(r);
+        });
+        var wLabels = payloads.map(function (p) { return weightLabel(p.weight); });
+        var summary = document.getElementById('ttFamilySummary');
+        var fclear  = document.getElementById('ttFamilyClear');
+        if (summary) { summary.textContent = familyName + ' \u00b7 ' + wLabels.join(', '); summary.hidden = false; }
+        if (fclear)  fclear.hidden = false;
+        ttModalSetHint(familyName + ' embedded \u2014 '
+          + payloads.length + ' weight' + (payloads.length !== 1 ? 's' : '')
+          + ' detected (' + wLabels.join(', ') + '). Mapped to all roles.', 'ok');
+      }).catch(function (err) {
+        ttModalSetHint(err && err.message ? err.message : 'Could not read font files.');
+      });
+      familyInput.value = '';
+      return;
+    }
+    /* ── Per-role single-file upload (existing behaviour) ── */
     var fileInput = e.target.closest('.ev2-tt-modal-file-input');
     if (!fileInput) return;
     var role = fileInput.getAttribute('data-role');
@@ -3189,19 +3408,14 @@
     var modal = document.getElementById('ev2TtCustom');
     var textInput = modal && modal.querySelector('input[data-role="' + role + '"][type="text"]');
     var currentName = textInput ? textInput.value.trim() : '';
-    ttModalSetHint('Reading ' + file.name + '…', 'ok');
+    ttModalSetHint('Reading ' + file.name + '\u2026', 'ok');
     ttModalReadFontFile(file, role, currentName).then(function (payload) {
-      ttModalDraft[role] = payload;
-      /* Pre-fill the text input with the derived family name if
-         the user hadn't typed anything yet — gives them a single
-         starting point that matches what'll ship in @font-face. */
+      payload.weight = detectWeightFromFileName(file.name);
+      /* Upgrade to multi-weight format for consistent rendering */
+      ttModalDraft[role] = { family: payload.family, files: [payload] };
       if (textInput && !textInput.value.trim()) {
         textInput.value = payload.family;
       }
-      /* Inject the @font-face for this draft into the editor doc
-         BEFORE renderRoleFile/updateSample so the preview row
-         actually paints in the uploaded face immediately. We
-         augment (don't overwrite) any committed-state faces. */
       var faces = document.getElementById('ev2-typo-faces');
       if (!faces) {
         faces = document.createElement('style');
@@ -3210,9 +3424,7 @@
       }
       var draftBlock = '@font-face{font-family:"' + String(payload.family).replace(/"/g, '\\"')
                     + '";src:url("' + payload.dataUrl + '") format("' + payload.format
-                    + '");font-weight:100 900;font-style:normal;font-display:swap;}';
-      /* Append to whatever is already there — applyTypoToEditor()
-         will rebuild this fully on Apply. */
+                    + '");font-weight:' + payload.weight + ';font-style:normal;font-display:swap;}';
       if (faces.textContent.indexOf(payload.dataUrl) < 0) {
         faces.textContent = faces.textContent + '\n' + draftBlock;
       }
@@ -3222,8 +3434,6 @@
     }).catch(function (err) {
       ttModalSetHint(err && err.message ? err.message : 'Could not read that file.');
     });
-    /* Reset the input value so the same file can be re-picked
-       after a clear. */
     fileInput.value = '';
   });
   document.addEventListener('keydown', function (e) {
