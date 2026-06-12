@@ -2349,7 +2349,13 @@ function renderChangeList(){
   } else if (total > 0 && hasExistingVars){
     syncBtn.textContent = 'Update ' + total + (total === 1 ? ' variable' : ' variables') + ' in Figma';
   } else if (total > 0){
-    syncBtn.textContent = 'Create ' + total + (total === 1 ? ' variable' : ' variables') + ' in Figma';
+    /* For a first-run fresh file, `total` is the changelog entry count (e.g. 1),
+       NOT the number of variables that will be created. Use the actual token count
+       from tokenData so the CTA reads "Create 675 variables in Figma" not "Create 1". */
+    var createCount = (tokenData && tokenData.stats && tokenData.stats.totalVariables > 0)
+      ? tokenData.stats.totalVariables
+      : total;
+    syncBtn.textContent = 'Create ' + createCount + (createCount === 1 ? ' variable' : ' variables') + ' in Figma';
   }
 
   /* Show search field once we cross 50 total */
