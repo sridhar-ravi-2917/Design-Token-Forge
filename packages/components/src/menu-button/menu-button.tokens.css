@@ -65,7 +65,7 @@
   --menu-btn-height-big: var(--spacing-48);
   --menu-btn-height-huge: var(--spacing-56);
   --menu-btn-height-mega: var(--spacing-64);
-  --menu-btn-height-ultra: var(--spacing-80);
+  --menu-btn-height-ultra: var(--spacing-72);
 
   /* Inline-start padding (left of label) */
   --menu-btn-padding-x-micro: var(--spacing-8);
