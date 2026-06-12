@@ -693,8 +693,16 @@
     <div class="ev2-modal-card" role="document">
       <button class="ev2-modal-close" type="button" data-tt-dismiss aria-label="Close dialog">&times;</button>
       <h3 class="ev2-modal-title" id="ev2TtCustomTitle">Custom fonts</h3>
-      <p class="ev2-modal-body">Type any font name &mdash; or upload a <code>.woff2</code> / <code>.woff</code> / <code>.ttf</code> / <code>.otf</code> file to embed it in the design (no designer install).</p>
+      <p class="ev2-modal-body">Upload all weights of a font family at once &mdash; we&rsquo;ll map Bold to Headline and Regular to Body &amp; Code. Or type any Google Fonts name, or upload per role below.</p>
       <div class="ev2-tt-modal-fields">
+        <!-- Font-family upload: pick all weights at once -->
+        <div class="ev2-tt-family-zone">
+          <input id="ttCustomFamilyFiles" class="ev2-tt-modal-file-input" type="file" multiple accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf" aria-label="Upload font family files" />
+          <label class="ev2-tt-modal-file-pick ev2-tt-family-pick" for="ttCustomFamilyFiles">Upload font family</label>
+          <span class="ev2-tt-family-summary" id="ttFamilySummary" hidden></span>
+          <button class="ev2-tt-modal-file-clear" id="ttFamilyClear" type="button" hidden aria-label="Clear uploaded family">&times;</button>
+        </div>
+        <div class="ev2-tt-family-divider" role="separator"><span>or set per role</span></div>
         <div class="ev2-tt-modal-row" data-role-row="headline">
           <label for="ttCustomHeadline">Headline</label>
           <input id="ttCustomHeadline" type="text" list="ttFontSuggest" data-role="headline" autocomplete="off" placeholder="e.g. Playfair Display" />
