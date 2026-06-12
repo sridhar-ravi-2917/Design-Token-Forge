@@ -375,9 +375,17 @@
     var el=clr('densityScale');
     SIZES.forEach(function(s){
       var it=document.createElement('div');it.className='density-item';
-      it.appendChild(makeCB(s,{checked:true,noSync:true,label:s}));
+      var cb=makeCB(s,{checked:true,noSync:true,label:s});
+      it.appendChild(cb);
       var m=document.createElement('div');m.className='density-meta';
-      m.textContent=BOX_DIMS[s]+' \u00D7 '+BOX_DIMS[s]+' r'+BOX_RADII[s].split(' ')[0];it.appendChild(m);el.appendChild(it);
+      requestAnimationFrame(function(){
+        var bcs=getComputedStyle(cb.querySelector('.checkbox__box')||cb);
+        var sz=getComputedStyle(cb).getPropertyValue('--checkbox-box-size-'+s).trim()||bcs.width;
+        var r=getComputedStyle(cb).getPropertyValue('--checkbox-box-radius-'+s).trim()||bcs.borderRadius;
+        m.textContent=sz+' \u00D7 '+sz+' r'+r;
+      });
+      m.textContent='\u2026';
+      it.appendChild(m);el.appendChild(it);
     });
   }
 

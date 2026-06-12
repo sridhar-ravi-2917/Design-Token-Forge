@@ -36,7 +36,7 @@
   --card-radius-tiny:    var(--radius-sm);
   --card-radius-small:   var(--radius-md);
   --card-radius-base:    var(--radius-md);
-  --card-radius-medium:  var(--radius-md);
+  --card-radius-medium:  var(--radius-DEFAULT);
   --card-radius-large:   var(--radius-lg);
   --card-radius-big:     var(--radius-lg);
   --card-radius-huge:    var(--radius-xl);

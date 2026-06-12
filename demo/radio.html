@@ -402,9 +402,17 @@
     SIZES.forEach(function(s){
       groupCounter++;
       var it=document.createElement('div');it.className='density-item';
-      it.appendChild(makeRadio(s,{noSync:true,checked:false,label:s,name:'density_'+s}));
+      var rb=makeRadio(s,{noSync:true,checked:false,label:s,name:'density_'+s});
+      it.appendChild(rb);
       var m=document.createElement('div');m.className='density-meta';
-      m.textContent=CIRCLE_DIMS[s]+' circle \u00B7 '+DOT_DIMS[s]+' dot';it.appendChild(m);el.appendChild(it);
+      requestAnimationFrame(function(){
+        var cs=getComputedStyle(rb);
+        var circ=cs.getPropertyValue('--radio-circle-size-'+s).trim()||CIRCLE_DIMS[s];
+        var dot=cs.getPropertyValue('--radio-dot-size-'+s).trim()||DOT_DIMS[s];
+        m.textContent=circ+' circle \u00B7 '+dot+' dot';
+      });
+      m.textContent='\u2026';
+      it.appendChild(m);el.appendChild(it);
     });
   }
 
