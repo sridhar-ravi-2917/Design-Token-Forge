@@ -88,7 +88,7 @@
   /* Nav button size per density */
   --datepicker-nav-size-micro: var(--spacing-16);
   --datepicker-nav-size-tiny: var(--spacing-18);
-  --datepicker-nav-size-small: var(--spacing-24);
+  --datepicker-nav-size-small: var(--spacing-22);
   --datepicker-nav-size-base: var(--spacing-28);
   --datepicker-nav-size-medium: var(--spacing-32);
   --datepicker-nav-size-large: var(--spacing-36);

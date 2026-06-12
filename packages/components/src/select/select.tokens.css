@@ -87,8 +87,8 @@
   --select-padding-y-large: var(--spacing-10);
   --select-padding-y-big: var(--spacing-12);
   --select-padding-y-huge: var(--spacing-14);
-  --select-padding-y-mega: var(--spacing-18);
-  --select-padding-y-ultra: var(--spacing-24);
+  --select-padding-y-mega: var(--spacing-16);
+  --select-padding-y-ultra: var(--spacing-20);
 
   /* Width model */
   --select-min-width: var(--spacing-120);
@@ -189,7 +189,7 @@
   /* Chevron icon size per density mode */
   --select-chevron-size-micro: var(--spacing-10);
   --select-chevron-size-tiny: var(--spacing-12);
-  --select-chevron-size-small: var(--spacing-13);
+  --select-chevron-size-small: var(--spacing-14);
   --select-chevron-size-base: var(--spacing-16);
   --select-chevron-size-medium: var(--spacing-16);
   --select-chevron-size-large: var(--spacing-18);

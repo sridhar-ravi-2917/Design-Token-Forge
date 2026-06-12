@@ -238,7 +238,7 @@
   /* Prefix / Suffix icon — size per density mode */
   --input-affix-size-micro: var(--spacing-10);
   --input-affix-size-tiny: var(--spacing-12);
-  --input-affix-size-small: var(--spacing-13);
+  --input-affix-size-small: var(--spacing-14);
   --input-affix-size-base: var(--spacing-16);
   --input-affix-size-medium: var(--spacing-16);
   --input-affix-size-large: var(--spacing-18);
