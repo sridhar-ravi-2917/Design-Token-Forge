@@ -306,7 +306,7 @@
   /* Icon / chevron size per density mode */
   --menu-btn-icon-size-micro: var(--spacing-10);
   --menu-btn-icon-size-tiny: var(--spacing-12);
-  --menu-btn-icon-size-small: var(--spacing-13);
+  --menu-btn-icon-size-small: var(--spacing-14);
   --menu-btn-icon-size-base: var(--spacing-16);
   --menu-btn-icon-size-medium: var(--spacing-16);
   --menu-btn-icon-size-large: var(--spacing-18);
