@@ -2212,13 +2212,26 @@ async function generateComponentFromBlueprint(blueprint) {
      PAGE_X scan that runs AFTER cleanup will never find them.
      Record the leftmost X of our existing sections now so we can
      rebuild the presentation column in-place instead of shifting right. */
+  /* Exact names used by createSection() for this BP's presentation sections.
+     Used as a name-based fallback to catch old sections that were built before
+     stampOwner() was added to createSection() — those have no dtf-owner at all
+     and would otherwise look like foreign content to the foreignMaxX scan. */
+  var _bpSectionNames = [
+    BP.name + ' \u2014 Overview',
+    BP.name + ' \u2014 Tier 1 / Masters',
+    BP.name + ' \u2014 Tier 2 / Variants'
+  ];
   var _priorColumnX = null;
   for (var _priorScan = 0; _priorScan < page.children.length; _priorScan++) {
     var _ps = page.children[_priorScan];
     if (!_ps) continue;
+    if (_ps.type !== 'SECTION' && _ps.type !== 'FRAME') continue;
     var _psOwned = false;
     try { _psOwned = (_ps.getPluginData('dtf-owner') === BP.name); } catch(e) {}
-    if (_psOwned && (_ps.type === 'SECTION' || _ps.type === 'FRAME')) {
+    /* Name-based fallback: old sections (pre-stampOwner) carry the BP name
+       in their section name but have no dtf-owner pluginData. */
+    var _psNamedAsBP = (_bpSectionNames.indexOf(_ps.name) >= 0);
+    if (_psOwned || _psNamedAsBP) {
       if (_priorColumnX === null || (_ps.x || 0) < _priorColumnX) _priorColumnX = (_ps.x || 0);
     }
   }
@@ -2249,12 +2262,14 @@ async function generateComponentFromBlueprint(blueprint) {
       var legacyName = (child.name === 'Tier 1 \u2014 Masters' ||
                         child.name === 'Tier 2 \u2014 Variants' ||
                         child.name === 'Icon Primitive');
-      /* SAFE removal rule: must carry our stamp OR be a legacy-named
-         section that demonstrably contains one of OUR masters.
-         The bare BP-name prefix match (which used to nuke any user
-         section starting with "Button…") is removed. */
+      /* SAFE removal rule: must carry our stamp, OR be a legacy-named
+         section that demonstrably contains one of OUR masters, OR match
+         the exact BP-prefixed names we use (fallback for old builds that
+         pre-date the stampOwner() call in createSection). */
+      var _namedAsBP = (_bpSectionNames.indexOf(child.name) >= 0);
       var matchesBP = ownedByThisBP(child) ||
-                      (legacyName && sectionOwnedByThisBP(child));
+                      (legacyName && sectionOwnedByThisBP(child)) ||
+                      _namedAsBP;
       if (matchesBP) {
         child.remove();
         log('Removed existing section: ' + child.name);
