@@ -476,7 +476,7 @@
     var el = clr('radiusScale');
     SIZES.forEach(function(s) {
       var it=document.createElement('div'); it.className='density-item';
-      it.appendChild(makeBtn(curStruct, curRole, s, cap(s), {noSync:true}));
+      it.appendChild(makeBtn(curStruct, curRole, s, cap(s), {noSync:true, style:{'min-width':'0','min-height':'0'}}));
       var m=document.createElement('div'); m.className='density-meta'; m.textContent=RADIUS_TK[s]; it.appendChild(m); el.appendChild(it);
     });
   }
