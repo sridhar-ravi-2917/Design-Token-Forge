@@ -7,6 +7,7 @@ on:
       - 'packages/tokens/src/**'
       - 'packages/components/src/**'
       - 'packages/sync-server/**'
+      - 'packages/figma-plugin/**'
       - 'demo/**'
       - 'projects/**'
   workflow_dispatch:
