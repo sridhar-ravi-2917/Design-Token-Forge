@@ -169,15 +169,22 @@ function detectType(name, value) {
 }
 
 // Convert a CSS token value to the form Figma expects for FLOAT variables.
-// Most values pass through (the Figma plugin calls parseFloat). The one
-// transform we have to do is em → percent for letter-spacing, because
-// Figma's letter-spacing picker speaks PIXELS or PERCENT — never em.
-// Example: "-0.05em" → "-5" so parseFloat() in the plugin yields -5%.
+// Most values pass through (the Figma plugin calls parseFloat). Transforms:
+//  • letter-spacing em → percent  ("-0.05em" → "-5")
+//  • font-family CSS stack → primary font name only
+//    Figma's FONT_FAMILY variable requires a single font name ("Inter"),
+//    not a CSS fallback stack ("-apple-system, BlinkMacSystemFont, ...").
+//    We extract the first entry and strip surrounding quotes.
 function normalizeFigmaValue(name, value) {
   if (typeof value !== 'string') return value;
   if (name.startsWith('letter-spacing-')) {
     const m = value.match(/^(-?[\d.]+)em$/);
     if (m) return String(parseFloat(m[1]) * 100);
+  }
+  if (name.startsWith('font-family-')) {
+    // Take the first comma-separated entry, strip CSS quotes and whitespace.
+    const primary = value.split(',')[0].trim().replace(/^["']|["']$/g, '');
+    if (primary && !primary.startsWith('var(')) return primary;
   }
   return value;
 }
