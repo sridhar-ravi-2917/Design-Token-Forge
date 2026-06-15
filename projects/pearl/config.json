@@ -6,7 +6,7 @@
   "created": "2026-05-16",
   "schemaVersion": 2,
   "paletteKeys": {
-    "brand": "#A5FF99",
+    "brand": "#D6BA05",
     "danger": "#DC2626",
     "warning": "#D97706",
     "info": "#0EA5E9",
@@ -62,19 +62,24 @@
     "dim": "greyscale",
     "deep": "greyscale",
     "accent": "brand",
-    "float": "greyscale",
-    "inverse": "greyscale",
     "card": "greyscale",
-    "modal": "greyscale"
+    "modal": "greyscale",
+    "float": "greyscale",
+    "inverse": "greyscale"
   },
   "typographyConfig": {
-    "preset": "editorial-serif"
+    "preset": "custom",
+    "custom": {
+      "headline": "Zoho Puvi",
+      "body": "Zoho Puvi",
+      "code": "Zoho Puvi"
+    }
   },
   "latestVersion": {
-    "version": "v0.0.36",
-    "name": "May21 10:24",
-    "description": "",
-    "savedAt": "2026-05-21T04:54:17.300Z",
+    "version": "v0.0.37",
+    "name": "Jun15 09:47",
+    "description": "Puvi font family added",
+    "savedAt": "2026-06-15T04:19:33.906Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
