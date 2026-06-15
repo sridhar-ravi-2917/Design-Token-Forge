@@ -782,6 +782,53 @@ async function syncAll(data) {
   }
   stats.variables = verifyTotal; /* Use actual Figma count, not theoretical */
 
+  /* Pass 5: Sync Typography collection font-family/primary to match
+     font/family-headline from primitives-numbers.
+     The Typography collection is managed by Generate Components, not
+     syncAll, so its font-family/primary value goes stale when the
+     project's configured font changes. Update it in-place here so
+     that "Update Variables" alone is sufficient — no component
+     regeneration needed for a font change. */
+  try {
+    var typoSyncCols = await figma.variables.getLocalVariableCollectionsAsync();
+    var typoSyncCol = null;
+    for (var tsc = 0; tsc < typoSyncCols.length; tsc++) {
+      var tc = typoSyncCols[tsc].name;
+      if (tc === 'Typography' || tc === 'DTF Typography') {
+        typoSyncCol = typoSyncCols[tsc];
+        break;
+      }
+    }
+    if (typoSyncCol) {
+      /* Find font/family-headline in primitives-numbers */
+      var primNumsVars = await buildCollectionVarMap('primitives-numbers');
+      var fhVar2 = primNumsVars['font/family-headline'];
+      if (fhVar2) {
+        var fhModeKeys2 = Object.keys(fhVar2.valuesByMode);
+        var fhVal2 = fhModeKeys2.length > 0 ? fhVar2.valuesByMode[fhModeKeys2[0]] : null;
+        if (typeof fhVal2 === 'string' && fhVal2 && !fhVal2.startsWith('var(')) {
+          /* Find font-family/primary in the Typography collection */
+          var typoModeId5 = typoSyncCol.modes[0].modeId;
+          for (var tvi2 = 0; tvi2 < typoSyncCol.variableIds.length; tvi2++) {
+            var tv2 = await figma.variables.getVariableByIdAsync(typoSyncCol.variableIds[tvi2]);
+            if (tv2 && tv2.name === 'font-family/primary') {
+              var curVal = tv2.valuesByMode[typoModeId5];
+              if (curVal !== fhVal2) {
+                tv2.setValueForMode(typoModeId5, fhVal2);
+                log('Pass5: font-family/primary updated: "' + curVal + '" → "' + fhVal2 + '"');
+              } else {
+                log('Pass5: font-family/primary already "' + fhVal2 + '" — no change');
+              }
+              break;
+            }
+          }
+        }
+      }
+    }
+  } catch (typoSyncErr) {
+    log('Pass5 typography sync error (non-fatal): ' + typoSyncErr.message);
+  }
+
   return stats;
 }
 
