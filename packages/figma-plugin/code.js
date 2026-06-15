@@ -4847,6 +4847,27 @@ figma.ui.onmessage = async function(msg) {
 
   if (msg.type === 'scan') {
     try {
+      /* Opportunistic cleanup: silently remove CSS-origin font vars from
+         primitives-numbers that were exported before CSS_FONT_SKIP was added.
+         Runs on every plugin open so it fires even when the plugin shows
+         "up to date" (i.e. syncAll never gets called). */
+      try {
+        var _CSS_PURGE = { 'font/family': true, 'font/family-sans': true, 'font/family-mono': true };
+        var _scanCols = await figma.variables.getLocalVariableCollectionsAsync();
+        for (var _sci = 0; _sci < _scanCols.length; _sci++) {
+          if (_scanCols[_sci].name !== 'primitives-numbers') continue;
+          var _scanIds = _scanCols[_sci].variableIds.slice();
+          for (var _svi = 0; _svi < _scanIds.length; _svi++) {
+            var _sv = await figma.variables.getVariableByIdAsync(_scanIds[_svi]);
+            if (_sv && _CSS_PURGE[_sv.name]) {
+              try { _sv.remove(); log('scan: purged CSS-origin var: ' + _sv.name); }
+              catch (_sve) { log('scan: could not purge ' + _sv.name + ': ' + _sve.message); }
+            }
+          }
+          break;
+        }
+      } catch (_scanPurgeErr) { /* non-fatal */ }
+
       var cols = await findDTFCollections();
       var varCount = 0;
       var colNames = [];
