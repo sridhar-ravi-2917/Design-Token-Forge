@@ -3515,7 +3515,7 @@ async function generateComponentFromBlueprint(blueprint) {
         textNode.textAlignHorizontal = 'LEFT';
         textNode.textAlignVertical = 'CENTER';
         textNode.textAutoResize = 'WIDTH_AND_HEIGHT';
-        textNode.leadingTrim = 'CAP_HEIGHT';
+        textNode.leadingTrim = 'NONE';
         textNode.layoutAlign = 'INHERIT';
 
         /* Content color on text */

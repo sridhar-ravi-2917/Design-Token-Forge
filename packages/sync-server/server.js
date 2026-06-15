@@ -346,10 +346,18 @@ function buildT0(primTokens, extrasTokens) {
 function buildExtras(primTokens, extrasTokens) {
   const variables = [];
 
+  // CSS-origin font tokens that must NOT appear as Figma variables:
+  //  • font-family        — full CSS fallback stack; superseded by font-family-headline/-body
+  //  • font-family-sans   — CSS var() alias ("var(--font-family)"); Figma can't resolve it
+  //  • font-family-mono   — duplicate of font-family-code (set by typographyConfig)
+  const CSS_FONT_SKIP = new Set(['font-family', 'font-family-sans', 'font-family-mono']);
+
   // Non-colour primitives (spacing, font-size, etc.)
   for (const [name, value] of Object.entries(primTokens.light)) {
     const type = detectType(name, value);
     if (type === 'COLOR') continue;          // colours go to T0
+    if (CSS_FONT_SKIP.has(name)) continue;   // CSS-only constructs — skip from Figma export
+    if (typeof value === 'string' && value.startsWith('var(')) continue; // bare CSS var() refs
     const fValue = normalizeFigmaValue(name, value);
     variables.push({ name: primPath(name), type, scopes: scopeForExtras(name, type), values: { Value: fValue } });
   }
