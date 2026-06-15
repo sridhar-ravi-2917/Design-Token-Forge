@@ -2819,10 +2819,24 @@ async function generateComponentFromBlueprint(blueprint) {
         chevronIconSet.paddingTop = 16; chevronIconSet.paddingBottom = 16;
         chevronIconSet.primaryAxisSizingMode = 'AUTO';
         chevronIconSet.counterAxisSizingMode = 'AUTO';
+        var _repairPaths = {
+          Down:  'M 5 7.5 L 10 12.5 L 15 7.5',
+          Up:    'M 5 12.5 L 10 7.5 L 15 12.5',
+          Left:  'M 12.5 5 L 7.5 10 L 12.5 15',
+          Right: 'M 7.5 5 L 12.5 10 L 7.5 15'
+        };
         for (var rci = 0; rci < chevronIconSet.children.length; rci++) {
           var rc = chevronIconSet.children[rci];
           try { rc.layoutSizingHorizontal = 'FIXED'; rc.layoutSizingVertical = 'FIXED'; } catch (e) {}
-          try { if (rc.width < 16 || rc.height < 16) rc.resize(20, 20); } catch (e) {}
+          try { if (rc.width !== 20 || rc.height !== 20) rc.resize(20, 20); } catch (e) {}
+          /* Repair vector paths to centred geometry */
+          try {
+            var _dir = rc.variantProperties && rc.variantProperties.Direction;
+            if (_dir && _repairPaths[_dir]) {
+              var _vec = rc.findOne(function(n) { return n.type === 'VECTOR'; });
+              if (_vec) _vec.vectorPaths = [{ windingRule: 'NONE', data: _repairPaths[_dir] }];
+            }
+          } catch (e) {}
         }
       } catch (e) { log('Chevron set layout repair skipped: ' + e.message); }
       log('Reusing existing chevron icon set: ' + chevronIconSet.id);
