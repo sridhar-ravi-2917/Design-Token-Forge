@@ -29,10 +29,10 @@
   --kbd-radius-tiny:   var(--radius-xs);
   --kbd-radius-small:  var(--radius-sm);
   --kbd-radius-base:   var(--radius-sm);
-  --kbd-radius-medium: var(--radius-sm);
+  --kbd-radius-medium: var(--radius-sm-md);
   --kbd-radius-large:  var(--radius-md);
   --kbd-radius-big:    var(--radius-md);
-  --kbd-radius-huge:   var(--radius-md);
+  --kbd-radius-huge:   var(--radius-md-lg);
   --kbd-radius-mega:   var(--radius-lg);
   --kbd-radius-ultra:  var(--radius-lg);
 
