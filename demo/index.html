@@ -456,6 +456,18 @@
      Cached per page load. Falls back silently \u2014 the deterministic
      hash gradient stays if config.json is missing. */
   var _brandCache = {};
+
+  /* Extract the brand-500 hex from a live-preview CSS bundle written
+     by the editor, so the swatch reflects unsaved edits immediately. */
+  function brandHexFromLiveCSS(pid) {
+    try {
+      var css = localStorage.getItem('ev2-live-preview-' + (pid || '_')) || '';
+      if (!css) return null;
+      var m = css.match(/--prim-brand-500\s*:\s*(#[0-9a-fA-F]{3,8})/);
+      return m ? m[1] : null;
+    } catch (_e) { return null; }
+  }
+
   function paintBrandSwatch(card, projId){
     var swatch = card.querySelector('.proj-swatch');
     if (!swatch) return;
@@ -464,6 +476,9 @@
       swatch.style.setProperty('--c1', hex);
       swatch.style.setProperty('--c2', shadeHex(hex, 0.25));
     }
+    /* Live editor override takes priority — reflects unsaved changes. */
+    var liveHex = brandHexFromLiveCSS(projId);
+    if (liveHex) { apply(liveHex); return; }
     if (_brandCache[projId]) { apply(_brandCache[projId]); return; }
     /* Prefer the localStorage stash seeded by fetchFromUserFork — it
        holds the project owner's actual config.json, which is the only
@@ -548,6 +563,27 @@
      projects.json — otherwise an unauthenticated visitor could see
      the list in DevTools Network while the overlay is up. */
   (window.DTF_AUTH_READY || Promise.resolve()).then(function(){ tryFetch(0); });
+
+  /* Poll for live-preview color changes so swatches update while the
+     editor is open in another tab — no reload needed. */
+  var _lastLiveHexes = {};
+  setInterval(function () {
+    var cards = grid ? grid.querySelectorAll('.proj-card') : [];
+    cards.forEach(function (card) {
+      var pid = (card.href || '').match(/project=([^&]+)/);
+      if (!pid) return;
+      pid = pid[1];
+      var liveHex = brandHexFromLiveCSS(pid);
+      if (liveHex && liveHex !== _lastLiveHexes[pid]) {
+        _lastLiveHexes[pid] = liveHex;
+        var swatch = card.querySelector('.proj-swatch');
+        if (swatch) {
+          swatch.style.setProperty('--c1', liveHex);
+          swatch.style.setProperty('--c2', shadeHex(liveHex, 0.25));
+        }
+      }
+    });
+  }, 400);
 })();
 </script>
 
