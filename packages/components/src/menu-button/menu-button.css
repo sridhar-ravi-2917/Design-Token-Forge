@@ -98,6 +98,7 @@
   --_mb-radius: var(--menu-btn-radius-base);
   --_mb-fs: var(--menu-btn-font-size-base);
   --_mb-icon-size: var(--menu-btn-icon-size-base);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-base);
   --_mb-gap: var(--menu-btn-gap-base);
   --_mb-min-width: var(--menu-btn-min-width-base);
 }
@@ -110,6 +111,7 @@
   --_mb-radius: var(--menu-btn-radius-micro);
   --_mb-fs: var(--menu-btn-font-size-micro);
   --_mb-icon-size: var(--menu-btn-icon-size-micro);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-micro);
   --_mb-gap: var(--menu-btn-gap-micro);
   --_mb-min-width: var(--menu-btn-min-width-micro);
 }
@@ -122,6 +124,7 @@
   --_mb-radius: var(--menu-btn-radius-tiny);
   --_mb-fs: var(--menu-btn-font-size-tiny);
   --_mb-icon-size: var(--menu-btn-icon-size-tiny);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-tiny);
   --_mb-gap: var(--menu-btn-gap-tiny);
   --_mb-min-width: var(--menu-btn-min-width-tiny);
 }
@@ -134,6 +137,7 @@
   --_mb-radius: var(--menu-btn-radius-small);
   --_mb-fs: var(--menu-btn-font-size-small);
   --_mb-icon-size: var(--menu-btn-icon-size-small);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-small);
   --_mb-gap: var(--menu-btn-gap-small);
   --_mb-min-width: var(--menu-btn-min-width-small);
 }
@@ -146,6 +150,7 @@
   --_mb-radius: var(--menu-btn-radius-medium);
   --_mb-fs: var(--menu-btn-font-size-medium);
   --_mb-icon-size: var(--menu-btn-icon-size-medium);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-medium);
   --_mb-gap: var(--menu-btn-gap-medium);
   --_mb-min-width: var(--menu-btn-min-width-medium);
 }
@@ -158,6 +163,7 @@
   --_mb-radius: var(--menu-btn-radius-large);
   --_mb-fs: var(--menu-btn-font-size-large);
   --_mb-icon-size: var(--menu-btn-icon-size-large);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-large);
   --_mb-gap: var(--menu-btn-gap-large);
   --_mb-min-width: var(--menu-btn-min-width-large);
 }
@@ -170,6 +176,7 @@
   --_mb-radius: var(--menu-btn-radius-big);
   --_mb-fs: var(--menu-btn-font-size-big);
   --_mb-icon-size: var(--menu-btn-icon-size-big);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-big);
   --_mb-gap: var(--menu-btn-gap-big);
   --_mb-min-width: var(--menu-btn-min-width-big);
 }
@@ -182,6 +189,7 @@
   --_mb-radius: var(--menu-btn-radius-huge);
   --_mb-fs: var(--menu-btn-font-size-huge);
   --_mb-icon-size: var(--menu-btn-icon-size-huge);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-huge);
   --_mb-gap: var(--menu-btn-gap-huge);
   --_mb-min-width: var(--menu-btn-min-width-huge);
 }
@@ -194,6 +202,7 @@
   --_mb-radius: var(--menu-btn-radius-mega);
   --_mb-fs: var(--menu-btn-font-size-mega);
   --_mb-icon-size: var(--menu-btn-icon-size-mega);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-mega);
   --_mb-gap: var(--menu-btn-gap-mega);
   --_mb-min-width: var(--menu-btn-min-width-mega);
 }
@@ -206,6 +215,7 @@
   --_mb-radius: var(--menu-btn-radius-ultra);
   --_mb-fs: var(--menu-btn-font-size-ultra);
   --_mb-icon-size: var(--menu-btn-icon-size-ultra);
+  --_mb-chevron-size: var(--menu-btn-chevron-size-ultra);
   --_mb-gap: var(--menu-btn-gap-ultra);
   --_mb-min-width: var(--menu-btn-min-width-ultra);
 }
@@ -616,8 +626,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--_mb-icon-size);
-  height: var(--_mb-icon-size);
+  width: var(--_mb-chevron-size);
+  height: var(--_mb-chevron-size);
   color: var(--menu-btn-icon-color);
   flex-shrink: 0;
 }
