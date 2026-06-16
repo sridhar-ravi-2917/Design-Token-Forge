@@ -63,6 +63,42 @@ var LEDGER_TOMBSTONE_TTL_MS = 60 * 1000;
 
 var CODE_VERSION = '2026-05-20-proto-hash-stable';
 
+/* ── Icon preview layout constants ─────────────────────────────────
+   Single source of truth for the Primitives showcase preview box
+   and the chevron component set it contains. All creation paths,
+   reuse paths, and repair paths call applyIconPreviewLayout() /
+   applyChevronSetLayout() — changing a value here propagates to
+   all three paths automatically, preventing drift. */
+var ICON_PREVIEW_LAYOUT = {
+  padding:      22,   /* uniform padding inside the dashed preview box */
+  itemSpacing:  16,   /* gap between icon-placeholder and chevron set, and between chevrons */
+  counterAlign: 'CENTER'
+};
+var CHEVRON_SET_LAYOUT = {
+  itemSpacing:  16,   /* gap between the 4 direction variants */
+  padding:      0     /* zero — set height must equal component height (20px) for CENTER to work */
+};
+
+function applyIconPreviewLayout(frame) {
+  frame.layoutMode            = 'HORIZONTAL';
+  frame.primaryAxisSizingMode = 'AUTO';
+  frame.counterAxisSizingMode = 'AUTO';
+  frame.counterAxisAlignItems = ICON_PREVIEW_LAYOUT.counterAlign;
+  frame.itemSpacing           = ICON_PREVIEW_LAYOUT.itemSpacing;
+  frame.paddingLeft = frame.paddingRight = ICON_PREVIEW_LAYOUT.padding;
+  frame.paddingTop  = frame.paddingBottom = ICON_PREVIEW_LAYOUT.padding;
+}
+
+function applyChevronSetLayout(set) {
+  set.layoutMode            = 'HORIZONTAL';
+  set.counterAxisAlignItems = 'CENTER';
+  set.primaryAxisSizingMode = 'AUTO';
+  set.counterAxisSizingMode = 'AUTO';
+  set.itemSpacing           = CHEVRON_SET_LAYOUT.itemSpacing;
+  set.paddingLeft = set.paddingRight = CHEVRON_SET_LAYOUT.padding;
+  set.paddingTop  = set.paddingBottom = CHEVRON_SET_LAYOUT.padding;
+}
+
 /* Known structural comp-size variables required by the component
    generators. Used by Step 2c (Build) AND by check-gen-prereqs
    auto-heal so a missing required variable gets recreated without
@@ -2812,13 +2848,7 @@ async function generateComponentFromBlueprint(blueprint) {
          resize attempt. Without this, the showcase preview shows an
          empty selection box. */
       try {
-        chevronIconSet.layoutMode = 'HORIZONTAL';
-        chevronIconSet.counterAxisAlignItems = 'CENTER';
-        chevronIconSet.itemSpacing = 16;
-        chevronIconSet.paddingLeft = 0; chevronIconSet.paddingRight = 0;
-        chevronIconSet.paddingTop = 0; chevronIconSet.paddingBottom = 0;
-        chevronIconSet.primaryAxisSizingMode = 'AUTO';
-        chevronIconSet.counterAxisSizingMode = 'AUTO';
+        applyChevronSetLayout(chevronIconSet);
         var _repairPaths = {
           Down:  'M 5 7.5 L 10 12.5 L 15 7.5',
           Up:    'M 5 12.5 L 10 7.5 L 15 12.5',
@@ -2903,13 +2933,7 @@ async function generateComponentFromBlueprint(blueprint) {
         chevronIconSet.description = 'Directional chevron icon (Down / Up / Left / Right). Default = Down. Used by Split Button triggers; flip to Up for active/open state.';
         /* Auto-layout the variant grid so it presents cleanly. */
         try {
-          chevronIconSet.layoutMode = 'HORIZONTAL';
-          chevronIconSet.counterAxisAlignItems = 'CENTER';
-          chevronIconSet.itemSpacing = 16;
-          chevronIconSet.paddingLeft = 0; chevronIconSet.paddingRight = 0;
-          chevronIconSet.paddingTop = 0; chevronIconSet.paddingBottom = 0;
-          chevronIconSet.primaryAxisSizingMode = 'AUTO';
-          chevronIconSet.counterAxisSizingMode = 'AUTO';
+          applyChevronSetLayout(chevronIconSet);
           for (var ncv = 0; ncv < chevronIconSet.children.length; ncv++) {
             try {
               chevronIconSet.children[ncv].layoutSizingHorizontal = 'FIXED';
@@ -3156,10 +3180,7 @@ async function generateComponentFromBlueprint(blueprint) {
       var repairPreview = existingPrimitivesSection.findOne(function(n) {
         return n.name === 'icon-preview';
       });
-      if (repairPreview) {
-        if (repairPreview.counterAxisAlignItems !== 'CENTER') repairPreview.counterAxisAlignItems = 'CENTER';
-        if (repairPreview.itemSpacing !== 16) repairPreview.itemSpacing = 16;
-      }
+      if (repairPreview) { applyIconPreviewLayout(repairPreview); }
     } catch (repErr) { log('Primitives repair skipped: ' + repErr.message); }
   } else if (existingPrimitivesSection && chevronCreated && chevronIconSet) {
     /* Append the newly-created chevron set into the existing showcase
@@ -3176,9 +3197,7 @@ async function generateComponentFromBlueprint(blueprint) {
       if (existingPreview) {
         existingPreview.appendChild(chevronIconSet);
         try { chevronIconSet.layoutSizingHorizontal = 'FIXED'; chevronIconSet.layoutSizingVertical = 'FIXED'; } catch (e) {}
-        /* Ensure center alignment and uniform spacing. */
-        if (existingPreview.counterAxisAlignItems !== 'CENTER') existingPreview.counterAxisAlignItems = 'CENTER';
-        if (existingPreview.itemSpacing !== 16) existingPreview.itemSpacing = 16;
+        applyIconPreviewLayout(existingPreview);
         /* Card is auto-layout HUG; it now reflects the new preview size.
            Grow the section frame to fit the card. */
         if (existingCard) {
@@ -3232,13 +3251,7 @@ async function generateComponentFromBlueprint(blueprint) {
      append (placeholder alone, or placeholder + 4-direction chevron set). */
   var icPreview = figma.createFrame();
   icPreview.name = 'icon-preview';
-  icPreview.layoutMode = 'HORIZONTAL';
-  icPreview.primaryAxisSizingMode = 'AUTO';
-  icPreview.counterAxisSizingMode = 'AUTO';
-  icPreview.counterAxisAlignItems = 'CENTER';
-  icPreview.itemSpacing = 16;
-  icPreview.paddingLeft = 22; icPreview.paddingRight = 22;
-  icPreview.paddingTop = 22; icPreview.paddingBottom = 22;
+  applyIconPreviewLayout(icPreview);
   icPreview.cornerRadius = 8;
   icPreview.fills = [{ type: 'SOLID', color: COLOR_SURFACE_BG }];
   icPreview.strokes = [{ type: 'SOLID', color: COLOR_OUTLINE }];
