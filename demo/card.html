@@ -50,6 +50,8 @@
   .fake-icon{width:20px;height:20px;border-radius:var(--radius-sm);background:var(--color-brand-100);display:inline-flex;align-items:center;justify-content:center;font-size:10px}
   .playground-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding:24px 32px}
 </style>
+<!-- Live-preview: inject live colour before first paint (no flash). -->
+<script>(function(){try{var p=localStorage.getItem('dtf-active-project')||'';var k='ev2-live-preview-'+(p||'_');var c=localStorage.getItem(k);if(c){var s=document.createElement('style');s.id='ev2-live-preview-overlay';s.textContent=c;document.head.appendChild(s);}}catch(e){}}());</script>
 </head>
 <body>
 

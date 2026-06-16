@@ -112,6 +112,8 @@ body{overflow:hidden;height:100vh}
 .te-callout strong{color:var(--demo-fg-strong)}
 .te-callout a{color:var(--brand-content-default);text-decoration:underline}
 </style>
+<!-- Live-preview: inject live colour before first paint (no flash). -->
+<script>(function(){try{var p=localStorage.getItem('dtf-active-project')||'';var k='ev2-live-preview-'+(p||'_');var c=localStorage.getItem(k);if(c){var s=document.createElement('style');s.id='ev2-live-preview-overlay';s.textContent=c;document.head.appendChild(s);}}catch(e){}}());</script>
 </head>
 <body>
 

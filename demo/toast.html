@@ -17,6 +17,8 @@
   .pos-dot { position:absolute; width:60px; height:18px; border-radius:4px; background:var(--brand-component-bg-default); opacity:.55 }
   .toast-stack { display:flex; flex-direction:column; gap:12px; width:100% }
 </style>
+<!-- Live-preview: inject live colour before first paint (no flash). -->
+<script>(function(){try{var p=localStorage.getItem('dtf-active-project')||'';var k='ev2-live-preview-'+(p||'_');var c=localStorage.getItem(k);if(c){var s=document.createElement('style');s.id='ev2-live-preview-overlay';s.textContent=c;document.head.appendChild(s);}}catch(e){}}());</script>
 </head>
 <body>
 

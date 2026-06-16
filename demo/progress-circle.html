@@ -42,6 +42,8 @@
   .linecap-card { padding:24px; border-radius:12px; border:1px solid var(--demo-border); display:flex; flex-direction:column; align-items:center; gap:16px; }
   .linecap-card-title { font-weight:600; font-size:12px; opacity:0.7; }
 </style>
+<!-- Live-preview: inject live colour before first paint (no flash). -->
+<script>(function(){try{var p=localStorage.getItem('dtf-active-project')||'';var k='ev2-live-preview-'+(p||'_');var c=localStorage.getItem(k);if(c){var s=document.createElement('style');s.id='ev2-live-preview-overlay';s.textContent=c;document.head.appendChild(s);}}catch(e){}}());</script>
 </head>
 <body>
 
