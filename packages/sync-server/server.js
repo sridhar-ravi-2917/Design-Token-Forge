@@ -928,6 +928,27 @@ function buildCompSize(extrasCollection) {
     variables.push(...buildComponentGroup('split-btn', 'split-button', sbtnTokens, extrasVarSet, sbtnProps));
   }
 
+  // ── Icon Button ───────────────────────────────────────────
+  // Square action archetype. Per-density size (width = height) and icon-size.
+  // Uses icon-button.tokens.css (NOT button.tokens.css) so the icon-only
+  // button gets its own correctly-proportioned scale:
+  //   base: size=36px, icon=18px → 9px effective padding all sides (uniform)
+  //   small: size=32px, icon=16px → 8px effective padding all sides (uniform)
+  // Two variables emitted:
+  //   icon-button/size           — bound to BOTH width AND height of root frame
+  //   icon-button/icon container — bound to icon instance width and height
+  const ibtnFile = path.join(COMP_DIR, 'icon-button/icon-button.tokens.css');
+  if (fs.existsSync(ibtnFile)) {
+    const ibtnTokens = parseComponentTokens(ibtnFile);
+    const ibtnProps = [
+      { propCSS: 'size',      propFigma: 'size' },
+      { propCSS: 'icon-size', propFigma: 'icon container' },
+    ];
+    variables.push(...buildComponentGroup('icon-btn', 'icon-button', ibtnTokens, extrasVarSet, ibtnProps));
+  } else {
+    console.warn('⚠  icon-button.tokens.css not found — icon-button comp-size variables will be missing');
+  }
+
   // ── Badge ─────────────────────────────────────────────────
   // Label-indicator archetype. Per-density height, padding-x, gap, font-size,
   // icon-size, radius. Stateless compact badge with 6 semantic roles ×

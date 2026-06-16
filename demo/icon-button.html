@@ -95,7 +95,7 @@
   <!-- 1. HERO -->
   <section class="section" id="sec-hero">
     <div class="section-header"><h2>Hero Inspector</h2><span class="section-tag">Live</span></div>
-    <p class="section-desc">Reflects the global variant and size controls. Inspector shows resolved computed values. Square aspect ratio — width equals height.</p>
+    <p class="section-desc">Reflects the global variant and size controls. Inspector shows resolved token values (CSS custom properties). Note: the rendered element may be larger than the size token — <code>min-width/height: var(--icon-btn-min-tap-target)</code> enforces a 44px WCAG tap target. The size token is the <em>visual</em> intent; the tap area is transparent overflow.</p>
     <div class="section-body">
       <div class="hero">
         <div class="hero-preview">
@@ -489,8 +489,8 @@
 
   /* ── Inspector ──────────────────────────────────── */
   var IB_TOKENS={
-    size:{micro:'--spacing-24',tiny:'--spacing-28',small:'--spacing-32',base:'--spacing-36',medium:'--spacing-40',large:'--spacing-44',big:'--spacing-48',huge:'--spacing-56',mega:'--spacing-64',ultra:'--spacing-80'},
-    iconSize:{micro:'--spacing-12',tiny:'--spacing-14',small:'--spacing-16',base:'--spacing-18',medium:'--spacing-20',large:'--spacing-22',big:'--spacing-24',huge:'--spacing-28',mega:'--spacing-32',ultra:'--spacing-40'},
+    size:{micro:'--spacing-24',tiny:'--spacing-28',small:'--spacing-32',base:'--spacing-36',medium:'--spacing-40',large:'--spacing-44',big:'--spacing-48',huge:'--spacing-56',mega:'--spacing-64',ultra:'--spacing-72'},
+    iconSize:{micro:'--spacing-12',tiny:'--spacing-14',small:'--spacing-16',base:'--spacing-18',medium:'--spacing-20',large:'--spacing-22',big:'--spacing-24',huge:'--spacing-28',mega:'--spacing-32',ultra:'--spacing-36'},
     radius:{micro:'--radius-xs',tiny:'--radius-sm',small:'--radius-sm',base:'--radius-md',medium:'--radius-md',large:'--radius-DEFAULT',big:'--radius-DEFAULT',huge:'--radius-lg',mega:'--radius-xl',ultra:'--radius-xl'}
   };
   var STRUCT_TOKEN={filled:'brand',outlined:'secondary',soft:'tertiary',ghost:'ghost'};
@@ -500,8 +500,13 @@
     var hb=document.querySelector('.hero-preview .icon-btn');if(!hb)return;
     var cs=getComputedStyle(hb),s=curS,tg=STRUCT_TOKEN[curStruct]||'brand';
     var isN=curRole==='neutral';
+    /* Read the token value directly from the CSS custom property — NOT the
+       rendered bounding-box size. min-tap-target (44px WCAG) can expand the
+       rendered element above the token value; showing cs.width would report
+       44px even when the token is --spacing-36 = 36px, which is misleading. */
+    var sizeTokenVal = cs.getPropertyValue('--_ib-size').trim() || cs.width;
     var rows=[
-      ['--icon-btn-size-'+s, IB_TOKENS.size[s], cs.width],
+      ['--icon-btn-size-'+s, IB_TOKENS.size[s], sizeTokenVal],
       ['--icon-btn-icon-size-'+s, IB_TOKENS.iconSize[s], cs.getPropertyValue('--_ib-icon-size').trim()||'\u2014'],
       [curRounded?'--icon-btn-radius-rounded':'--icon-btn-radius-'+s, curRounded?'--radius-full':IB_TOKENS.radius[s], cs.borderRadius],
       ['--icon-btn-'+tg+'-bg', isN?'--surface-base-cm-bg':'--brand-component-bg-default', cs.backgroundColor],

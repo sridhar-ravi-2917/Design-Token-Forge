@@ -109,7 +109,14 @@ var REQUIRED_COMPSIZE_VARS = [
   { name: 'button/icon pad', defaultVal: 8 },
   { name: 'button/radius-rounded', defaultVal: 9999 },
   { name: 'split-button/chevron/padding', defaultVal: 8 },
-  { name: 'split-button/chevron/size',    defaultVal: 16 }
+  { name: 'split-button/chevron/size',    defaultVal: 16 },
+  /* Icon Button — square component, separate from button/* scale.
+     defaultVal = base-mode values; token sync fills in all per-density
+     values from icon-button.tokens.css. Without these entries the Build
+     step silently skips bindings (variable not found) and the icon falls
+     back to the placeholder's intrinsic size (20px). */
+  { name: 'icon-button/size',            defaultVal: 36 },
+  { name: 'icon-button/icon container',  defaultVal: 18 }
 ];
 log('code.js loaded — version ' + CODE_VERSION);
 
@@ -1323,6 +1330,29 @@ var BUTTON_BLUEPRINT = {
     }
   },
 
+  /* comp-size bindings for the Icon Button master specifically.
+     Icon Button is a SQUARE (width = height = size). It uses
+     icon-button/* variables from icon-button.tokens.css so that:
+       - base: size=36px, icon=18px → 9px effective padding all sides
+       - small: size=32px, icon=16px → 8px effective padding all sides
+     Compare: sizeBindings.root only has height + uses btn icon-size (16px)
+     which made the Figma frame non-square (32×36) with non-uniform padding. */
+  iconBtnSizeBindings: {
+    root: {
+      width:            'icon-button/default/size',
+      height:           'icon-button/default/size',
+      topLeftRadius:    'button/default/radius',
+      topRightRadius:   'button/default/radius',
+      bottomLeftRadius: 'button/default/radius',
+      bottomRightRadius:'button/default/radius'
+    },
+    iconPad:              'button/default/icon pad',
+    icon: {
+      width:  'icon-button/default/icon container',
+      height: 'icon-button/default/icon container'
+    }
+  },
+
   /* Default content color applied in master (T2 Surface Context) */
   masterContentColor: 'default/content/default',
 
@@ -2059,9 +2089,21 @@ async function generateComponentFromBlueprint(blueprint) {
     for (var rvi = 0; rvi < requiredVars.length; rvi++) {
       var reqName = requiredVars[rvi].name;
       var reqVal  = requiredVars[rvi].defaultVal;
-      var longName = reqName.replace('button/', 'button/default/');
+      /* Build both 2-segment and 3-segment forms of the name so
+         blueprint lookups using either convention find the variable.
+         For 'button/*' vars the 3-segment form inserts '/default/'.
+         For other groups (e.g. 'icon-button/*') we do the same. */
+      var reqParts = reqName.split('/');
+      var longName = reqParts.length === 2
+        ? reqParts[0] + '/default/' + reqParts[1]
+        : reqName;                                   /* already 3-segment or more */
       var existing = compSizeVars[reqName] || compSizeVars[longName];
       if (existing) {
+        /* Ensure both short and long forms are in the map so the master
+           creation loop can find the variable regardless of which form
+           it uses in sizeBindings / iconBtnSizeBindings. */
+        if (!compSizeVars[reqName])  compSizeVars[reqName]  = existing;
+        if (!compSizeVars[longName]) compSizeVars[longName] = existing;
         /* Variable already exists — enforce canonical value ONLY for modes
            where the current value is a plain literal that differs from the
            default. If a mode's value is a VARIABLE_ALIAS (i.e. the sync
@@ -2094,7 +2136,9 @@ async function generateComponentFromBlueprint(blueprint) {
             try { newVar.setValueForMode(csAllModeIds[nmi], reqVal); } catch (e) {}
           }
           compSizeVars[reqName] = newVar;
-          /* Also create alias */
+          /* Also create 2-segment ↔ 3-segment alias so blueprint lookups
+             using either form (e.g. 'icon-button/size' or
+             'icon-button/default/size') resolve to the same variable. */
           compSizeVars[longName] = newVar;
           log('Created missing variable: ' + reqName + ' = ' + reqVal + ' (across ' + csAllModeIds.length + ' modes)');
           stats.bindings++;
@@ -3598,7 +3642,11 @@ async function generateComponentFromBlueprint(blueprint) {
     master.layoutMode = 'HORIZONTAL';
     master.counterAxisAlignItems = 'CENTER';
     master.primaryAxisAlignItems = masterCfg.rootPAlign || 'MIN';
-    master.layoutSizingHorizontal = 'HUG';
+
+    /* Icon Button is always square — FIXED on both axes so width = height
+       (bound to icon-button/default/size). Regular buttons HUG horizontally. */
+    var isIconOnlyMaster = (masterName === 'Icon Button');
+    master.layoutSizingHorizontal = isIconOnlyMaster ? 'FIXED' : 'HUG';
     master.layoutSizingVertical = 'FIXED';
     master.fills = []; /* NO fill on master — color comes from variant */
     master.clipsContent = false;
@@ -3607,8 +3655,14 @@ async function generateComponentFromBlueprint(blueprint) {
        between icon and text. Root itemSpacing is always 0. */
     master.itemSpacing = 0;
 
-    /* Bind root size variables (height, radius) */
-    var rootBinds = BP.sizeBindings.root;
+    /* Bind root size variables (height, radius).
+       Icon Button uses iconBtnSizeBindings (width+height from icon-button/size,
+       icon from icon-button/icon container) so values are in sync with
+       icon-button.tokens.css — not button.tokens.css icon sizes. */
+    var activeSizeBindings = (isIconOnlyMaster && BP.iconBtnSizeBindings)
+      ? BP.iconBtnSizeBindings
+      : BP.sizeBindings;
+    var rootBinds = activeSizeBindings.root;
     var rootKeys = Object.keys(rootBinds);
     for (var rk = 0; rk < rootKeys.length; rk++) {
       var rv = compSizeVars[rootBinds[rootKeys[rk]]];
@@ -3648,9 +3702,9 @@ async function generateComponentFromBlueprint(blueprint) {
            padR depends on whether this is the only slot (icon-only → symmetric icon pad)
            or there's a text slot after it (icon+text → padR is icon-to-text gap). */
         var isOnlySlot = (slots.length === 1);
-        var iwPadLVar = compSizeVars[isOnlySlot ? BP.sizeBindings.iconPad : BP.sizeBindings.iconWrapperPadL];
+        var iwPadLVar = compSizeVars[isOnlySlot ? activeSizeBindings.iconPad : BP.sizeBindings.iconWrapperPadL];
         if (iwPadLVar) { await tryBindVar(iconWrapper, 'paddingLeft', iwPadLVar); stats.bindings++; }
-        var iwPadRVar = compSizeVars[isOnlySlot ? BP.sizeBindings.iconPad : BP.sizeBindings.iconWrapperPadR];
+        var iwPadRVar = compSizeVars[isOnlySlot ? activeSizeBindings.iconPad : BP.sizeBindings.iconWrapperPadR];
         if (iwPadRVar) { await tryBindVar(iconWrapper, 'paddingRight', iwPadRVar); stats.bindings++; }
 
         /* ── Icon Instance (INSTANCE of placeholder component) ──
@@ -3663,8 +3717,10 @@ async function generateComponentFromBlueprint(blueprint) {
         iconInst.layoutSizingHorizontal = 'FIXED';
         iconInst.layoutSizingVertical = 'FIXED';
 
-        /* Bind icon instance size to comp-size variables */
-        var iconBinds = BP.sizeBindings.icon;
+        /* Bind icon instance size to comp-size variables.
+           For Icon Button, activeSizeBindings.icon points to
+           icon-button/default/icon container (18px at base, not 16px). */
+        var iconBinds = activeSizeBindings.icon;
         var iconKeys = Object.keys(iconBinds);
         for (var iik = 0; iik < iconKeys.length; iik++) {
           var iiv = compSizeVars[iconBinds[iconKeys[iik]]];
