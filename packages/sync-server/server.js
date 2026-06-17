@@ -980,11 +980,37 @@ function buildCompSize(extrasCollection) {
       { propCSS: 'padding-x',    propFigma: 'padding-x' },
       { propCSS: 'padding-y',    propFigma: 'padding-y' },
       { propCSS: 'chevron-pe',   propFigma: 'chevron-pe' },
+      { propCSS: 'gap',          propFigma: 'gap' },
       { propCSS: 'font-size',    propFigma: 'font-size' },
       { propCSS: 'icon-size',    propFigma: 'icon-size' },
+      { propCSS: 'chevron-size', propFigma: 'chevron-size' },
       { propCSS: 'radius',       propFigma: 'radius' },
     ];
     variables.push(...buildComponentGroup('menu-btn', 'menu-button', mbtnTokens, extrasVarSet, mbtnProps));
+
+    // ── menu-button/radius-rounded ─────────────────────────
+    // CONSTANT (non-per-density) token used by the Rounded variant.
+    // CSS:  --menu-btn-radius-rounded: var(--radius-full);
+    const mbRoundedCSS = mbtnTokens['menu-btn-radius-rounded'];
+    if (mbRoundedCSS) {
+      const mbRoundedAlias = cssVarToExtrasPath(mbRoundedCSS);
+      const mbRoundedValues = {};
+      let mbRoundedValue = null;
+      let mbRoundedUsable = true;
+      if (mbRoundedAlias && extrasVarSet.has(mbRoundedAlias)) {
+        mbRoundedValue = { type: 'VARIABLE_ALIAS', collection: EXTRAS_COL_NAME, name: mbRoundedAlias };
+      } else {
+        const n = parseFloat(mbRoundedCSS);
+        if (!isNaN(n)) { mbRoundedValue = n; }
+        else { mbRoundedUsable = false; console.warn(`❌ DROPPED menu-button/radius-rounded: unresolved value "${mbRoundedCSS}"`); }
+      }
+      if (mbRoundedUsable) {
+        for (const mode of COMP_SIZE_MODES) mbRoundedValues[mode] = mbRoundedValue;
+        variables.push({ name: 'menu-button/radius-rounded', type: 'FLOAT', scopes: ['CORNER_RADIUS'], values: mbRoundedValues });
+      }
+    } else {
+      console.warn(`⚠  menu-button.tokens.css missing --menu-btn-radius-rounded — Rounded variant will report "build needed"`);
+    }
   }
 
   // ── Datepicker ─────────────────────────────────────────────

@@ -107,6 +107,7 @@ var REQUIRED_COMPSIZE_VARS = [
   { name: 'button/icon wrapper padding L', defaultVal: 8 },
   { name: 'button/icon wrapper padding R', defaultVal: 8 },
   { name: 'button/icon pad', defaultVal: 8 },
+  { name: 'button/icon container',        defaultVal: 18 },
   { name: 'button/radius-rounded', defaultVal: 9999 },
   { name: 'split-button/chevron/padding', defaultVal: 8 },
   { name: 'split-button/chevron/size',    defaultVal: 16 },
@@ -1718,6 +1719,186 @@ var SPLIT_BUTTON_BLUEPRINT = {
                       wrapper: { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 } },
           disabled: { text: { t3: 'content/default' }, icon: { t3: 'content/default' },
                       wrapper: { componentOpacity: 0.3 } }
+        }
+      }
+    }
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════
+   MENU BUTTON BLUEPRINT — Single-zone Disclosure Button
+   ──────────────────────────────────────────────────────────────
+   A button that ALWAYS opens a dropdown menu. Unlike split-button
+   (two independent zones), menu-button is ONE unified zone:
+     [icon? | text | chevron]
+
+   Layout strategy (differs from button which uses wrapper padding):
+     Root frame owns ALL spacing via Figma auto-layout primitives:
+       paddingLeft  = padding-x  (leading edge)
+       paddingRight = chevron-pe (trailing edge, narrower than leading)
+       itemSpacing  = gap        (uniform gap between icon, text, chevron)
+   Wrapper frames for icon/text have zero padding — root handles everything.
+
+   Two masters:
+     'Icon + Text + Chevron' — optional leading icon
+     'Text + Chevron'        — text only (most common)
+
+   Families, types, and state overrides are IDENTICAL to button:
+   same T2/T3 color model, same state axis, same Rounded boolean axis.
+   ══════════════════════════════════════════════════════════════ */
+var MENU_BUTTON_BLUEPRINT = {
+  name: 'Menu Button',
+  description: 'A single-zone disclosure button that opens a dropdown menu. Supports icon + text + chevron layout, 10 density sizes, all structural and semantic variants.',
+
+  masters: {
+    'Icon + Text + Chevron': {
+      slots: ['iconWrapper', 'textWrapper', 'chevronSlot'],
+      rootPAlign: 'MIN',
+      iconWrapperPAlign: 'MIN'
+    },
+    'Text + Chevron': {
+      slots: ['textWrapper', 'chevronSlot'],
+      rootPAlign: 'MIN'
+    }
+  },
+
+  /* Root owns ALL padding + gap. Wrapper children have zero padding so
+     there is no double-padding. Keys map to Figma auto-layout fields. */
+  sizeBindings: {
+    root: {
+      height:            'menu-button/height',
+      topLeftRadius:     'menu-button/radius',
+      topRightRadius:    'menu-button/radius',
+      bottomLeftRadius:  'menu-button/radius',
+      bottomRightRadius: 'menu-button/radius',
+      paddingLeft:       'menu-button/padding-x',
+      paddingRight:      'menu-button/chevron-pe',
+      itemSpacing:       'menu-button/gap'
+    },
+    /* No iconWrapperPadL/R or textWrapperPadL/R — root handles all spacing.
+       Omitting these keys causes the generator to skip wrapper padding. */
+    icon: {
+      width:  'menu-button/icon-size',
+      height: 'menu-button/icon-size'
+    },
+    text: {
+      fontSize: 'menu-button/font-size'
+    },
+    chevronSlot: {
+      width:  'menu-button/chevron-size',
+      height: 'menu-button/chevron-size'
+    }
+  },
+
+  /* Comp-size variable path for the Rounded=True pill variant. */
+  radiusRoundedPath: 'menu-button/radius-rounded',
+
+  masterContentColor: 'default/content/default',
+
+  /* ── Families ───────────────────────────────────────────────
+     Identical to BUTTON_BLUEPRINT — same T2 Neutral + T3 Brand
+     families, same types, same state overrides. Menu-button is
+     conceptually a button that always triggers a dropdown.
+     ─────────────────────────────────────────────────────────── */
+  families: {
+    'Neutral': {
+      types:  ['Filled', 'Outlined', 'Ghost', 'Fill & Outline'],
+      states: ['Default', 'Hover', 'Pressed', 'Selected', 'Focus', 'Disabled'],
+      stateOverrides: {
+        'Filled': {
+          'Default':  { fill: 'default/component/bg-default' },
+          'Hover':    { fill: 'default/component/bg-hover' },
+          'Pressed':  { fill: 'default/component/bg-pressed' },
+          'Selected': { t3Mode: 'brand',
+                        fill: { t3: 'component/bg-pressed' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
+          'Focus':    { fill: 'default/component/bg-default', stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'Disabled': { fill: 'default/component/bg-default', componentOpacity: 0.3 }
+        },
+        'Outlined': {
+          'Default':  { stroke: 'default/component/outline-default', strokeWeight: 1 },
+          'Hover':    { fill: 'default/component/bg-hover',   stroke: 'default/component/outline-default', strokeWeight: 1 },
+          'Pressed':  { fill: 'default/component/bg-pressed', stroke: 'default/component/outline-default', strokeWeight: 1 },
+          'Selected': { t3Mode: 'brand',
+                        fill: { t3: 'container/bg' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+          'Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'Disabled': { stroke: 'default/component/outline-default', strokeWeight: 1, componentOpacity: 0.3 }
+        },
+        'Ghost': {
+          'Default':  {},
+          'Hover':    { fill: 'default/component/bg-hover' },
+          'Pressed':  { fill: 'default/component/bg-pressed' },
+          'Selected': { t3Mode: 'brand',
+                        fill: { t3: 'container/bg' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+          'Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'Disabled': { componentOpacity: 0.3 }
+        },
+        'Fill & Outline': {
+          'Default':  { fill: 'default/component/bg-default', stroke: 'default/component/outline-default', strokeWeight: 1 },
+          'Hover':    { fill: 'default/component/bg-hover',   stroke: 'default/component/outline-default', strokeWeight: 1 },
+          'Pressed':  { fill: 'default/component/bg-pressed', stroke: 'default/component/outline-default', strokeWeight: 1 },
+          'Selected': { t3Mode: 'brand',
+                        fill: { t3: 'component/bg-pressed' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
+          'Focus':    { fill: 'default/component/bg-default', stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'Disabled': { fill: 'default/component/bg-default', stroke: 'default/component/outline-default', strokeWeight: 1, componentOpacity: 0.3 }
+        }
+      }
+    },
+
+    'Brand': {
+      types:  ['Primary', 'Secondary', 'Tertiary', 'Ghost'],
+      states: ['Default', 'Hover', 'Pressed', 'Focus', 'Disabled'],
+      t3Mode: 'brand',
+      stateOverrides: {
+        'Primary': {
+          'Default':  { fill: { t3: 'component/bg-default' },
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
+          'Hover':    { fill: { t3: 'component/bg-hover' },
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
+          'Pressed':  { fill: { t3: 'component/bg-pressed' },
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
+          'Focus':    { fill: { t3: 'component/bg-default' }, stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } },
+          'Disabled': { fill: { t3: 'component/bg-default' }, componentOpacity: 0.3,
+                        text: { t3: 'oncomponent-content/default' }, icon: { t3: 'oncomponent-content/default' } }
+        },
+        'Secondary': {
+          'Default':  { stroke: { t3: 'component/outline-default' }, strokeWeight: 1,
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Hover':    { fill: { t3: 'container/bg' }, stroke: { t3: 'component/outline-hover' }, strokeWeight: 1,
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Pressed':  { fill: { t3: 'container/hover' }, stroke: { t3: 'component/outline-pressed' }, strokeWeight: 1,
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Disabled': { stroke: { t3: 'component/outline-default' }, strokeWeight: 1, componentOpacity: 0.3,
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } }
+        },
+        'Tertiary': {
+          'Default':  { fill: { t3: 'container/bg' },
+                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+          'Hover':    { fill: { t3: 'container/hover' },
+                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+          'Pressed':  { fill: { t3: 'container/pressed' },
+                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+          'Focus':    { fill: { t3: 'container/bg' }, stroke: { t3: 'container/outline' }, strokeWeight: 2,
+                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } },
+          'Disabled': { fill: { t3: 'container/bg' }, componentOpacity: 0.3,
+                        text: { t3: 'oncontainer-content/default' }, icon: { t3: 'oncontainer-content/default' } }
+        },
+        'Ghost': {
+          'Default':  { text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Hover':    { fill: { t3: 'container/bg' },
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Pressed':  { fill: { t3: 'container/hover' },
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } },
+          'Disabled': { componentOpacity: 0.3,
+                        text: { t3: 'content/default' }, icon: { t3: 'content/default' } }
         }
       }
     }
@@ -3674,6 +3855,7 @@ async function generateComponentFromBlueprint(blueprint) {
 
     /* Track whether this master has an icon (for INSTANCE_SWAP property) */
     var hasIcon = false;
+    var chevronInstRef = null; /* set by chevronSlot handler; used for INSTANCE_SWAP wiring */
 
     /* ── Create children based on slot definitions ──
        Padding rules:
@@ -3809,6 +3991,44 @@ async function generateComponentFromBlueprint(blueprint) {
         textWrapper.appendChild(textNode);
         master.appendChild(textWrapper);
       }
+
+      if (slot === 'chevronSlot') {
+        /* ── Chevron Slot Container ──
+           Menu-button's always-present trailing disclosure icon.
+           Root frame owns padding/gap so this wrapper has zero padding. */
+        var chevSlotFrame = figma.createFrame();
+        chevSlotFrame.name = 'Chevron cont';
+        chevSlotFrame.layoutMode = 'HORIZONTAL';
+        chevSlotFrame.counterAxisAlignItems = 'CENTER';
+        chevSlotFrame.primaryAxisAlignItems = 'CENTER';
+        chevSlotFrame.layoutSizingHorizontal = 'HUG';
+        chevSlotFrame.layoutSizingVertical = 'HUG';
+        chevSlotFrame.fills = [];
+        chevSlotFrame.itemSpacing = 0;
+
+        /* Chevron icon — instance of chevron icon component (or icon placeholder). */
+        var chevSlotInst = triggerIconComp.createInstance();
+        chevSlotInst.name = 'Chevron';
+        chevSlotFrame.appendChild(chevSlotInst);
+        try { chevSlotInst.layoutSizingHorizontal = 'FIXED'; } catch (e) {}
+        try { chevSlotInst.layoutSizingVertical   = 'FIXED'; } catch (e) {}
+
+        /* Bind chevron icon dimensions to comp-size variables. */
+        var chevSlotBinds = activeSizeBindings.chevronSlot;
+        if (chevSlotBinds) {
+          var chevSlotKeys = Object.keys(chevSlotBinds);
+          for (var csk = 0; csk < chevSlotKeys.length; csk++) {
+            var csvv = compSizeVars[chevSlotBinds[chevSlotKeys[csk]]];
+            if (csvv) {
+              await tryBindVar(chevSlotInst, chevSlotKeys[csk], csvv);
+              stats.bindings++;
+            }
+          }
+        }
+
+        master.appendChild(chevSlotFrame);
+        chevronInstRef = chevSlotInst;
+      }
     }
 
     /* ── Add component properties on the MASTER ──
@@ -3833,6 +4053,17 @@ async function generateComponentFromBlueprint(blueprint) {
       if (textInMaster) {
         textInMaster.componentPropertyReferences = { characters: textPropKey };
         log('Wired TEXT property on ' + masterName + ' → key: ' + textPropKey);
+      }
+    }
+
+    /* INSTANCE_SWAP for chevron icon — allows designers to swap chevron glyph. */
+    if (chevronInstRef) {
+      try {
+        var chevSwapPropKey = master.addComponentProperty('Chevron icon', 'INSTANCE_SWAP', triggerIconComp.id);
+        chevronInstRef.componentPropertyReferences = { mainComponent: chevSwapPropKey };
+        log('Wired Chevron INSTANCE_SWAP on ' + masterName + ' → key: ' + chevSwapPropKey);
+      } catch (e) {
+        log('Chevron INSTANCE_SWAP failed on ' + masterName + ': ' + e.message);
       }
     }
 
@@ -3966,7 +4197,8 @@ async function generateComponentFromBlueprint(blueprint) {
          False = bound to button/default/radius (default). True = bound to
          button/radius-rounded (pill, 9999). Lookup tolerates both naming
          conventions used across files. */
-      var radiusRoundedVar = compSizeVars['button/radius-rounded']
+      var radiusRoundedVar = (BP.radiusRoundedPath && compSizeVars[BP.radiusRoundedPath])
+                          || compSizeVars['button/radius-rounded']
                           || compSizeVars['button/default/radius-rounded'];
       var roundedValues = [false, true];
 
@@ -4811,7 +5043,8 @@ async function generateComponentFromBlueprint(blueprint) {
 
 var COMPONENT_BLUEPRINTS = {
   button: BUTTON_BLUEPRINT,
-  'split-button': SPLIT_BUTTON_BLUEPRINT
+  'split-button': SPLIT_BUTTON_BLUEPRINT,
+  'menu-button': MENU_BUTTON_BLUEPRINT
 };
 
 /* ── Auto-wire prototype interactions on every COMPONENT_SET on the

@@ -308,12 +308,12 @@
   --menu-btn-icon-size-tiny: var(--spacing-12);
   --menu-btn-icon-size-small: var(--spacing-14);
   --menu-btn-icon-size-base: var(--spacing-18);
-  --menu-btn-icon-size-medium: var(--spacing-16);
-  --menu-btn-icon-size-large: var(--spacing-18);
-  --menu-btn-icon-size-big: var(--spacing-18);
-  --menu-btn-icon-size-huge: var(--spacing-20);
-  --menu-btn-icon-size-mega: var(--spacing-24);
-  --menu-btn-icon-size-ultra: var(--spacing-28);
+  --menu-btn-icon-size-medium: var(--spacing-20);
+  --menu-btn-icon-size-large: var(--spacing-20);
+  --menu-btn-icon-size-big: var(--spacing-24);
+  --menu-btn-icon-size-huge: var(--spacing-28);
+  --menu-btn-icon-size-mega: var(--spacing-32);
+  --menu-btn-icon-size-ultra: var(--spacing-36);
 
   /* Trailing chevron size per density — smaller than leading icon */
   --menu-btn-chevron-size-micro:  var(--spacing-10);
