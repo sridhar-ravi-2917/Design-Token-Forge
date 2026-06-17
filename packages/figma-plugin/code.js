@@ -1780,16 +1780,17 @@ var SPLIT_BUTTON_BLUEPRINT = {
        chevronWrapperPadR = chevron-pe (trailing edge after chevron)
    Root carries only height + radius. No root-level padding or itemSpacing binding.
 
-   Two masters:
-     'Icon + Text + Chevron' — optional leading icon
+   Three masters:
+     'Icon + Text + Chevron' — optional leading icon with label
      'Text + Chevron'        — text only (most common)
+     'Icon + Chevron'        — compact icon-only trigger (no label)
 
    Families, types, and state overrides are IDENTICAL to button:
    same T2/T3 color model, same state axis, same Rounded boolean axis.
    ══════════════════════════════════════════════════════════════ */
 var MENU_BUTTON_BLUEPRINT = {
   name: 'Menu Button',
-  description: 'A single-zone disclosure button that opens a dropdown menu. Supports icon + text + chevron layout, 10 density sizes, all structural and semantic variants.',
+  description: 'A single-zone disclosure button that opens a dropdown menu. Supports icon + text + chevron, text + chevron, and compact icon + chevron layouts, 10 density sizes, all structural and semantic variants.',
 
   masters: {
     'Icon + Text + Chevron': {
@@ -1800,6 +1801,11 @@ var MENU_BUTTON_BLUEPRINT = {
     'Text + Chevron': {
       slots: ['textWrapper', 'chevronSlot'],
       rootPAlign: 'MIN'
+    },
+    'Icon + Chevron': {
+      slots: ['iconWrapper', 'chevronSlot'],
+      rootPAlign: 'MIN',
+      iconWrapperPAlign: 'MIN'
     }
   },
 
