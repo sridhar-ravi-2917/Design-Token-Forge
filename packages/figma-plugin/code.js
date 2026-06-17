@@ -1849,9 +1849,9 @@ var MENU_BUTTON_BLUEPRINT = {
      instances (creates it if split-button hasn't run first). */
   usesChevron: true,
 
-  /* Wider master column spacing to avoid label overlap
-     ('Icon + Text + Chevron' is longer than 'Icon + Text'). */
-  masterSpacing: 440,
+  /* Column spacing between masters. 360px fits the longest label
+     ('Icon + Text + Chevron' + badge) without crowding 3 columns. */
+  masterSpacing: 360,
 
   masterContentColor: 'default/content/default',
 
