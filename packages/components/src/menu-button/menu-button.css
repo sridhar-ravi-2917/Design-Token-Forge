@@ -27,8 +27,13 @@
   min-height: var(--menu-btn-min-tap-target);
   height: var(--_mb-height);
   padding-block: var(--_mb-py);
-  padding-inline-start: var(--_mb-px);
-  padding-inline-end: var(--_mb-chevron-pe);
+  /* Pill compensation addend — 0px by default, calc(height/4) when data-rounded.
+     All inline padding expressions add this so every content variant
+     (text-only, icon+text, icon-only) automatically gains the correct
+     optical inset in pill mode without extra rules per variant. */
+  --_mb-pill-comp: 0px;
+  padding-inline-start: calc(var(--_mb-px) + var(--_mb-pill-comp));
+  padding-inline-end: calc(var(--_mb-chevron-pe) + var(--_mb-pill-comp));
 
   /* Shape */
   border-radius: var(--_mb-radius);
@@ -231,13 +236,21 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
-   ASYMMETRIC ICON PADDING — tighter on the icon side
-   When a leading icon is present (including icon + chevron with no label)
-   use the icon-specific start padding instead of the full text padding.
+   ICON PADDING OVERRIDES
+   Leading icon → reduce start to icon-pad (tighter than full text-pad).
+   No label present → reduce trailing end to icon-pad too (symmetric).
+   Both rules include --_mb-pill-comp so pill buttons automatically get
+   the height/4 optical compensation on whichever edges are active.
    ════════════════════════════════════════════════════════════════ */
 
+/* Leading icon: replace full text-pad with icon-pad on start */
 .menu-btn:has(> .menu-btn__icon:first-child) {
-  padding-inline-start: var(--_mb-px-icon);
+  padding-inline-start: calc(var(--_mb-px-icon) + var(--_mb-pill-comp));
+}
+
+/* No label (icon+chevron only): use icon-pad for trailing end too */
+.menu-btn:not(:has(.menu-btn__label)) {
+  padding-inline-end: calc(var(--_mb-px-icon) + var(--_mb-pill-comp));
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -246,6 +259,11 @@
 
 .menu-btn[data-rounded] {
   --_mb-radius: var(--menu-btn-radius-rounded);
+  /* Set --_mb-pill-comp to height/4. The base padding-inline calc() expressions
+     add this to whichever edge value is currently active (text-pad,
+     icon-pad, or chevron-pe) so all content variants are compensated
+     automatically — no per-variant pill overrides needed. */
+  --_mb-pill-comp: calc(var(--_mb-height) / 4);
 }
 
 /* ════════════════════════════════════════════════════════════════

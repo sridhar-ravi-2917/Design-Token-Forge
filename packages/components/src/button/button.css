@@ -84,6 +84,7 @@
   --_btn-gap: var(--btn-gap-base);
   --_btn-radius: var(--btn-radius-base);
   --_btn-std-icon-size: var(--btn-icon-size-base);
+  --_btn-icon-pad: var(--btn-icon-pad-base);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-base));
 }
 
@@ -97,6 +98,7 @@
   --_btn-gap: var(--btn-gap-micro);
   --_btn-radius: var(--btn-radius-micro);
   --_btn-std-icon-size: var(--btn-icon-size-micro);
+  --_btn-icon-pad: var(--btn-icon-pad-micro);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-micro));
 }
 
@@ -110,6 +112,7 @@
   --_btn-gap: var(--btn-gap-tiny);
   --_btn-radius: var(--btn-radius-tiny);
   --_btn-std-icon-size: var(--btn-icon-size-tiny);
+  --_btn-icon-pad: var(--btn-icon-pad-tiny);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-tiny));
 }
 
@@ -123,6 +126,7 @@
   --_btn-gap: var(--btn-gap-small);
   --_btn-radius: var(--btn-radius-small);
   --_btn-std-icon-size: var(--btn-icon-size-small);
+  --_btn-icon-pad: var(--btn-icon-pad-small);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-small));
 }
 
@@ -136,6 +140,7 @@
   --_btn-gap: var(--btn-gap-medium);
   --_btn-radius: var(--btn-radius-medium);
   --_btn-std-icon-size: var(--btn-icon-size-medium);
+  --_btn-icon-pad: var(--btn-icon-pad-medium);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-medium));
 }
 
@@ -149,6 +154,7 @@
   --_btn-gap: var(--btn-gap-large);
   --_btn-radius: var(--btn-radius-large);
   --_btn-std-icon-size: var(--btn-icon-size-large);
+  --_btn-icon-pad: var(--btn-icon-pad-large);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-large));
 }
 
@@ -162,6 +168,7 @@
   --_btn-gap: var(--btn-gap-big);
   --_btn-radius: var(--btn-radius-big);
   --_btn-std-icon-size: var(--btn-icon-size-big);
+  --_btn-icon-pad: var(--btn-icon-pad-big);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-big));
 }
 
@@ -175,6 +182,7 @@
   --_btn-gap: var(--btn-gap-huge);
   --_btn-radius: var(--btn-radius-huge);
   --_btn-std-icon-size: var(--btn-icon-size-huge);
+  --_btn-icon-pad: var(--btn-icon-pad-huge);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-huge));
 }
 
@@ -188,6 +196,7 @@
   --_btn-gap: var(--btn-gap-mega);
   --_btn-radius: var(--btn-radius-mega);
   --_btn-std-icon-size: var(--btn-icon-size-mega);
+  --_btn-icon-pad: var(--btn-icon-pad-mega);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-mega));
 }
 
@@ -201,6 +210,7 @@
   --_btn-gap: var(--btn-gap-ultra);
   --_btn-radius: var(--btn-radius-ultra);
   --_btn-std-icon-size: var(--btn-icon-size-ultra);
+  --_btn-icon-pad: var(--btn-icon-pad-ultra);
   --_btn-icon-size: var(--btn-icon-size, var(--btn-icon-size-ultra));
 }
 
@@ -262,6 +272,30 @@
     var(--spacing-4),
     calc(var(--_btn-px-icon) - max(0px, (var(--_btn-icon-size) - var(--_btn-std-icon-size)) / 2))
   );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ICON-ONLY MODE  — square geometry
+   When the button's only child is .btn__icon (no label), the default
+   min-width (designed for text buttons, 40–120px) forces a 1.67–1.82×
+   horizontal stretch. Override to min-width=height so the button
+   renders as a square. The existing btn-icon-pad-* tokens are sized
+   to produce content ≈ height − 2–6px, so clamping to height gives a
+   near-perfect square with natural optical breathing room.
+   Pill + icon-only = perfect circle: lock inline-size to height.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Square: min-width = height, icon-pad on both sides */
+.btn:has(> .btn__icon:only-child) {
+  min-width: var(--_btn-height);
+  inline-size: auto;
+  padding-inline: var(--_btn-icon-pad);
+}
+
+/* Pill + icon-only = perfect circle */
+.btn[data-rounded]:has(> .btn__icon:only-child) {
+  inline-size: var(--_btn-height);
+  padding-inline: 0;
 }
 
 /* ════════════════════════════════════════════════════════════════

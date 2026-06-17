@@ -129,6 +129,19 @@
   --menu-btn-min-width-mega: var(--spacing-120);
   --menu-btn-min-width-ultra: var(--spacing-120); /* spacing-144 doesn't exist; ladder tops at 120 */
 
+  /* Icon-only symmetric edge padding — used when no label is present.
+     Mirrors --btn-icon-pad-* for consistent spacing across the button family. */
+  --menu-btn-padding-x-icon-micro: var(--spacing-3);
+  --menu-btn-padding-x-icon-tiny: var(--spacing-4);
+  --menu-btn-padding-x-icon-small: var(--spacing-6);
+  --menu-btn-padding-x-icon-base: var(--spacing-8);
+  --menu-btn-padding-x-icon-medium: var(--spacing-8);
+  --menu-btn-padding-x-icon-large: var(--spacing-8);
+  --menu-btn-padding-x-icon-big: var(--spacing-10);
+  --menu-btn-padding-x-icon-huge: var(--spacing-12);
+  --menu-btn-padding-x-icon-mega: var(--spacing-14);
+  --menu-btn-padding-x-icon-ultra: var(--spacing-16);
+
   /* Width model */
   --menu-btn-max-width: none;
   --menu-btn-inline-size: fit-content;
@@ -311,7 +324,7 @@
   --menu-btn-icon-size-small: var(--spacing-14);
   --menu-btn-icon-size-base: var(--spacing-18);
   --menu-btn-icon-size-medium: var(--spacing-20);
-  --menu-btn-icon-size-large: var(--spacing-20);
+  --menu-btn-icon-size-large: var(--spacing-22);
   --menu-btn-icon-size-big: var(--spacing-24);
   --menu-btn-icon-size-huge: var(--spacing-28);
   --menu-btn-icon-size-mega: var(--spacing-32);
