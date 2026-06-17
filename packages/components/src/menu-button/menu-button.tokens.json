@@ -3156,6 +3156,126 @@
       "value": "var(--radius-full)",
       "aliasOf": "--radius-full",
       "literal": false
+    },
+    "--menu-btn-padding-x-icon-micro": {
+      "name": "--menu-btn-padding-x-icon-micro",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "micro",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-6)",
+      "aliasOf": "--spacing-6",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-tiny": {
+      "name": "--menu-btn-padding-x-icon-tiny",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "tiny",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-6)",
+      "aliasOf": "--spacing-6",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-small": {
+      "name": "--menu-btn-padding-x-icon-small",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "small",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-8)",
+      "aliasOf": "--spacing-8",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-base": {
+      "name": "--menu-btn-padding-x-icon-base",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "base",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-10)",
+      "aliasOf": "--spacing-10",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-medium": {
+      "name": "--menu-btn-padding-x-icon-medium",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "medium",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-12)",
+      "aliasOf": "--spacing-12",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-large": {
+      "name": "--menu-btn-padding-x-icon-large",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "large",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-14)",
+      "aliasOf": "--spacing-14",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-big": {
+      "name": "--menu-btn-padding-x-icon-big",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "big",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-16)",
+      "aliasOf": "--spacing-16",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-huge": {
+      "name": "--menu-btn-padding-x-icon-huge",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "huge",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-18)",
+      "aliasOf": "--spacing-18",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-mega": {
+      "name": "--menu-btn-padding-x-icon-mega",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "mega",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-20)",
+      "aliasOf": "--spacing-20",
+      "literal": false
+    },
+    "--menu-btn-padding-x-icon-ultra": {
+      "name": "--menu-btn-padding-x-icon-ultra",
+      "axis": "dimension",
+      "role": "spacing",
+      "group": null,
+      "size": "ultra",
+      "state": null,
+      "property": "padding-x-icon",
+      "value": "var(--spacing-24)",
+      "aliasOf": "--spacing-24",
+      "literal": false
     }
   }
 }
