@@ -4247,13 +4247,14 @@ async function generateComponentFromBlueprint(blueprint) {
 
     var masterSlotBadge = createBadge(masterCfg.slots.join(' + '), COLOR_CM_BG, COLOR_DIMMED);
     masterSec.section.appendChild(masterSlotBadge);
-    masterSlotBadge.x = masterSec.innerX + _masterCursorX + masterLabel.width + 12;
-    masterSlotBadge.y = masterSec.innerY + mHeaderBar.height + 22;
+    masterSlotBadge.x = masterSec.innerX + _masterCursorX;
+    masterSlotBadge.y = masterSec.innerY + mHeaderBar.height + 24 + 20;
     tryBindFill(masterSlotBadge, t2Vars['default/component/bg']);
     if (masterSlotBadge.children.length > 0) tryBindFill(masterSlotBadge.children[0], t2Vars['default/content/subtle']);
 
-    /* Advance cursor by this master's actual width + gap */
-    _masterCursorX += master.width + 48;
+    /* Advance cursor by the widest of: label, badge, or master component — plus gap */
+    var _colW = Math.max(masterLabel.width, masterSlotBadge.width, master.width);
+    _masterCursorX += _colW + 48;
 
     masterComponents[masterName] = master;
     log('Created master: ' + masterName + ' (' + master.children.length + ' children)');
@@ -4271,10 +4272,14 @@ async function generateComponentFromBlueprint(blueprint) {
   try { masterFrame.resize(mfMaxX + 40, mfMaxY + 20); } catch (e) {}
 
   /* Place master frame in section (below header + single label row) */
-  var masterFrameY = masterSec.innerY + mHeaderBar.height + 24 + 28 + 16;
+  var masterFrameY = masterSec.innerY + mHeaderBar.height + 24 + 20 + 24 + 16; /* header + label + badge + gap */
   masterSec.section.appendChild(masterFrame);
   masterFrame.x = masterSec.innerX;
   masterFrame.y = masterFrameY;
+
+  /* Expand section width if master columns exceed the state-based minimum */
+  var _mastersTotalW = masterSec.innerX + _masterCursorX - 48 + masterSec.innerX; /* last gap removed */
+  if (_mastersTotalW > SECTION_W) SECTION_W = _mastersTotalW;
 
   var masterSecH = masterFrameY + masterFrame.height + 40;
   try { masterSec.section.resize(SECTION_W, masterSecH); } catch (e) {}
