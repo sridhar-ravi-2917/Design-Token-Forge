@@ -3013,6 +3013,11 @@ async function generateComponentFromBlueprint(blueprint) {
     if (_flf.states && _flf.states.length > _maxStatesForLayout) _maxStatesForLayout = _flf.states.length;
   }
   var SECTION_W = Math.max(1200, 100 + 40 + (_maxStatesForLayout - 1) * 155 + 120 + 80);
+  /* Also ensure section is wide enough for all master columns */
+  var _masterCount = Object.keys(BP.masters || {}).length;
+  var _masterSpacing = BP.masterSpacing || 320;
+  var _mastersTotalW = 80 + (_masterCount * _masterSpacing) + 300; /* innerX*2 + columns + last col width */
+  if (_mastersTotalW > SECTION_W) SECTION_W = _mastersTotalW;
   var CARD_W = SECTION_W - 80; /* card width inside sections */
   var cursorY = 100;
 
