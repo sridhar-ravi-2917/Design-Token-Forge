@@ -2583,6 +2583,29 @@ async function generateComponentFromBlueprint(blueprint) {
                       (legacyName && sectionOwnedByThisBP(child)) ||
                       _namedAsBP;
       if (matchesBP) {
+        /* M4 SAFE_REBUILD — component sets live INSIDE sections.
+           Removing a section also destroys all nested children, which
+           defeats SAFE_REBUILD: the sets in reuseSetByName get deleted
+           before the reuse check below can fire, so their .removed===true
+           and combineAsVariants creates new IDs → all placed instances detach.
+           Fix: move every reusable set out to the page root BEFORE removing
+           the section. The set survives cleanup; later the build loop will
+           reparent it into the new section via variantSec.section.appendChild(). */
+        if (SAFE_REBUILD && child.findAll) {
+          try {
+            var _rescueSets = child.findAll(function(n) {
+              return n.type === 'COMPONENT_SET' &&
+                     reuseSetByName[n.name] !== undefined &&
+                     reuseSetByName[n.name] === n;
+            });
+            for (var _ri = 0; _ri < _rescueSets.length; _ri++) {
+              page.appendChild(_rescueSets[_ri]);
+              log('SAFE_REBUILD: rescued "' + _rescueSets[_ri].name + '" from section before removal');
+            }
+          } catch (_re) {
+            log('SAFE_REBUILD rescue scan failed: ' + (_re && _re.message));
+          }
+        }
         child.remove();
         log('Removed existing section: ' + child.name);
         continue;
@@ -3875,27 +3898,50 @@ async function generateComponentFromBlueprint(blueprint) {
         iconWrapper.layoutMode = 'HORIZONTAL';
         iconWrapper.counterAxisAlignItems = 'CENTER';
         iconWrapper.primaryAxisAlignItems = masterCfg.iconWrapperPAlign || 'MIN';
-        iconWrapper.layoutSizingHorizontal = 'HUG';
-        iconWrapper.layoutSizingVertical = 'HUG';
         iconWrapper.fills = [];
         iconWrapper.itemSpacing = 0;
 
-        /* Icon wrapper: ALWAYS bind padL.
-           padR depends on whether this is the only slot (icon-only → symmetric icon pad)
-           or there's a text slot after it (icon+text → padR is icon-to-text gap). */
+        /* For icon+text buttons: HUG×HUG with L/R padding tokens.
+           For icon-only buttons: FILL×FILL — center the icon within the
+           full master bounds so there's no wrapper boundary cutting through
+           the component. Sizing must be set AFTER appendChild (same rule as
+           instances — Figma requires parent context to accept FILL sizing). */
         var isOnlySlot = (slots.length === 1);
-        var iwPadLVar = compSizeVars[isOnlySlot ? activeSizeBindings.iconPad : BP.sizeBindings.iconWrapperPadL];
-        if (iwPadLVar) { await tryBindVar(iconWrapper, 'paddingLeft', iwPadLVar); stats.bindings++; }
-        var iwPadRVar = compSizeVars[isOnlySlot ? activeSizeBindings.iconPad : BP.sizeBindings.iconWrapperPadR];
-        if (iwPadRVar) { await tryBindVar(iconWrapper, 'paddingRight', iwPadRVar); stats.bindings++; }
+        if (!isOnlySlot) {
+          iconWrapper.layoutSizingHorizontal = 'HUG';
+          iconWrapper.layoutSizingVertical   = 'HUG';
+          /* Bind L/R padding: padR is either icon-to-text gap or symmetric iconPad */
+          var iwPadLVar = compSizeVars[BP.sizeBindings.iconWrapperPadL];
+          if (iwPadLVar) { await tryBindVar(iconWrapper, 'paddingLeft', iwPadLVar); stats.bindings++; }
+          var iwPadRVar = compSizeVars[BP.sizeBindings.iconWrapperPadR];
+          if (iwPadRVar) { await tryBindVar(iconWrapper, 'paddingRight', iwPadRVar); stats.bindings++; }
+        } else {
+          /* Icon-only: center alignment — padding is provided by the gap
+             between icon instance and wrapper edge, not by explicit tokens. */
+          iconWrapper.primaryAxisAlignItems  = 'CENTER';
+          iconWrapper.counterAxisAlignItems  = 'CENTER';
+          /* FILL sizing applied after appendChild below */
+        }
 
         /* ── Icon Instance (INSTANCE of placeholder component) ──
-           Reference: the icon is an INSTANCE with layoutMode NONE,
-           clipsContent true, FIXED×FIXED sizing, width/height bound
-           to icon container variable. The vector child has SCALE constraints
-           so it resizes proportionally. */
+           ORDERING: append to parent BEFORE setting FIXED sizing or binding
+           width/height variables — Figma requires an auto-layout context to
+           accept dimension variable bindings on instance nodes (same rule as
+           trigger zone in split-button). */
         var iconInst = iconPlaceholder.createInstance();
         iconInst.name = iconPlaceholder.name;
+
+        /* Append both nodes to establish parent context before sizing */
+        iconWrapper.appendChild(iconInst);
+        master.appendChild(iconWrapper);
+
+        /* Now safe to set sizing on iconWrapper (FILL needs parent context) */
+        if (isOnlySlot) {
+          iconWrapper.layoutSizingHorizontal = 'FILL';
+          iconWrapper.layoutSizingVertical   = 'FILL';
+        }
+
+        /* Now safe to set FIXED sizing and bind dimension variables on iconInst */
         iconInst.layoutSizingHorizontal = 'FIXED';
         iconInst.layoutSizingVertical = 'FIXED';
 
@@ -3911,9 +3957,6 @@ async function generateComponentFromBlueprint(blueprint) {
             stats.bindings++;
           }
         }
-
-        iconWrapper.appendChild(iconInst);
-        master.appendChild(iconWrapper);
       }
 
       if (slot === 'textWrapper') {
@@ -4006,10 +4049,15 @@ async function generateComponentFromBlueprint(blueprint) {
         chevSlotFrame.fills = [];
         chevSlotFrame.itemSpacing = 0;
 
-        /* Chevron icon — instance of chevron icon component (or icon placeholder). */
+        /* Chevron icon — instance of chevron icon component (or icon placeholder).
+           ORDERING: append to parent BEFORE setting FIXED sizing or binding
+           width/height variables — Figma requires auto-layout context. */
         var chevSlotInst = triggerIconComp.createInstance();
         chevSlotInst.name = 'Chevron';
         chevSlotFrame.appendChild(chevSlotInst);
+        master.appendChild(chevSlotFrame);
+
+        /* Now safe to set FIXED sizing and bind dimension variables */
         try { chevSlotInst.layoutSizingHorizontal = 'FIXED'; } catch (e) {}
         try { chevSlotInst.layoutSizingVertical   = 'FIXED'; } catch (e) {}
 
@@ -4026,7 +4074,6 @@ async function generateComponentFromBlueprint(blueprint) {
           }
         }
 
-        master.appendChild(chevSlotFrame);
         chevronInstRef = chevSlotInst;
       }
     }
@@ -4900,14 +4947,23 @@ async function generateComponentFromBlueprint(blueprint) {
     }
   } catch (e) { /* ignore */ }
 
-  /* W1 — capture the *new* identity surface so the next Build's diff
-     engine (M5) and the timestamp pill (M3) have something to read.
-     Shape mirrors §6 of docs/architecture/component-builder/
-     component-ledger-and-safe-rebuild.md. */
+  /* W1 — capture slim identity surface for the ledger.
+     We store only nodeId + name + variantCount (NOT the full variants
+     map) to keep the pluginData payload well under Figma's 100 kB
+     per-entry limit.  The UI only ever reads Object.keys(cs.variants).length
+     so storing the count directly is equivalent. */
   var newComponentSets = [];
   try {
     for (var _ns = 0; _ns < allComponentSets.length; _ns++) {
-      newComponentSets.push(snapshotComponentSet(allComponentSets[_ns]));
+      var _snap = snapshotComponentSet(allComponentSets[_ns]);
+      newComponentSets.push({
+        nodeId:       _snap.nodeId,
+        name:         _snap.name,
+        libraryKey:   _snap.libraryKey || null,
+        /* Store count only — variants map can be 20 kB+ per component set */
+        variantCount: Object.keys(_snap.variants || {}).length,
+        properties:   _snap.properties || {}
+      });
     }
   } catch (nse) { /* ignore */ }
 
@@ -5025,13 +5081,14 @@ async function generateComponentFromBlueprint(blueprint) {
     structureHash:    structureHash,
     prototypeHash:    prototypeHash,
     tokensHash:       tokensHash,
-    boundIds:         boundIds,         /* V2 — exact bind surface */
-    boundNames:       boundNames,       /* V3 — id→name at build time */
+    /* boundIds / boundNames intentionally NOT persisted — they can be
+       50 kB+ and the UI derives binding diffs from tokensHash alone.
+       priorSnapshot intentionally NOT persisted — it mirrors componentSets
+       from the previous build and is only used during the build itself. */
     prevSpecHash:     _priorEntry.specHash      || '',
     prevStructureHash:_priorEntry.structureHash || _priorEntry.specHash || '',
     prevPrototypeHash:_priorEntry.prototypeHash || '',
-    prevTokensHash:   _priorEntry.tokensHash    || '',
-    priorSnapshot:  priorSnapshot   /* W1 — what we just invalidated */
+    prevTokensHash:   _priorEntry.tokensHash    || ''
   };
   figma.root.setPluginData('dtf-component-versions', JSON.stringify(existingVersions));
 

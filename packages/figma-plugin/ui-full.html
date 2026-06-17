@@ -4033,7 +4033,8 @@ function renderBuilderMeta(versions, currentStructureHashes, currentPrototypeHas
       for (var ci = 0; ci < v.componentSets.length; ci++){
         var cs = v.componentSets[ci];
         if (!cs) continue;
-        if (cs.variants)  totVariants += Object.keys(cs.variants).length;
+        if (cs.variantCount)  totVariants += (cs.variantCount|0);
+        else if (cs.variants) totVariants += Object.keys(cs.variants).length;
         if (cs.bindings)  totBindings += (cs.bindings|0);
         if (cs.reactions) totReactions += (cs.reactions|0);
       }
