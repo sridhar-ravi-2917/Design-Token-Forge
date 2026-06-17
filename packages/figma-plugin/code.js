@@ -120,14 +120,15 @@ var REQUIRED_COMPSIZE_VARS = [
   { name: 'icon-button/icon container',  defaultVal: 18 },
   /* Menu Button — auto-created when token sync hasn't run yet.
      Values match the base-density row in menu-button.tokens.css. */
-  { name: 'menu-button/height',       defaultVal: 36 },
-  { name: 'menu-button/padding-x',    defaultVal: 12 },
-  { name: 'menu-button/chevron-pe',   defaultVal: 8  },
-  { name: 'menu-button/gap',          defaultVal: 4  },
-  { name: 'menu-button/icon-size',    defaultVal: 18 },
-  { name: 'menu-button/chevron-size', defaultVal: 14 },
-  { name: 'menu-button/font-size',    defaultVal: 14 },
-  { name: 'menu-button/radius',       defaultVal: 6  },
+  { name: 'menu-button/height',         defaultVal: 36 },
+  { name: 'menu-button/padding-x',      defaultVal: 12 },
+  { name: 'menu-button/padding-x-icon', defaultVal: 10 },
+  { name: 'menu-button/chevron-pe',     defaultVal: 8  },
+  { name: 'menu-button/gap',            defaultVal: 4  },
+  { name: 'menu-button/icon-size',      defaultVal: 18 },
+  { name: 'menu-button/chevron-size',   defaultVal: 14 },
+  { name: 'menu-button/font-size',      defaultVal: 14 },
+  { name: 'menu-button/radius',         defaultVal: 6  },
   { name: 'menu-button/radius-rounded', defaultVal: 9999 }
 ];
 log('code.js loaded — version ' + CODE_VERSION);
@@ -1814,8 +1815,8 @@ var MENU_BUTTON_BLUEPRINT = {
       bottomLeftRadius:  'menu-button/radius',
       bottomRightRadius: 'menu-button/radius'
     },
-    /* Leading icon wrapper: padL = padding-x (outer lead), padR = gap (space to text). */
-    iconWrapperPadL:    'menu-button/padding-x',
+    /* Leading icon wrapper: padL = padding-x-icon (tighter when icon present), padR = gap (space to text). */
+    iconWrapperPadL:    'menu-button/padding-x-icon',
     iconWrapperPadR:    'menu-button/gap',
     /* Text wrapper: padL when first slot (text-only master) = padding-x; padR = gap (space to chevron). */
     textWrapperPadL:    'menu-button/padding-x',
