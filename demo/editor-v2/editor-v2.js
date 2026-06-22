@@ -340,12 +340,17 @@
     // cm-outline*/cm-separator) encode "contrast against bg" and
     // assume bg sits at the LIGHT end of its mode's palette. For
     // a polarity-inverted surface like `inverse` (bg pinned at the
-    // dark end in light mode and vice versa), those deltas have
-    // to flip or ct-default falls past the end of the ladder and
-    // clamps back onto bg — invisible text. cm-bg/cm-bg-hover/
-    // cm-bg-pressed encode ELEVATION (raised component, hover
-    // depression) which is direction-agnostic, so they don't flip.
-    var polarity = (surfaceId === 'inverse' && isPolaritySensitive(propId)) ? -1 : 1;
+    // dark end in light mode), those deltas have to flip or
+    // ct-default falls past the end of the ladder and clamps back
+    // onto bg — invisible text.
+    //
+    // In DARK mode the inverse bg is ALSO at step 900 (always-dark
+    // surface — snackbars/toasts). tonalDir('dark')=-1 already drives
+    // deltas toward lighter steps, so a second polarity flip here
+    // would double-negate and push tokens PAST step 900 into 'black'.
+    // Only apply the polarity flip in light mode. cm-bg/cm-bg-hover/
+    // cm-bg-pressed encode ELEVATION — direction-agnostic, no flip.
+    var polarity = (surfaceId === 'inverse' && isPolaritySensitive(propId) && mode === 'light') ? -1 : 1;
     return stepRel(parentStep, prop.defaultDelta * tonalDir(mode) * polarity);
   }
   function resolveT2Step(surfaceId, propId, mode) {

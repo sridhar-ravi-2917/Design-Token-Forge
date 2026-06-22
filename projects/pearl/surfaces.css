@@ -276,21 +276,21 @@
   --surface-float-cm-outline-pressed: #747474;
   --surface-float-cm-separator: #6A6A6A;
   --surface-inverse-bg: #111111;
-  --surface-inverse-subtle: #000000;
-  --surface-inverse-strong: #000000;
-  --surface-inverse-outline: #000000;
-  --surface-inverse-separator: #000000;
-  --surface-inverse-ct-default: #000000;
-  --surface-inverse-ct-strong: #000000;
-  --surface-inverse-ct-subtle: #5E5E5E;
-  --surface-inverse-ct-faint: #747474;
-  --surface-inverse-cm-bg: #000000;
-  --surface-inverse-cm-bg-hover: #000000;
-  --surface-inverse-cm-bg-pressed: #000000;
-  --surface-inverse-cm-outline: #000000;
-  --surface-inverse-cm-outline-hover: #000000;
-  --surface-inverse-cm-outline-pressed: #000000;
-  --surface-inverse-cm-separator: #000000;
+  --surface-inverse-subtle: #1F1F1F;
+  --surface-inverse-strong: #2E2E2E;
+  --surface-inverse-outline: #3E3E3E;
+  --surface-inverse-separator: #3E3E3E;
+  --surface-inverse-ct-default: #DDDDDD;
+  --surface-inverse-ct-strong: #F9F9F9;
+  --surface-inverse-ct-subtle: #8E8E8E;
+  --surface-inverse-ct-faint: #7C7C7C;
+  --surface-inverse-cm-bg: #1F1F1F;
+  --surface-inverse-cm-bg-hover: #1F1F1F;
+  --surface-inverse-cm-bg-pressed: #2E2E2E;
+  --surface-inverse-cm-outline: #5E5E5E;
+  --surface-inverse-cm-outline-hover: #6A6A6A;
+  --surface-inverse-cm-outline-pressed: #6A6A6A;
+  --surface-inverse-cm-separator: #5E5E5E;
 }
 
 /* Back-compat aliases (deprecated) — container/over-container → card/modal */
