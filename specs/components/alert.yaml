@@ -1,0 +1,138 @@
+component: alert
+prefix: alert
+category: Display & Feedback
+description: Persistent inline status banner communicating errors, warnings, success, or info. Dismissible with optional close button.
+
+classification:
+  type: display-feedback
+  has_variants: true
+  has_roles: true
+  density_modes: [small, base, large]
+
+variants:
+  structural:
+    - name: soft
+      description: Tinted container background (default)
+      default: true
+    - name: filled
+      description: Solid role-colored background
+    - name: outlined
+      description: Transparent background with role-colored border
+
+roles:
+  - brand
+  - danger
+  - success
+  - warning
+  - info
+  - neutral
+
+sizes: [small, base, large]
+
+slots:
+  - name: icon
+    element: .alert__icon
+    tokens: [size, color]
+  - name: title
+    element: .alert__title
+    tokens: [font-size, font-weight, color]
+  - name: body
+    element: .alert__body
+    tokens: [font-size, color]
+  - name: close
+    element: .alert__close
+    tokens: [size, color, hover-color]
+  - name: accent
+    element: .alert__accent (left bar)
+    tokens: [width, radius, color]
+
+states:
+  - default
+  - dismissing
+
+variables:
+  shape:
+    - name: --alert-radius
+      default: var(--radius-md)
+    - name: --alert-border-width
+      default: 1px
+    - name: --alert-border-style
+      default: solid
+    - name: --alert-accent-width
+      default: 4px
+    - name: --alert-accent-radius
+      default: var(--radius-full)
+
+  dimension:
+    - name: --alert-padding-y-{size}
+      per_density: true
+      count: 3
+      range: [10px, 18px]
+    - name: --alert-padding-x-{size}
+      per_density: true
+      count: 3
+      range: [12px, 20px]
+    - name: --alert-gap-{size}
+      per_density: true
+      count: 3
+    - name: --alert-content-gap-{size}
+      per_density: true
+      count: 3
+      description: Gap between title and body
+    - name: --alert-font-size-{size}
+      per_density: true
+      count: 3
+    - name: --alert-title-font-size-{size}
+      per_density: true
+      count: 3
+    - name: --alert-icon-size-{size}
+      per_density: true
+      count: 3
+    - name: --alert-close-size-{size}
+      per_density: true
+      count: 3
+
+  surface:
+    - name: --alert-{role}-bg
+      description: Soft/default bg per role (6 vars)
+    - name: --alert-{role}-fg
+      description: Text color per role (6 vars)
+    - name: --alert-{role}-accent
+      description: Accent bar color per role (6 vars)
+    - name: --alert-{role}-border
+      description: Border color per role (6 vars)
+    - name: --alert-{role}-link-color
+      description: Inline link color per role (6 vars)
+
+  typography:
+    - name: --alert-font-family
+      default: var(--font-family-sans)
+    - name: --alert-font-weight
+      default: var(--font-weight-normal)
+    - name: --alert-title-font-weight
+      default: var(--font-weight-semibold)
+    - name: --alert-line-height
+      default: var(--line-height-relaxed)
+
+  motion:
+    - name: --alert-transition-property
+      default: opacity, height, padding, margin
+    - name: --alert-transition-duration
+      default: var(--duration-normal)
+    - name: --alert-transition-easing
+      default: var(--easing-in-out)
+
+  a11y:
+    - name: --alert-focus-ring-color
+      default: var(--focus-ring-color)
+    - name: --alert-focus-ring-width
+      default: var(--focus-ring-width)
+    - name: --alert-min-tap-target
+      default: 44px
+      description: Close button tap target
+
+summary:
+  total_variables: ~91
+  per_density_tokens: 24
+  variant_count: 3
+  role_count: 6

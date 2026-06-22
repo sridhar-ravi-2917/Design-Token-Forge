@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 07 — Roadmap
 
 Phased plan, ordered for **value delivery + risk reduction**. Each phase ends

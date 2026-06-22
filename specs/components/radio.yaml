@@ -220,7 +220,7 @@ variables:
   # ────────────────────────────────────────────────────────────
   # ♿ ACCESSIBILITY  (7 variables)
   # ────────────────────────────────────────────────────────────
-  accessibility:
+  a11y:
     - name: "--radio-focus-outline-width"
       default: "2px"
     - name: "--radio-focus-outline-color"

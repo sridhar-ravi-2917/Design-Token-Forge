@@ -1,0 +1,141 @@
+component: file-upload
+prefix: file-upload
+category: Form Input
+description: File selection component supporting drag-and-drop dropzone and compact button modes. Full 10-step density ladder with button mode participating in the cross-component height ladder.
+
+classification:
+  type: form-input
+  has_variants: true
+  has_roles: true
+  density_modes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+modes:
+  - name: dropzone
+    description: Drag-and-drop zone with icon, title, description, and browse button (default)
+    default: true
+  - name: button
+    description: Compact single-button trigger; no dropzone
+
+variants:
+  structural:
+    - name: outlined
+      description: Dashed outline border (default)
+      default: true
+    - name: filled
+      description: Solid role-colored background
+    - name: soft
+      description: Tinted container background
+
+roles:
+  - brand
+  - danger
+  - success
+  - warning
+  - info
+  - neutral
+
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+slots:
+  - name: dropzone
+    element: .file-upload__dropzone
+    tokens: [bg, border, border-color, radius, padding, min-height]
+  - name: icon
+    element: .file-upload__icon
+    tokens: [size, color]
+  - name: title
+    element: .file-upload__title
+    tokens: [font-size, font-weight, color]
+  - name: description
+    element: .file-upload__description
+    tokens: [font-size, color]
+  - name: file-list
+    element: .file-upload__file-list
+    tokens: [gap]
+  - name: file-item
+    element: .file-upload__file-item
+    tokens: [height, padding, bg, border, font-size]
+  - name: file-remove
+    element: .file-upload__file-remove
+    tokens: [size, color]
+
+states:
+  - default
+  - drag-over
+  - error
+  - disabled
+  - loading
+
+variables:
+  shape:
+    - name: --file-upload-radius-{size}
+      per_density: true
+      count: 10
+    - name: --file-upload-border-width
+      default: 2px
+    - name: --file-upload-border-style
+      default: dashed
+    - name: --file-upload-shadow
+      default: var(--shadow-none)
+    - name: --file-upload-shadow-hover
+      default: var(--shadow-xs)
+
+  dimension:
+    - name: --file-upload-btn-height-{size}
+      per_density: true
+      count: 10
+      description: Button mode height — matches cross-component height ladder
+    - name: --file-upload-drop-min-height-{size}
+      per_density: true
+      count: 10
+    - name: --file-upload-padding-x-{size}
+      per_density: true
+      count: 10
+    - name: --file-upload-padding-y-{size}
+      per_density: true
+      count: 10
+    - name: --file-upload-font-size-{size}
+      per_density: true
+      count: 10
+
+  surface:
+    - name: --file-upload-bg
+      description: Idle dropzone bg
+    - name: --file-upload-border-color
+      description: Idle border color
+    - name: --file-upload-drag-over-bg
+      description: Drag-over dropzone bg
+    - name: --file-upload-drag-over-border
+      description: Drag-over border (solid, role-colored)
+    - name: --file-upload-error-bg
+      description: Error dropzone bg
+    - name: --file-upload-error-border
+      description: Error border color
+
+  typography:
+    - name: --file-upload-font-family
+      default: var(--font-family-sans)
+    - name: --file-upload-title-font-weight
+      default: var(--font-weight-semibold)
+    - name: --file-upload-desc-color
+      default: var(--surface-base-ct-subtle)
+
+  motion:
+    - name: --file-upload-transition-duration
+      default: var(--duration-fast)
+    - name: --file-upload-remove-transition
+      default: opacity, height, margin
+
+  a11y:
+    - name: --file-upload-focus-ring-color
+      default: var(--focus-ring-color)
+    - name: --file-upload-disabled-opacity
+      default: "0.5"
+    - name: --file-upload-min-tap-target
+      default: 44px
+
+summary:
+  total_variables: ~120
+  per_density_tokens: 50
+  variant_count: 3
+  role_count: 6

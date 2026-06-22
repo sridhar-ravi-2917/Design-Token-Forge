@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 09 — Open Questions
 
 Things we haven't decided. Each should resolve in v0.2 or v0.3.

@@ -64,7 +64,7 @@
   --select-height-big: var(--spacing-48);
   --select-height-huge: var(--spacing-56);
   --select-height-mega: var(--spacing-64);
-  --select-height-ultra: var(--spacing-80);
+  --select-height-ultra: var(--spacing-72);
 
   /* Horizontal padding per density mode */
   --select-padding-x-micro: var(--spacing-6);

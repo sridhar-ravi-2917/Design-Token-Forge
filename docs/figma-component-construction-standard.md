@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # The Definitive Figma Component Construction Standard
 
 > **Version**: 1.0 · **Last Updated**: May 2026  

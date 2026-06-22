@@ -108,6 +108,7 @@ variables:
 
   # ────────────────────────────────────────────────────────────
   # 🎨 SURFACE — OUTLINED VARIANT  (15 variables)
+  # surface:
   # ────────────────────────────────────────────────────────────
   surface_outline:
     - name: "--textarea-outlined-bg"
@@ -248,7 +249,7 @@ variables:
   # ────────────────────────────────────────────────────────────
   # ♿ ACCESSIBILITY  (1 variable)
   # ────────────────────────────────────────────────────────────
-  accessibility:
+  a11y:
     - name: "--textarea-min-tap-target"
       default: "44px"
     total: 1

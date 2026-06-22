@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # Editor v2 — Tier Architecture Spec
 
 > Authoritative design doc for the T1 (Roles) → T2 (Surfaces) → T3 (Components) editing experience.

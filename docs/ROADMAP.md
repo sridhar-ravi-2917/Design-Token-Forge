@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Design Token Forge — Progressive Roadmap
 
 ## How to Use This Roadmap

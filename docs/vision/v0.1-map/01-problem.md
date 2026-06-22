@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 01 — The Problem
 
 ## The wound, in one sentence

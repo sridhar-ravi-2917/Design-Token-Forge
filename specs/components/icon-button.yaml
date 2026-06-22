@@ -129,6 +129,14 @@ variables:
     total: 72
 
   # ────────────────────────────────────────────────────────────
+  # 🔤 TYPOGRAPHY  (0 text label — icon-only component)
+  # ────────────────────────────────────────────────────────────
+  typography:
+    note: "Icon-button is a label-free component. Icon color is the only typographic token."
+    - name: "--icon-btn-icon-size"
+      default: "1em"
+
+  # ────────────────────────────────────────────────────────────
   # 🧩 SLOTS  (2 variables)
   # ────────────────────────────────────────────────────────────
   slots:

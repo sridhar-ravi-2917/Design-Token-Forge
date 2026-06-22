@@ -1,3 +1,6 @@
+<!-- status: superseded -->
+<!-- superseded-by: docs/vision/v0.2-map/ -->
+
 # Wireframe — Archetype Gallery (the Catalog UI)
 
 **Goal:** Show what a designer / DS lead sees after archaeology runs on their

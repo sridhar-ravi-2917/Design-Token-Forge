@@ -73,16 +73,16 @@
   --datepicker-grid-gap-y: var(--spacing-2);
 
   /* Header height per density */
-  --datepicker-header-height-micro: var(--spacing-20);
-  --datepicker-header-height-tiny: var(--spacing-24);
-  --datepicker-header-height-small: var(--spacing-32);
-  --datepicker-header-height-base: var(--spacing-36);
-  --datepicker-header-height-medium: var(--spacing-40);
-  --datepicker-header-height-large: var(--spacing-48);
-  --datepicker-header-height-big: var(--spacing-54);
-  --datepicker-header-height-huge: var(--spacing-60);
-  --datepicker-header-height-mega: var(--spacing-72);
-  --datepicker-header-height-ultra: var(--spacing-80);
+  --datepicker-header-h-micro: var(--spacing-20);
+  --datepicker-header-h-tiny: var(--spacing-24);
+  --datepicker-header-h-small: var(--spacing-32);
+  --datepicker-header-h-base: var(--spacing-36);
+  --datepicker-header-h-medium: var(--spacing-40);
+  --datepicker-header-h-large: var(--spacing-48);
+  --datepicker-header-h-big: var(--spacing-54);
+  --datepicker-header-h-huge: var(--spacing-60);
+  --datepicker-header-h-mega: var(--spacing-72);
+  --datepicker-header-h-ultra: var(--spacing-80);
   --datepicker-header-gap: var(--spacing-8);
 
   /* Nav button size per density */
@@ -98,16 +98,16 @@
   --datepicker-nav-size-ultra: var(--spacing-56);
 
   /* Weekday row height per density */
-  --datepicker-weekday-height-micro: var(--spacing-16);
-  --datepicker-weekday-height-tiny: var(--spacing-20);
-  --datepicker-weekday-height-small: var(--spacing-24);
-  --datepicker-weekday-height-base: var(--spacing-28);
-  --datepicker-weekday-height-medium: var(--spacing-32);
-  --datepicker-weekday-height-large: var(--spacing-36);
-  --datepicker-weekday-height-big: var(--spacing-40);
-  --datepicker-weekday-height-huge: var(--spacing-44);
-  --datepicker-weekday-height-mega: var(--spacing-50);
-  --datepicker-weekday-height-ultra: var(--spacing-56);
+  --datepicker-weekday-h-micro: var(--spacing-16);
+  --datepicker-weekday-h-tiny: var(--spacing-20);
+  --datepicker-weekday-h-small: var(--spacing-24);
+  --datepicker-weekday-h-base: var(--spacing-28);
+  --datepicker-weekday-h-medium: var(--spacing-32);
+  --datepicker-weekday-h-large: var(--spacing-36);
+  --datepicker-weekday-h-big: var(--spacing-40);
+  --datepicker-weekday-h-huge: var(--spacing-44);
+  --datepicker-weekday-h-mega: var(--spacing-50);
+  --datepicker-weekday-h-ultra: var(--spacing-56);
 
   /* Footer */
   --datepicker-footer-height: var(--spacing-40);
@@ -166,6 +166,8 @@
   --datepicker-selected-fg: var(--brand-on-component);
   --datepicker-selected-bg-hover: var(--brand-component-bg-hover);
   --datepicker-selected-fg-hover: var(--brand-on-component);
+  --datepicker-selected-bg-pressed: var(--brand-component-bg-pressed);
+  --datepicker-selected-fg-pressed: var(--brand-on-component);
   --datepicker-selected-border-color: transparent;
   --datepicker-selected-shadow: var(--shadow-xs);
 

@@ -1,0 +1,113 @@
+component: progress-bar
+prefix: progress
+category: Display & Feedback
+description: Linear progress indicator for showing determinate or indeterminate progress. Supports buffer, striped, and animated fill variants.
+
+classification:
+  type: display-indicator
+  has_variants: true
+  has_roles: true
+  density_modes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+variants:
+  structural:
+    - name: filled
+      description: Solid fill bar on thin track (default)
+      default: true
+    - name: outlined
+      description: Fill bar with outlined track border
+    - name: soft
+      description: Tinted track background with fill
+
+roles:
+  - brand
+  - danger
+  - success
+  - warning
+  - info
+  - neutral
+
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+slots:
+  - name: track
+    element: .progress-bar__track
+    tokens: [height, radius, bg]
+  - name: fill
+    element: .progress-bar__fill
+    tokens: [bg, radius]
+  - name: buffer
+    element: .progress-bar__buffer
+    tokens: [bg, opacity]
+  - name: label
+    element: .progress-bar__label
+    tokens: [font-size, color]
+  - name: helper
+    element: .progress-bar__helper
+    tokens: [font-size, color]
+
+states:
+  - default
+  - indeterminate
+  - disabled
+
+variables:
+  shape:
+    - name: --progress-radius-{size}
+      per_density: true
+      count: 10
+      default: var(--radius-full)
+    - name: --progress-border-width
+      default: 0px
+    - name: --progress-shadow
+      default: var(--shadow-none)
+
+  dimension:
+    - name: --progress-height-{size}
+      per_density: true
+      count: 10
+      range: [2px, 24px]
+      description: Track height — visual thickness ladder
+    - name: --progress-gap-{size}
+      per_density: true
+      count: 10
+      description: Gap between track and label
+    - name: --progress-font-size-{size}
+      per_density: true
+      count: 10
+
+  surface:
+    - name: --progress-{role}-fill
+      description: Fill bar color per role (6 vars)
+    - name: --progress-{role}-soft-track
+      description: Soft track bg per role (6 vars)
+    - name: --progress-{role}-label
+      description: Label text color per role (6 vars)
+    - name: --progress-track-bg
+      description: Default track background
+    - name: --progress-buffer-bg
+      description: Buffer overlay color
+
+  typography:
+    - name: --progress-font-family
+      default: var(--font-family-sans)
+    - name: --progress-label-font-weight
+      default: var(--font-weight-normal)
+
+  motion:
+    - name: --progress-transition-duration
+      default: var(--duration-normal)
+    - name: --progress-indeterminate-duration
+      default: 1.5s
+    - name: --progress-stripe-duration
+      default: 1s
+
+  a11y:
+    - name: --progress-disabled-opacity
+      default: "0.5"
+
+summary:
+  total_variables: ~115
+  per_density_tokens: 30
+  variant_count: 3
+  role_count: 6

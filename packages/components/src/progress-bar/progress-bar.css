@@ -34,6 +34,7 @@
   gap: var(--_pg-gap);
   width: 100%;
   max-width: var(--progress-max-width);
+  padding-inline: 0px;
   font-family: var(--progress-font-family);
   font-size: var(--_pg-fs);
   font-weight: var(--progress-font-weight);

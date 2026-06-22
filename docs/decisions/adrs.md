@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # ADR-001: CSS Custom Properties as the Single Styling Mechanism
 
 ## Status

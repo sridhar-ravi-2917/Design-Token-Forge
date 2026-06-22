@@ -35,6 +35,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding-inline: 0px;
   font-family: var(--ring-font-family);
   font-weight: var(--ring-font-weight);
   line-height: var(--ring-line-height);

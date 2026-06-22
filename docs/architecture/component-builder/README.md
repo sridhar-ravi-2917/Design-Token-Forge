@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Component Builder Architecture
 
 Foundational contracts for building DTF components — both the CSS layer and the

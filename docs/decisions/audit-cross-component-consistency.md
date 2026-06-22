@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # Cross-Component Consistency Audit
 
 **Date**: 2026-03-20  

@@ -1,3 +1,6 @@
+<!-- status: superseded -->
+<!-- superseded-by: docs/vision/v0.2-map/ -->
+
 # Wireframe — Compose from Intent (Figma plugin)
 
 **Goal:** Designer describes what they want, plugin instantiates real L1

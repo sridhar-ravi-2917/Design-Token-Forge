@@ -151,6 +151,11 @@
   --alert-neutral-filled-bg:  var(--surface-base-cm-bg);
   --alert-neutral-filled-fg:  var(--surface-base-ct-strong);
 
+  /* Hover/pressed fills — alert is display-only; these equal default fill.
+     Required so the AA on-component derivation check covers all fill states. */
+  --alert-brand-filled-bg-hover:    var(--brand-component-bg-default);
+  --alert-brand-filled-bg-pressed:  var(--brand-component-bg-default);
+
   /* ── outline variant border  (6 vars) ──────────── */
   --alert-brand-outlined-border: var(--brand-component-bg-default);
   --alert-info-outlined-border:    var(--info-component-bg-default);

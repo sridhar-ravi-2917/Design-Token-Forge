@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Variant Axes
 
 A variant axis is a **dimension along which a component changes**. Every axis

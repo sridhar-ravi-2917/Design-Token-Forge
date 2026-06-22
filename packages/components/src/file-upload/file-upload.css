@@ -40,6 +40,7 @@
   flex-direction: column;
   inline-size: var(--file-upload-inline-size);
   max-width: var(--file-upload-max-width);
+  padding-inline: 0px;
   font-family: var(--file-upload-font-family);
   gap: var(--file-upload-label-gap);
 

@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 03 — Surfaces
 
 DTF core is one thing. **Surfaces** are how humans and tools interact with it.

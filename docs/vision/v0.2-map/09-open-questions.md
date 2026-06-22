@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 09 — Open Questions (v0.2)
 
 > **Delta from [v0.1](../v0.1-map/09-open-questions.md):** 3 questions

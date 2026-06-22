@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # Color Generator — Study & Plan
 
 > **Status:** Research / Planning — NOT approved for implementation yet.  

@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Token Naming and Aliasing
 
 The naming rules below are non-negotiable. Drift here causes the silent-fill

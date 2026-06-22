@@ -138,6 +138,11 @@
   --toast-neutral-filled-bg:  var(--surface-base-cm-bg);
   --toast-neutral-filled-fg:  var(--surface-base-ct-strong);
 
+  /* Hover/pressed fills — toast is display-only; these equal default fill.
+     Required so the AA on-component derivation check covers all fill states. */
+  --toast-brand-filled-bg-hover:    var(--brand-component-bg-default);
+  --toast-brand-filled-bg-pressed:  var(--brand-component-bg-default);
+
   /* ── outline variant border  (6 vars) ──────────── */
   --toast-brand-outlined-border:  var(--brand-component-bg-default);
   --toast-info-outlined-border:   var(--info-component-bg-default);

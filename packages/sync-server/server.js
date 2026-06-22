@@ -153,6 +153,27 @@ export function parseCSSTokens(filePath) {
   while ((m = re.exec(lightBlock)) !== null) light[m[1]] = m[2].trim();
   re.lastIndex = 0;
   while ((m = re.exec(darkBlock)) !== null)  dark[m[1]]  = m[2].trim();
+
+  // Resolve CSS var(--name) references within each block (handles back-compat
+  // aliases like --surface-container-ct-strong: var(--surface-card-ct-strong)).
+  function resolveVarRefs(map) {
+    const MAX_DEPTH = 8;
+    for (const key of Object.keys(map)) {
+      let val = map[key], depth = 0;
+      while (depth < MAX_DEPTH && typeof val === 'string' && /^var\(--/.test(val)) {
+        const refMatch = val.match(/^var\(--([a-zA-Z0-9_-]+)\)$/);
+        if (!refMatch) break;
+        const refVal = map[refMatch[1]];
+        if (!refVal || refVal === val) break;
+        val = refVal;
+        depth++;
+      }
+      if (val !== map[key] && !/^var\(--/.test(val)) map[key] = val;
+    }
+  }
+  resolveVarRefs(light);
+  resolveVarRefs(dark);
+
   return { light, dark };
 }
 
@@ -297,7 +318,13 @@ function extrasPath(cssName) {
 // Matches reference: surfaces/, content/, component/
 
 function surfacePropToT2Path(prop) {
-  // bg, hover, pressed, outline, separator → surfaces/*
+  // Backward-compat: CSS still uses old names hover/pressed;
+  // Figma variables were renamed to subtle/strong via renames.json.
+  // Map old CSS names → new Figma variable names so values are not lost.
+  if (prop === 'hover')   prop = 'subtle';
+  if (prop === 'pressed') prop = 'strong';
+  if (prop === 'elevated') prop = 'strong';
+  // bg, subtle, strong, outline, separator → surfaces/*
   if (['bg', 'subtle', 'strong', 'outline', 'separator'].includes(prop))
     return `default/surfaces/${prop}`;
   // ct-* → content/*
@@ -426,10 +453,16 @@ function buildT1(surfaceTokens, semanticTokens, aliasMap, extrasTokens) {
   }
 
   // Surface variables → surface/{surfaceName}/{prop}
-  for (const [name, lVal] of Object.entries(surfaceTokens.light)) {
+  // Use union of light+dark keys so back-compat aliases (in a :root block after
+  // [data-theme="dark"]) are also included — they land in surfaceTokens.dark only.
+  const _surfaceKeys = new Set([...Object.keys(surfaceTokens.light), ...Object.keys(surfaceTokens.dark)]);
+  for (const name of _surfaceKeys) {
+    const lVal = surfaceTokens.light[name] || surfaceTokens.dark[name];
+    if (!lVal) continue;
     const { fullPath } = surfaceFigmaPath(name);
     const dVal = surfaceTokens.dark[name] || lVal;
     const type = detectType(name, lVal);
+    if (type !== 'COLOR' && type !== 'FLOAT') continue; // skip unresolved var() strings
     const pk = palSrc[name] || null;
     const lAlias = resolve(lVal, pk);
     const dAlias = resolve(dVal, pk);

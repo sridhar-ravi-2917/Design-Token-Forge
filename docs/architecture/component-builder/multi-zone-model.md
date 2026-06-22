@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Multi-Zone Model — Split / Menu / Segmented / Breadcrumb
 
 This is the contract for components with **two or more independently

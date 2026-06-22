@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Tokn Color Token Architecture
 
 > Comprehensive guide to the Design Token Forge 4-tier color system.

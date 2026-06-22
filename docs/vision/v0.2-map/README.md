@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # DTF Vision — v0.2
 
 **Status:** draft — awaiting review

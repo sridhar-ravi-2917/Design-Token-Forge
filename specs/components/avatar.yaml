@@ -1,0 +1,142 @@
+component: avatar
+prefix: avatar
+category: Display & Feedback
+description: Fixed-size circular or squircle container displaying a person's photo, initials, or icon fallback.
+
+classification:
+  type: display-feedback
+  has_variants: false
+  has_roles: true
+  density_modes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+variants:
+  structural: []
+
+shapes:
+  - name: circle
+    description: Fully rounded (default)
+    default: true
+  - name: squircle
+    description: 25% border-radius
+  - name: rounded-square
+    description: radius-lg corners
+
+roles:
+  - brand
+  - danger
+  - success
+  - warning
+  - info
+  - neutral
+
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+slots:
+  - name: image
+    element: img
+    tokens: [object-fit, object-position]
+  - name: initials
+    element: span.avatar__initials
+    tokens: [font-size, color, background]
+  - name: icon
+    element: span.avatar__icon
+    tokens: [size, color]
+  - name: status
+    element: span.avatar__status
+    tokens: [color, size, position]
+
+states:
+  - default
+  - hover (interactive mode only)
+  - focus-visible (interactive mode only)
+
+variables:
+  shape:
+    - name: --avatar-radius-{size}
+      per_density: true
+      count: 10
+      default: var(--radius-full)
+      description: Border-radius for default circle shape
+    - name: --avatar-radius-squircle
+      default: 25%
+    - name: --avatar-radius-rounded-square
+      default: var(--radius-lg)
+    - name: --avatar-border-width
+      default: 0px
+    - name: --avatar-border-style
+      default: solid
+    - name: --avatar-border-color
+      default: var(--surface-base-cm-outline)
+    - name: --avatar-shadow
+      default: var(--shadow-none)
+    - name: --avatar-shadow-strong
+      default: var(--shadow-sm)
+
+  dimension:
+    - name: --avatar-size-{size}
+      per_density: true
+      count: 10
+      range: [20px, 72px]
+      description: Width and height (square container)
+    - name: --avatar-group-offset-{size}
+      per_density: true
+      count: 10
+      description: Negative margin for group overlap (approx -25% of size)
+
+  surface:
+    - name: --avatar-bg
+      default: var(--surface-base-cm-bg)
+    - name: --avatar-bg-hover
+      default: var(--surface-base-cm-bg-hover)
+    - name: --avatar-fg
+      default: var(--surface-base-ct-default)
+    - name: --avatar-{role}-bg
+      description: Background per role (6 roles)
+    - name: --avatar-{role}-fg
+      description: Foreground per role (6 roles)
+
+  typography:
+    - name: --avatar-font-family
+      default: var(--font-family-sans)
+    - name: --avatar-font-weight
+      default: var(--font-weight-semibold)
+    - name: --avatar-font-size-{size}
+      per_density: true
+      count: 10
+      description: Initials font size (approx 40% of avatar size)
+
+  slots:
+    status-dot:
+      - name: --avatar-status-size
+        default: 10px
+      - name: --avatar-status-online-color
+        default: var(--color-success-500)
+      - name: --avatar-status-away-color
+        default: var(--color-warning-400)
+      - name: --avatar-status-busy-color
+        default: var(--color-danger-500)
+      - name: --avatar-status-offline-color
+        default: var(--surface-base-outline)
+
+  motion:
+    - name: --avatar-transition-property
+      default: box-shadow, opacity
+    - name: --avatar-transition-duration
+      default: var(--duration-fast)
+    - name: --avatar-transition-easing
+      default: var(--easing-in-out)
+
+  a11y:
+    - name: --avatar-focus-ring-color
+      default: var(--focus-ring-color)
+    - name: --avatar-focus-ring-width
+      default: var(--focus-ring-width)
+    - name: --avatar-focus-ring-offset
+      default: var(--focus-ring-offset)
+
+summary:
+  total_variables: ~80
+  per_density_tokens: 30
+  variant_count: 0
+  role_count: 6
+  shape_count: 3

@@ -1,0 +1,141 @@
+component: toast
+prefix: toast
+category: Display & Feedback
+description: Ephemeral overlay notification that auto-dismisses. Communicates status, confirmations, or errors with optional action.
+
+classification:
+  type: overlay-notification
+  has_variants: true
+  has_roles: true
+  density_modes: [small, base, large]
+
+variants:
+  structural:
+    - name: soft
+      description: Tinted container background (default)
+      default: true
+    - name: filled
+      description: Solid role-colored background
+    - name: outlined
+      description: Transparent background with role-colored border
+
+roles:
+  - brand
+  - danger
+  - success
+  - warning
+  - info
+  - neutral
+
+sizes: [small, base, large]
+
+slots:
+  - name: icon
+    element: .toast__icon
+    tokens: [size, color]
+  - name: title
+    element: .toast__title
+    tokens: [font-size, font-weight, color]
+  - name: body
+    element: .toast__body
+    tokens: [font-size, color]
+  - name: action
+    element: .toast__action
+    tokens: [color, font-size]
+  - name: close
+    element: .toast__close
+    tokens: [size, color, hover-color]
+  - name: accent
+    element: .toast__accent
+    tokens: [width, radius, color]
+
+states:
+  - default
+  - dismissing
+  - persistent
+
+variables:
+  shape:
+    - name: --toast-radius
+      default: var(--radius-lg)
+    - name: --toast-border-width
+      default: 1px
+    - name: --toast-border-style
+      default: solid
+    - name: --toast-accent-width
+      default: 4px
+    - name: --toast-accent-radius
+      default: var(--radius-full)
+
+  dimension:
+    - name: --toast-padding-y-{size}
+      per_density: true
+      count: 3
+      range: [8px, 18px]
+    - name: --toast-padding-x-{size}
+      per_density: true
+      count: 3
+      range: [12px, 20px]
+    - name: --toast-gap-{size}
+      per_density: true
+      count: 3
+    - name: --toast-content-gap-{size}
+      per_density: true
+      count: 3
+    - name: --toast-font-size-{size}
+      per_density: true
+      count: 3
+    - name: --toast-icon-size-{size}
+      per_density: true
+      count: 3
+    - name: --toast-close-size-{size}
+      per_density: true
+      count: 3
+
+  surface:
+    - name: --toast-{role}-bg
+      description: Soft/default bg per role (6 vars)
+    - name: --toast-{role}-fg
+      description: Body text color per role (6 vars)
+    - name: --toast-{role}-filled-bg
+      description: Filled bg per role (6 vars)
+    - name: --toast-{role}-filled-fg
+      description: Filled fg per role — on-component (6 vars)
+    - name: --toast-{role}-outlined-border
+      description: Outlined border per role (6 vars)
+    - name: --toast-{role}-accent
+      description: Accent bar color per role (6 vars)
+    - name: --toast-{role}-link-color
+      description: Inline link color per role (6 vars)
+
+  typography:
+    - name: --toast-font-family
+      default: var(--font-family-sans)
+    - name: --toast-font-weight
+      default: var(--font-weight-normal)
+    - name: --toast-title-font-weight
+      default: var(--font-weight-semibold)
+    - name: --toast-line-height
+      default: var(--line-height-relaxed)
+
+  motion:
+    - name: --toast-transition-property
+      default: opacity, height, padding, margin
+    - name: --toast-transition-duration
+      default: var(--duration-normal)
+    - name: --toast-transition-easing
+      default: var(--easing-in-out)
+
+  a11y:
+    - name: --toast-focus-ring-color
+      default: var(--focus-ring-color)
+    - name: --toast-focus-ring-width
+      default: var(--focus-ring-width)
+    - name: --toast-min-tap-target
+      default: 44px
+
+summary:
+  total_variables: ~89
+  per_density_tokens: 21
+  variant_count: 3
+  role_count: 6

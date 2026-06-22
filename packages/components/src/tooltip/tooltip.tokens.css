@@ -81,6 +81,11 @@
   --tooltip-success-fg: var(--success-on-component);
   --tooltip-success-arrow-color: var(--success-component-bg-default);
 
+  /* Hover/pressed fills — tooltip is display-only; these equal default fill.
+     Required so the AA on-component derivation check covers all fill states. */
+  --tooltip-danger-bg-hover:   var(--danger-component-bg-default);
+  --tooltip-danger-bg-pressed: var(--danger-component-bg-default);
+
   /* ────────────────────────────────────────────────────────────
      ✏️ TYPOGRAPHY  (8 vars)
      ──────────────────────────────────────────────────────────── */

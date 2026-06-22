@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Component Variable Specification Template
 
 This document defines the standard template for specifying L1 component variables. Every component spec MUST follow this structure.

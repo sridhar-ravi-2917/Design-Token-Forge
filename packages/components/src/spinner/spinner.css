@@ -236,6 +236,7 @@
   letter-spacing: var(--spin-label-letter-spacing);
   color: var(--spin-label-color);
   opacity: var(--spin-label-opacity);
+  padding-inline: 0px;  /* RTL-ready logical property */
 }
 
 /* ════════════════════════════════════════════════════════════════

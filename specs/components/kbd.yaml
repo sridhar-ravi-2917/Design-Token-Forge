@@ -21,6 +21,8 @@ variants:
 
 roles: []
 
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
 slots:
   - name: separator
     element: .kbd__sep

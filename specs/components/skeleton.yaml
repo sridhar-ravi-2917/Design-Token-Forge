@@ -21,6 +21,8 @@ variants:
 
 roles: []
 
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
 slots:
   - name: shimmer
     element: "::after pseudo-element"

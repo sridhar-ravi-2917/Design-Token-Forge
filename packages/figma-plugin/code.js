@@ -61,7 +61,7 @@ var LEDGER_TOMBSTONE_TTL_MS = 60 * 1000;
   } catch (e) { /* first run or storage blocked — ignore */ }
 })();
 
-var CODE_VERSION = '2026-05-20-proto-hash-stable';
+var CODE_VERSION = '2026-06-18-dark-mode';
 
 /* ── Icon preview layout constants ─────────────────────────────────
    Single source of truth for the Primitives showcase preview box
@@ -2840,6 +2840,7 @@ async function generateComponentFromBlueprint(blueprint) {
 
   log('Presentation colors resolved from ' + (brightModeId ? 'system tokens' : 'fallback values'));
   log('Token check — HEADING: r=' + COLOR_HEADING.r.toFixed(2) + ' ACCENT: r=' + COLOR_ACCENT.r.toFixed(2) + ' HERO_BG: r=' + COLOR_HERO_BG.r.toFixed(2));
+  log('HERO detail — inverseModeId=' + inverseModeId + ' BG=#' + [COLOR_HERO_BG.r,COLOR_HERO_BG.g,COLOR_HERO_BG.b].map(function(c){return Math.round(c*255).toString(16).padStart(2,'0');}).join('') + ' CARD=#' + [COLOR_HERO_CARD.r,COLOR_HERO_CARD.g,COLOR_HERO_CARD.b].map(function(c){return Math.round(c*255).toString(16).padStart(2,'0');}).join('') + ' t2subtle=' + (t2Vars['default/surfaces/subtle']?'found':'MISSING'));
 
   /* Helper: safely bind a node's fill to a T2/T3 variable. Returns true on success. */
   function tryBindFill(node, varObj) {
@@ -2982,6 +2983,13 @@ async function generateComponentFromBlueprint(blueprint) {
     if (t2Col && brightModeId) {
       try { frame.setExplicitVariableModeForCollection(t2Col, brightModeId); } catch (e) {}
     }
+    /* Set T1 Light explicitly so designers can toggle this frame to Dark mode
+       via the Figma Variables panel — without an explicit T1 binding the mode
+       is not surfaced as switchable in the UI. */
+    if (t1Col) {
+      var _t1LightId = t1Modes['Light'] || t1Modes['light'] || null;
+      if (_t1LightId) { try { frame.setExplicitVariableModeForCollection(t1Col, _t1LightId); } catch (e) {} }
+    }
 
     /* Stamp owner so cleanup on next run can safely remove this.
        Pass ownerOverride to mark a section as shared across BPs
@@ -3082,7 +3090,17 @@ async function generateComponentFromBlueprint(blueprint) {
   iconPlaceholder = page.findOne(function(n) {
     return n.type === 'COMPONENT' && (n.name === 'Icon/Placeholder' || n.name === 'DTF/Icon/Placeholder');
   });
-  if (iconPlaceholder) log('Reusing existing icon placeholder: ' + iconPlaceholder.id);
+  if (iconPlaceholder) {
+    log('Reusing existing icon placeholder: ' + iconPlaceholder.id);
+    /* Rebind star fill — variable ID may have changed after a sync. */
+    var _starVec = iconPlaceholder.findOne(function(n) { return n.type === 'STAR'; });
+    if (_starVec) {
+      var _starColorVar = t2Vars[BP.masterContentColor];
+      if (_starColorVar) {
+        setPaintBoundToVariable(_starVec, 'fills', _starColorVar);
+      }
+    }
+  }
   if (!iconPlaceholder) {
     iconPlaceholderCreated = true;
     iconPlaceholder = figma.createComponent();
@@ -3198,6 +3216,18 @@ async function generateComponentFromBlueprint(blueprint) {
                 _vec.resize(20, 20);
                 _vec.x = 0; _vec.y = 0;
                 _vec.vectorPaths = [{ windingRule: 'NONE', data: _repairPaths[_dir] }];
+                /* Always rebind stroke color — variable ID may have changed
+                   after a sync (rename churn creates new var IDs). Without this,
+                   the chevron reverts to a literal black stroke on every rebuild. */
+                _vec.fills = [];
+                _vec.strokes = [{ type: 'SOLID', color: { r: 0.07, g: 0.07, b: 0.07 } }];
+                _vec.strokeWeight = 1.75;
+                _vec.strokeCap = 'ROUND';
+                _vec.strokeJoin = 'ROUND';
+                var _repairColorVar = t2Vars[BP.masterContentColor];
+                if (_repairColorVar) {
+                  setPaintBoundToVariable(_vec, 'strokes', _repairColorVar);
+                }
               }
             }
           } catch (e) {}
@@ -3316,7 +3346,7 @@ async function generateComponentFromBlueprint(blueprint) {
   heroBg.appendChild(heroTitle);
   heroTitle.x = HERO_PAD; heroTitle.y = hy;
 
-  /* Version badge next to title */
+  /* Version badge */
   var versionBadge = createBadge(CODE_VERSION, COLOR_ACCENT, COLOR_ON_COMP);
   heroBg.appendChild(versionBadge);
   versionBadge.x = HERO_PAD + heroTitle.width + 16; versionBadge.y = hy + 8;
@@ -3395,76 +3425,105 @@ async function generateComponentFromBlueprint(blueprint) {
   heroBg.resize(CARD_W, hy); /* Resize hero to exact computed height */
 
   /* ── Bind hero fills to actual T2/T3 variables (live theme response) ── */
+  var t1DarkModeId = t1Modes['Dark'] || t1Modes['dark'] || null;
+
   if (t2Col && inverseModeId) {
     try {
-      /* Set hero frame to inverse surface mode — all children inherit */
+      /* Set mode on the hero container itself */
       heroBg.setExplicitVariableModeForCollection(t2Col, inverseModeId);
-      /* surface-inverse is always dark — force T1 semantic tokens to
-         Dark mode so role colors (brand, danger, etc.) inside the hero
-         resolve to their dark-theme steps rather than light steps. */
-      var t1DarkModeId = t1Modes['Dark'] || t1Modes['dark'] || null;
       if (t1Col && t1DarkModeId) {
         try { heroBg.setExplicitVariableModeForCollection(t1Col, t1DarkModeId); } catch (e) {}
       }
 
-      /* Background */
+      /* Bind FRAME fills only — text nodes already use statically-resolved
+         colors (COLOR_HERO_TEXT etc.) which are correct from resolveVarColor.
+         Variable bindings on text nodes cause Figma to fall back to the default
+         mode value (surface-bright → black text) when the T2 variable has no
+         surface-inverse value populated yet (i.e. before Update Variables).
+         Each child frame also needs the explicit surface-inverse (+ T1 Dark)
+         mode so that setBoundVariableForPaint resolves the correct token value
+         at binding time — without it the static fill.color shows as #000000. */
       tryBindFill(heroBg, t2Vars['default/surfaces/bg']);
 
-      /* Title & subtitle text */
-      tryBindFill(heroTitle, t2Vars['default/content/strong']);
-      tryBindFill(heroSub, t2Vars['default/content/subtle']);
-
-      /* Divider */
-      tryBindFill(heroDivider, t2Vars['default/surfaces/separator']);
-
-      /* Info box backgrounds */
+      /* t1Box (tier1 info card) */
+      try { t1Box.setExplicitVariableModeForCollection(t2Col, inverseModeId); } catch (e) {}
+      if (t1Col && t1DarkModeId) { try { t1Box.setExplicitVariableModeForCollection(t1Col, t1DarkModeId); } catch (e) {} }
       tryBindFill(t1Box, t2Vars['default/surfaces/subtle']);
+
+      /* t2Box (tier2 info card) */
+      try { t2Box.setExplicitVariableModeForCollection(t2Col, inverseModeId); } catch (e) {}
+      if (t1Col && t1DarkModeId) { try { t2Box.setExplicitVariableModeForCollection(t1Col, t1DarkModeId); } catch (e) {} }
       tryBindFill(t2Box, t2Vars['default/surfaces/subtle']);
 
-      /* Info box text — faint & subtle */
-      tryBindFill(t1l2, t2Vars['default/content/subtle']);
-      tryBindFill(t1l3, t2Vars['default/content/faint']);
-      tryBindFill(t2l2, t2Vars['default/content/subtle']);
-      tryBindFill(t2l3, t2Vars['default/content/faint']);
-      tryBindFill(arrowNode, t2Vars['default/content/faint']);
-
-      /* Stat badge backgrounds + text labels — bind to variables */
+      /* stat badges */
       for (var sbBind = 0; sbBind < statBadges.length; sbBind++) {
+        try { statBadges[sbBind].setExplicitVariableModeForCollection(t2Col, inverseModeId); } catch (e) {}
+        if (t1Col && t1DarkModeId) { try { statBadges[sbBind].setExplicitVariableModeForCollection(t1Col, t1DarkModeId); } catch (e) {} }
         tryBindFill(statBadges[sbBind], t2Vars['default/surfaces/subtle']);
-        /* Bind the text child's fill too — it's always the first child */
-        var sbText = statBadges[sbBind].children && statBadges[sbBind].children[0];
-        if (sbText) tryBindFill(sbText, t2Vars['default/content/subtle']);
       }
-      /* "Token-bound" badge text uses success accent — bind to T2 content/default
-         so it reads correctly on the inverse surface regardless of theme */
-      var tokenBoundText = statBadges[2] && statBadges[2].children && statBadges[2].children[0];
-      if (tokenBoundText) tryBindFill(tokenBoundText, t2Vars['default/content/default']);
 
-      log('Hero: bound ALL children to T2 inverse surface variables');
+      /* divider */
+      try { heroDivider.setExplicitVariableModeForCollection(t2Col, inverseModeId); } catch (e) {}
+      if (t1Col && t1DarkModeId) { try { heroDivider.setExplicitVariableModeForCollection(t1Col, t1DarkModeId); } catch (e) {} }
+      tryBindFill(heroDivider, t2Vars['default/surfaces/separator']);
+
+      log('Hero: bound frame fills to T2 inverse surface variables');
     } catch (heroBindErr) {
       log('Hero binding skipped: ' + heroBindErr.message);
     }
   }
-  /* Bind T3 accent elements on hero (these need T3 collection mode set) */
+  /* Bind T3 accent elements on hero — only frame fills, not text nodes */
   if (t3Col && brandModeId) {
     try {
       heroBg.setExplicitVariableModeForCollection(t3Col, brandModeId);
-      tryBindFill(t1l1, t3Vars['content/default']); /* "TIER 1 — MASTERS" label */
-      tryBindFill(versionBadge, t3Vars['component/bg-default']); /* version badge bg */
+      /* version badge bg is a frame — bind it */
+      try { versionBadge.setExplicitVariableModeForCollection(t3Col, brandModeId); } catch (e) {}
+      tryBindFill(versionBadge, t3Vars['component/bg-default']);
     } catch (e) {}
   }
   if (t3Col && t3Modes['success']) {
     try {
-      /* t2l1 "TIER 2 — VARIANTS" — set success mode on t2Box so its children
-         resolve T3 vars in success mode, independent of the hero's brand mode. */
       t2Box.setExplicitVariableModeForCollection(t3Col, t3Modes['success']);
-      tryBindFill(t2l1, t3Vars['content/default']); /* success green */
-      /* Also bind "Token-bound" badge text to T3 success content */
-      var _tbText = statBadges[2] && statBadges[2].children && statBadges[2].children[0];
-      if (_tbText) tryBindFill(_tbText, t3Vars['content/default']);
-      /* Token-bound badge itself needs success mode so its T3 binding resolves correctly */
       statBadges[2].setExplicitVariableModeForCollection(t3Col, t3Modes['success']);
     } catch (e) {}
+  }
+
+  /* ── Bind hero TEXT node fills to T2/T3 content variables ────────────
+     Each text node needs its OWN explicit mode set before the fill is
+     bound — setBoundVariableForPaint resolves at the node's own mode
+     context, not the parent frame's inherited mode. */
+  if (t2Col && inverseModeId) {
+    var _bht = function(node, t3ModeId, varObj) {
+      if (!node || !varObj) return;
+      try {
+        node.setExplicitVariableModeForCollection(t2Col, inverseModeId);
+        if (t1Col && t1DarkModeId) { try { node.setExplicitVariableModeForCollection(t1Col, t1DarkModeId); } catch(e) {} }
+        if (t3Col && t3ModeId)     { try { node.setExplicitVariableModeForCollection(t3Col, t3ModeId); } catch(e) {} }
+        tryBindFill(node, varObj);
+      } catch(e) {}
+    };
+    /* T2 surface-inverse content tokens */
+    _bht(heroTitle,  null,              t2Vars['default/content/strong']);
+    _bht(heroSub,    null,              t2Vars['default/content/subtle']);
+    _bht(arrowNode,  null,              t2Vars['default/content/faint']);
+    _bht(t1l2,       null,              t2Vars['default/content/subtle']);
+    _bht(t1l3,       null,              t2Vars['default/content/faint']);
+    _bht(t2l2,       null,              t2Vars['default/content/subtle']);
+    _bht(t2l3,       null,              t2Vars['default/content/faint']);
+    /* Stat badge label nodes (children[0] is the TEXT inside each badge frame) */
+    if (statBadges[0] && statBadges[0].children[0]) _bht(statBadges[0].children[0], null,               t2Vars['default/content/subtle']);
+    if (statBadges[1] && statBadges[1].children[0]) _bht(statBadges[1].children[0], null,               t2Vars['default/content/subtle']);
+    /* T3 brand text: tier-1 heading + version badge label */
+    if (t3Col && brandModeId) {
+      _bht(t1l1,  brandModeId,  t3Vars['content/default']);
+      if (versionBadge && versionBadge.children[0]) _bht(versionBadge.children[0], brandModeId, t3Vars['oncomponent-content/default']);
+    }
+    /* T3 success text: tier-2 heading + token-bound badge label */
+    if (t3Col && t3Modes['success']) {
+      _bht(t2l1, t3Modes['success'], t3Vars['content/default']);
+      if (statBadges[2] && statBadges[2].children[0]) _bht(statBadges[2].children[0], t3Modes['success'], t3Vars['content/default']);
+    }
+    log('Hero: bound text fills to T2/T3 content variables');
   }
 
   /* Place hero in section */

@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Slot & Padding Model — Single-Zone Components
 
 This is the model for components with **one click target / one content area**:

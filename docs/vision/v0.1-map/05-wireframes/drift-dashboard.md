@@ -1,3 +1,6 @@
+<!-- status: superseded -->
+<!-- superseded-by: docs/vision/v0.2-map/ -->
+
 # Wireframe — Drift Dashboard
 
 **Goal:** Exec / DS-Lead view. Single screen they show to CEO or board.

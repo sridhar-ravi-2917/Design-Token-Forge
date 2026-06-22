@@ -51,7 +51,7 @@
   --file-upload-btn-height-big: var(--spacing-48);
   --file-upload-btn-height-huge: var(--spacing-56);
   --file-upload-btn-height-mega: var(--spacing-64);
-  --file-upload-btn-height-ultra: var(--spacing-80);
+  --file-upload-btn-height-ultra: var(--spacing-72);
 
   /* ── Dropzone mode: min-height per density ────────────── */
   --file-upload-drop-min-height-micro: var(--spacing-80);

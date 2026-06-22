@@ -328,7 +328,8 @@
   line-height: inherit;
   flex: 1;
   min-width: 0;
-  padding: var(--_ta-py) var(--_ta-px);
+  padding-block: var(--_ta-py);
+  padding-inline: var(--_ta-px);
   outline: none;
   resize: var(--textarea-resize);
 }

@@ -95,7 +95,7 @@
   --textarea-height-big: var(--spacing-48);
   --textarea-height-huge: var(--spacing-56);
   --textarea-height-mega: var(--spacing-64);
-  --textarea-height-ultra: var(--spacing-80);
+  --textarea-height-ultra: var(--spacing-72);
 
   /* Rows — controls min/max height via line-height × rows */
   --textarea-min-rows: 3;

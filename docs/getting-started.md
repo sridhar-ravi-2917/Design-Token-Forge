@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # Getting Started with Design Token Forge
 
 ## Quick Start (5 minutes)

@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # DTF Vision Docs
 
 A versioned, iterative vision tree. Each round (`v0.x-*`) is a complete snapshot

@@ -67,16 +67,16 @@
      ──────────────────────────────────────────────────────────── */
 
   /* Height per density mode — aligned with button */
-  --split-btn-height-micro:  var(--btn-height-micro);
-  --split-btn-height-tiny:   var(--btn-height-tiny);
-  --split-btn-height-small:  var(--btn-height-small);
-  --split-btn-height-base:   var(--btn-height-base);
-  --split-btn-height-medium: var(--btn-height-medium);
-  --split-btn-height-large:  var(--btn-height-large);
-  --split-btn-height-big:    var(--btn-height-big);
-  --split-btn-height-huge:   var(--btn-height-huge);
-  --split-btn-height-mega:   var(--btn-height-mega);
-  --split-btn-height-ultra:  var(--btn-height-ultra);
+  --split-btn-height-micro:  var(--spacing-24);
+  --split-btn-height-tiny:   var(--spacing-28);
+  --split-btn-height-small:  var(--spacing-32);
+  --split-btn-height-base:   var(--spacing-36);
+  --split-btn-height-medium: var(--spacing-40);
+  --split-btn-height-large:  var(--spacing-44);
+  --split-btn-height-big:    var(--spacing-48);
+  --split-btn-height-huge:   var(--spacing-56);
+  --split-btn-height-mega:   var(--spacing-64);
+  --split-btn-height-ultra:  var(--spacing-72);
 
   /* Action zone outer-edge padding-x — mirrors button's text-edge padding */
   --split-btn-action-padding-x-micro:  var(--btn-padding-x-micro);

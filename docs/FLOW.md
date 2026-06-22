@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # Design Token Forge — User Flow & Page Map
 
 > **Purpose:** single source of truth for every URL a user (or

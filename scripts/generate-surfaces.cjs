@@ -57,8 +57,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-bright: whitest surface
   bright: {
     bg:                   'white',     // #FFFFFF
-    hover:                '25',        // F6
-    pressed:              '50',        // F1
+    subtle:                '25',        // F6
+    strong:              '50',        // F1
     outline:              '150',       // D1
     separator:            '150',       // D1
     'ct-default':         '900',       // 1B
@@ -76,8 +76,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-base: default canvas
   base: {
     bg:                   '25',
-    hover:                '50',
-    pressed:              '75',
+    subtle:                '50',
+    strong:              '75',
     outline:              '150',
     separator:            '175',
     'ct-default':         '900',
@@ -95,8 +95,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-dim: receding area
   dim: {
     bg:                   '50',
-    hover:                '75',
-    pressed:              '100',
+    subtle:                '75',
+    strong:              '100',
     outline:              '175',
     separator:            '175',
     'ct-default':         '900',
@@ -114,8 +114,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-deep: deeply recessed (sidebars, wells)
   deep: {
     bg:                   '75',
-    hover:                '100',
-    pressed:              '150',
+    subtle:                '100',
+    strong:              '150',
     outline:              '175',
     separator:            '200',
     'ct-default':         '900',
@@ -133,8 +133,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-card: resting elevation (cards, panels on a surface)
   card: {
     bg:                   'white',
-    hover:                '25',
-    pressed:              '50',
+    subtle:                '25',
+    strong:              '50',
     outline:              '150',
     separator:            '150',
     'ct-default':         '900',
@@ -152,8 +152,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-modal: blocking overlay (dialogs, sheets — has backdrop)
   modal: {
     bg:                   'white',
-    hover:                '25',
-    pressed:              '50',
+    subtle:                '25',
+    strong:              '50',
     outline:              '150',
     separator:            '175',
     'ct-default':         '900',
@@ -171,8 +171,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-float: tooltip, menu
   float: {
     bg:                   'white',
-    hover:                '25',
-    pressed:              '50',
+    subtle:                '25',
+    strong:              '50',
     outline:              '150',
     separator:            '175',
     'ct-default':         '900',
@@ -190,8 +190,8 @@ const LIGHT_SURFACE_MAP = {
   // Surface-inverse: FIXED dark surface in all themes (snackbars, toasts)
   inverse: {
     bg:                   '900',
-    hover:                '850',
-    pressed:              '800',
+    subtle:                '850',
+    strong:              '800',
     outline:              '700',
     separator:            '700',
     'ct-default':         '25',
@@ -212,8 +212,8 @@ const LIGHT_SURFACE_MAP = {
 const DARK_SURFACE_MAP = {
   bright: {
     bg:                   '850',
-    hover:                '800',
-    pressed:              '750',
+    subtle:                '800',
+    strong:              '750',
     outline:              '700',
     separator:            '700',
     'ct-default':         '50',
@@ -230,8 +230,8 @@ const DARK_SURFACE_MAP = {
   },
   base: {
     bg:                   '900',
-    hover:                '850',
-    pressed:              '800',
+    subtle:                '850',
+    strong:              '800',
     outline:              '750',
     separator:            '700',
     'ct-default':         '50',
@@ -248,8 +248,8 @@ const DARK_SURFACE_MAP = {
   },
   dim: {
     bg:                   '900',
-    hover:                '850',
-    pressed:              '800',
+    subtle:                '850',
+    strong:              '800',
     outline:              '750',
     separator:            '750',
     'ct-default':         '75',
@@ -266,8 +266,8 @@ const DARK_SURFACE_MAP = {
   },
   deep: {
     bg:                   'black',
-    hover:                '900',
-    pressed:              '850',
+    subtle:                '900',
+    strong:              '850',
     outline:              '800',
     separator:            '750',
     'ct-default':         '75',
@@ -284,8 +284,8 @@ const DARK_SURFACE_MAP = {
   },
   card: {
     bg:                   '850',
-    hover:                '800',
-    pressed:              '750',
+    subtle:                '800',
+    strong:              '750',
     outline:              '700',
     separator:            '700',
     'ct-default':         '50',
@@ -302,8 +302,8 @@ const DARK_SURFACE_MAP = {
   },
   modal: {
     bg:                   '800',
-    hover:                '750',
-    pressed:              '700',
+    subtle:                '750',
+    strong:              '700',
     outline:              '600',
     separator:            '600',
     'ct-default':         '50',
@@ -320,8 +320,8 @@ const DARK_SURFACE_MAP = {
   },
   float: {
     bg:                   '750',
-    hover:                '700',
-    pressed:              '600',
+    subtle:                '700',
+    strong:              '600',
     outline:              '550',
     separator:            '550',
     'ct-default':         '25',
@@ -339,8 +339,8 @@ const DARK_SURFACE_MAP = {
   // Surface-inverse dark theme: FIXED dark colors (same as light — snackbars always dark)
   inverse: {
     bg:                   '900',
-    hover:                '850',
-    pressed:              '800',
+    subtle:                '850',
+    strong:              '800',
     outline:              '700',
     separator:            '700',
     'ct-default':         '25',
@@ -360,8 +360,8 @@ const DARK_SURFACE_MAP = {
 // Accent surface uses brand (primary) palette
 const LIGHT_ACCENT_MAP = {
   bg:                   '25',
-  hover:                '50',
-  pressed:              '75',
+  subtle:                '50',
+  strong:              '75',
   outline:              '175',
   separator:            '175',
   'ct-default':         '800',
@@ -379,8 +379,8 @@ const LIGHT_ACCENT_MAP = {
 
 const DARK_ACCENT_MAP = {
   bg:                   '900',
-  hover:                '850',
-  pressed:              '800',
+  subtle:                '850',
+  strong:              '800',
   outline:              '750',
   separator:            '750',
   'ct-default':         '75',
@@ -401,7 +401,7 @@ const DARK_ACCENT_MAP = {
 function generateSurface(name, stepMap, palette, indent) {
   const lines = [];
   const PROP_ORDER = [
-    'bg','hover','pressed','outline','separator',
+    'bg','subtle','strong','outline','separator',
     'ct-default','ct-strong','ct-subtle','ct-faint',
     'cm-bg','cm-bg-hover','cm-bg-pressed',
     'cm-outline','cm-outline-hover','cm-outline-pressed',
@@ -469,6 +469,24 @@ function generate() {
     out += generateSurface(name, map, palette, '  ');
     out += '\n';
   }
+
+  // Back-compat aliases live INSIDE the :root block so static parsers
+  // (e.g. sync-server parseCSSTokens) read them in the light context.
+  const ALIAS_MAP = { container: 'card', 'over-container': 'modal' };
+  const PROP_ORDER = [
+    'bg','subtle','strong','outline','separator',
+    'ct-default','ct-strong','ct-subtle','ct-faint',
+    'cm-bg','cm-bg-hover','cm-bg-pressed',
+    'cm-outline','cm-outline-hover','cm-outline-pressed',
+    'cm-separator'
+  ];
+  out += `\n  /* ── Back-compat aliases: container→card, over-container→modal ── */\n`;
+  for (const [oldName, newName] of Object.entries(ALIAS_MAP)) {
+    for (const prop of PROP_ORDER) {
+      out += `  --surface-${oldName}-${prop}: var(--surface-${newName}-${prop});\n`;
+    }
+    out += `\n`;
+  }
   out += `}\n\n`;
 
   // Dark theme
@@ -482,25 +500,9 @@ function generate() {
     out += generateSurface(name, map, palette, '  ');
     out += '\n';
   }
-  out += `}\n`;
 
-  // Back-compat aliases: old names (container, over-container) → new (card, modal).
-  // Theme-agnostic — they resolve through the var chain, so light/dark cascade
-  // naturally without re-emitting per theme. Keep until v2 cutover.
-  const ALIAS_MAP = { container: 'card', 'over-container': 'modal' };
-  const PROP_ORDER = [
-    'bg','hover','pressed','outline','separator',
-    'ct-default','ct-strong','ct-subtle','ct-faint',
-    'cm-bg','cm-bg-hover','cm-bg-pressed',
-    'cm-outline','cm-outline-hover','cm-outline-pressed',
-    'cm-separator'
-  ];
-  out += `\n/* ── Back-compat aliases (deprecated) ──────────────────────────────\n`;
-  out += `   Old surface names container/over-container are now card/modal.\n`;
-  out += `   These aliases keep legacy consumers working through the migration.\n`;
-  out += `   New code should reference --surface-card-* and --surface-modal-*.\n`;
-  out += `   ──────────────────────────────────────────────────────────────── */\n`;
-  out += `:root {\n`;
+  // Back-compat aliases also in dark block so dark var() resolves correctly.
+  out += `\n  /* ── Back-compat aliases: container→card, over-container→modal ── */\n`;
   for (const [oldName, newName] of Object.entries(ALIAS_MAP)) {
     for (const prop of PROP_ORDER) {
       out += `  --surface-${oldName}-${prop}: var(--surface-${newName}-${prop});\n`;

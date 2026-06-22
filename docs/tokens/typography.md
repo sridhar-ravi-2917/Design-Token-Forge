@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # Typography Token System
 
 The Tt (Type) tier of Design Token Forge. Lets a product team pick a

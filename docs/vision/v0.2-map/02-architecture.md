@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 02 — Architecture (v0.2)
 
 > **Delta from [v0.1](../v0.1-map/02-architecture.md):** Foundation tier added

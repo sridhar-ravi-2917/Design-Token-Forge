@@ -15,6 +15,7 @@
   gap: var(--datepicker-gap);
   width: var(--datepicker-width);
   padding: var(--datepicker-padding);
+  padding-inline: var(--datepicker-padding-x, var(--datepicker-padding));
   box-sizing: border-box;
 
   background: var(--datepicker-bg);
@@ -343,9 +344,9 @@
 .datepicker:not([data-size]),
 .datepicker[data-size="base"] {
   --_dp-day-size: var(--datepicker-day-size-base);
-  --_dp-header-h: var(--datepicker-header-height-base);
+  --_dp-header-h: var(--datepicker-header-h-base);
   --_dp-nav-size: var(--datepicker-nav-size-base);
-  --_dp-weekday-h: var(--datepicker-weekday-height-base);
+  --_dp-weekday-h: var(--datepicker-weekday-h-base);
   --_dp-header-font: var(--datepicker-header-font-size-base);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-base);
   --_dp-day-font: var(--datepicker-day-font-size-base);
@@ -353,9 +354,9 @@
 
 .datepicker[data-size="micro"] {
   --_dp-day-size: var(--datepicker-day-size-micro);
-  --_dp-header-h: var(--datepicker-header-height-micro);
+  --_dp-header-h: var(--datepicker-header-h-micro);
   --_dp-nav-size: var(--datepicker-nav-size-micro);
-  --_dp-weekday-h: var(--datepicker-weekday-height-micro);
+  --_dp-weekday-h: var(--datepicker-weekday-h-micro);
   --_dp-header-font: var(--datepicker-header-font-size-micro);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-micro);
   --_dp-day-font: var(--datepicker-day-font-size-micro);
@@ -363,9 +364,9 @@
 
 .datepicker[data-size="tiny"] {
   --_dp-day-size: var(--datepicker-day-size-tiny);
-  --_dp-header-h: var(--datepicker-header-height-tiny);
+  --_dp-header-h: var(--datepicker-header-h-tiny);
   --_dp-nav-size: var(--datepicker-nav-size-tiny);
-  --_dp-weekday-h: var(--datepicker-weekday-height-tiny);
+  --_dp-weekday-h: var(--datepicker-weekday-h-tiny);
   --_dp-header-font: var(--datepicker-header-font-size-tiny);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-tiny);
   --_dp-day-font: var(--datepicker-day-font-size-tiny);
@@ -373,9 +374,9 @@
 
 .datepicker[data-size="small"] {
   --_dp-day-size: var(--datepicker-day-size-small);
-  --_dp-header-h: var(--datepicker-header-height-small);
+  --_dp-header-h: var(--datepicker-header-h-small);
   --_dp-nav-size: var(--datepicker-nav-size-small);
-  --_dp-weekday-h: var(--datepicker-weekday-height-small);
+  --_dp-weekday-h: var(--datepicker-weekday-h-small);
   --_dp-header-font: var(--datepicker-header-font-size-small);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-small);
   --_dp-day-font: var(--datepicker-day-font-size-small);
@@ -383,9 +384,9 @@
 
 .datepicker[data-size="medium"] {
   --_dp-day-size: var(--datepicker-day-size-medium);
-  --_dp-header-h: var(--datepicker-header-height-medium);
+  --_dp-header-h: var(--datepicker-header-h-medium);
   --_dp-nav-size: var(--datepicker-nav-size-medium);
-  --_dp-weekday-h: var(--datepicker-weekday-height-medium);
+  --_dp-weekday-h: var(--datepicker-weekday-h-medium);
   --_dp-header-font: var(--datepicker-header-font-size-medium);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-medium);
   --_dp-day-font: var(--datepicker-day-font-size-medium);
@@ -393,9 +394,9 @@
 
 .datepicker[data-size="large"] {
   --_dp-day-size: var(--datepicker-day-size-large);
-  --_dp-header-h: var(--datepicker-header-height-large);
+  --_dp-header-h: var(--datepicker-header-h-large);
   --_dp-nav-size: var(--datepicker-nav-size-large);
-  --_dp-weekday-h: var(--datepicker-weekday-height-large);
+  --_dp-weekday-h: var(--datepicker-weekday-h-large);
   --_dp-header-font: var(--datepicker-header-font-size-large);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-large);
   --_dp-day-font: var(--datepicker-day-font-size-large);
@@ -403,9 +404,9 @@
 
 .datepicker[data-size="big"] {
   --_dp-day-size: var(--datepicker-day-size-big);
-  --_dp-header-h: var(--datepicker-header-height-big);
+  --_dp-header-h: var(--datepicker-header-h-big);
   --_dp-nav-size: var(--datepicker-nav-size-big);
-  --_dp-weekday-h: var(--datepicker-weekday-height-big);
+  --_dp-weekday-h: var(--datepicker-weekday-h-big);
   --_dp-header-font: var(--datepicker-header-font-size-big);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-big);
   --_dp-day-font: var(--datepicker-day-font-size-big);
@@ -413,9 +414,9 @@
 
 .datepicker[data-size="huge"] {
   --_dp-day-size: var(--datepicker-day-size-huge);
-  --_dp-header-h: var(--datepicker-header-height-huge);
+  --_dp-header-h: var(--datepicker-header-h-huge);
   --_dp-nav-size: var(--datepicker-nav-size-huge);
-  --_dp-weekday-h: var(--datepicker-weekday-height-huge);
+  --_dp-weekday-h: var(--datepicker-weekday-h-huge);
   --_dp-header-font: var(--datepicker-header-font-size-huge);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-huge);
   --_dp-day-font: var(--datepicker-day-font-size-huge);
@@ -423,9 +424,9 @@
 
 .datepicker[data-size="mega"] {
   --_dp-day-size: var(--datepicker-day-size-mega);
-  --_dp-header-h: var(--datepicker-header-height-mega);
+  --_dp-header-h: var(--datepicker-header-h-mega);
   --_dp-nav-size: var(--datepicker-nav-size-mega);
-  --_dp-weekday-h: var(--datepicker-weekday-height-mega);
+  --_dp-weekday-h: var(--datepicker-weekday-h-mega);
   --_dp-header-font: var(--datepicker-header-font-size-mega);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-mega);
   --_dp-day-font: var(--datepicker-day-font-size-mega);
@@ -433,9 +434,9 @@
 
 .datepicker[data-size="ultra"] {
   --_dp-day-size: var(--datepicker-day-size-ultra);
-  --_dp-header-h: var(--datepicker-header-height-ultra);
+  --_dp-header-h: var(--datepicker-header-h-ultra);
   --_dp-nav-size: var(--datepicker-nav-size-ultra);
-  --_dp-weekday-h: var(--datepicker-weekday-height-ultra);
+  --_dp-weekday-h: var(--datepicker-weekday-h-ultra);
   --_dp-header-font: var(--datepicker-header-font-size-ultra);
   --_dp-weekday-font: var(--datepicker-weekday-font-size-ultra);
   --_dp-day-font: var(--datepicker-day-font-size-ultra);

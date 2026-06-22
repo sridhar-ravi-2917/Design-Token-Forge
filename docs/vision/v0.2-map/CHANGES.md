@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # v0.2 — Changes from v0.1
 
 Audit trail. Every v0.2 change traces to a specific finding from one of the

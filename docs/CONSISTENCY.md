@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
     # UI Consistency — Editor v2 + Demo Pages
 
 A **living checklist** of the canonical UI vocabulary, chrome, microcopy, and class-naming

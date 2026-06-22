@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Component Ledger & Safe-Rebuild Mechanism
 
 > **Status:** Research / specification — NOT YET IMPLEMENTED.

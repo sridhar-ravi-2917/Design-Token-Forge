@@ -25,6 +25,8 @@ roles:
   - info
   - neutral
 
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
 slots:
   - name: track
     element: .spinner__track

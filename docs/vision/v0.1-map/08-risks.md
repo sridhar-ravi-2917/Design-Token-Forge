@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 08 — Risks
 
 Honest. No hedging. Each risk has a mitigation, but mitigations don't make

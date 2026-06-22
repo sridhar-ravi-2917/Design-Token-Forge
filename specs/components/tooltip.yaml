@@ -1,0 +1,134 @@
+component: tooltip
+prefix: tooltip
+category: Overlay & Feedback
+description: Non-interactive overlay that shows supplemental text on hover/focus. Lightweight; no interactive content.
+
+classification:
+  type: overlay-tooltip
+  has_variants: true
+  has_roles: false
+  density_modes: [small, base, large]
+
+variants:
+  semantic:
+    - name: default
+      description: Dark background, light text (default)
+      default: true
+    - name: light
+      description: Inverted — light background, dark text, with border
+    - name: danger
+      description: Danger-role filled bg — for validation errors
+    - name: warning
+      description: Warning-role filled bg — for caution messages
+    - name: info
+      description: Info-role filled bg — for informational prompts
+    - name: success
+      description: Success-role filled bg — for confirmations
+
+sizes: [small, base, large]
+
+slots:
+  - name: icon
+    element: .tooltip__icon
+    tokens: [size, color]
+  - name: title
+    element: .tooltip__title
+    tokens: [font-weight]
+  - name: body
+    element: .tooltip__body
+    tokens: [font-size, color]
+  - name: arrow
+    element: .tooltip__arrow
+    tokens: [size, offset, color]
+
+states:
+  - hidden
+  - visible
+  - entering
+  - disabled
+
+variables:
+  shape:
+    - name: --tooltip-radius
+      default: var(--radius-sm)
+    - name: --tooltip-border-width
+      default: 1px
+    - name: --tooltip-arrow-size
+      default: 6px
+    - name: --tooltip-arrow-offset
+      default: 12px
+
+  dimension:
+    - name: --tooltip-padding-y-{size}
+      per_density: true
+      count: 3
+      range: [4px, 8px]
+    - name: --tooltip-padding-x-{size}
+      per_density: true
+      count: 3
+      range: [8px, 14px]
+    - name: --tooltip-max-width-{size}
+      per_density: true
+      count: 3
+    - name: --tooltip-gap-{size}
+      per_density: true
+      count: 3
+    - name: --tooltip-font-size-{size}
+      per_density: true
+      count: 3
+    - name: --tooltip-icon-size-{size}
+      per_density: true
+      count: 3
+    - name: --tooltip-offset
+      default: var(--spacing-8)
+      description: Distance from trigger
+
+  surface:
+    - name: --tooltip-bg
+      default: var(--surface-base-ct-default)
+    - name: --tooltip-fg
+      default: var(--surface-base-cn-bg)
+    - name: --tooltip-light-bg
+      default: var(--surface-base-cn-bg)
+    - name: --tooltip-light-fg
+      default: var(--surface-base-ct-default)
+    - name: --tooltip-{role}-bg
+      description: Semantic variant bg (4 vars — danger/warning/info/success)
+    - name: --tooltip-{role}-fg
+      description: Semantic variant fg (4 vars)
+
+  typography:
+    - name: --tooltip-font-family
+      default: var(--font-family-sans)
+    - name: --tooltip-font-weight
+      default: var(--font-weight-normal)
+    - name: --tooltip-title-font-weight
+      default: var(--font-weight-semibold)
+    - name: --tooltip-line-height
+      default: "1.4"
+
+  motion:
+    - name: --tooltip-transition-property
+      default: opacity, transform
+    - name: --tooltip-transition-duration
+      default: var(--duration-fast)
+    - name: --tooltip-enter-scale
+      default: "0.96"
+    - name: --tooltip-show-delay
+      default: 200ms
+    - name: --tooltip-hide-delay
+      default: 0ms
+
+  a11y:
+    - name: --tooltip-z-index
+      default: "1000"
+    - name: --tooltip-pointer-events
+      default: none
+    - name: --tooltip-disabled-opacity
+      default: "0.5"
+
+summary:
+  total_variables: ~60
+  per_density_tokens: 18
+  variant_count: 6
+  role_count: 0

@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Global Token Specification
 
 > **Sourced from Tokn** — our validated 4-tier color architecture with 607 tokens across 8 collections,

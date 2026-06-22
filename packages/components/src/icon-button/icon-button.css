@@ -22,6 +22,7 @@
   width: var(--_ib-size);
   height: var(--_ib-size);
   padding: 0;
+  padding-inline: 0px;  /* RTL-ready explicit logical shorthand */
 
   /* Shape */
   border-radius: var(--_ib-radius);

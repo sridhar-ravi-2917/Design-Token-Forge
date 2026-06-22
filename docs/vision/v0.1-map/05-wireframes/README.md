@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 05 — Wireframes
 
 ASCII boxes + Mermaid. Fast to iterate, version-controllable. Graduate to

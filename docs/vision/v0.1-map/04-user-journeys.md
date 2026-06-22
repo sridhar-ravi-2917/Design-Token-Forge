@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 04 — User Journeys
 
 Four primary personas. Each has a distinct entry point and "aha" moment.

@@ -177,7 +177,8 @@
   bottom: calc(50% + var(--_sl-thumb-h) / 2 + var(--slider-tooltip-offset));
   transform: translateX(-50%);
 
-  padding: var(--slider-tooltip-padding-y) var(--slider-tooltip-padding-x);
+  padding-block: var(--slider-tooltip-padding-y);
+  padding-inline: var(--slider-tooltip-padding-x);
   border-radius: var(--slider-tooltip-radius);
   background: var(--slider-tooltip-bg);
   color: var(--slider-tooltip-fg);

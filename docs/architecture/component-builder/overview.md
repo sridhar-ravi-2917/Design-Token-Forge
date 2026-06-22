@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Component Builder — Overview
 
 A DTF component is built as **two parallel deliverables** that must agree:

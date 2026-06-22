@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Naming Charter — Design Token Forge
 
 **Status:** Locked. Lock date: 2026-05-26.

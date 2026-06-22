@@ -78,7 +78,7 @@
   --input-height-big: var(--spacing-48);
   --input-height-huge: var(--spacing-56);
   --input-height-mega: var(--spacing-64);
-  --input-height-ultra: var(--spacing-80);
+  --input-height-ultra: var(--spacing-72);
 
   /* Horizontal padding per density mode */
   --input-padding-x-micro: var(--spacing-6);

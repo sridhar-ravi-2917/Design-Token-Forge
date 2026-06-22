@@ -1,3 +1,6 @@
+<!-- status: superseded -->
+<!-- superseded-by: docs/vision/v0.2-map/ -->
+
 # Wireframe — Archetype Kit (Dashboard example)
 
 **Goal:** Show what a designer gets when they pick "Dashboard" — the missing

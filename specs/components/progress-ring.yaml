@@ -1,0 +1,112 @@
+component: progress-ring
+prefix: ring
+category: Display & Feedback
+description: Circular SVG progress indicator for determinate and indeterminate progress. Mirrors progress-bar role/variant system in a circular form.
+
+classification:
+  type: display-indicator
+  has_variants: true
+  has_roles: true
+  density_modes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+variants:
+  structural:
+    - name: filled
+      description: Solid arc on thin track (default)
+      default: true
+    - name: outlined
+      description: Arc with outlined track border
+    - name: soft
+      description: Tinted track background with role arc
+
+roles:
+  - brand
+  - danger
+  - success
+  - warning
+  - info
+  - neutral
+
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+slots:
+  - name: svg
+    element: svg (track + fill circles)
+    tokens: [diameter, stroke-width, track-color, fill-color]
+  - name: label
+    element: .progress-ring__label
+    tokens: [font-size, color]
+  - name: helper
+    element: .progress-ring__helper
+    tokens: [font-size, color]
+
+states:
+  - default
+  - indeterminate
+  - disabled
+
+variables:
+  shape:
+    - name: --ring-stroke-linecap
+      default: round
+    - name: --ring-rotation
+      default: "-90deg"
+    - name: --ring-direction
+      default: normal
+    - name: --ring-shadow
+      default: var(--shadow-none)
+
+  dimension:
+    - name: --ring-size-{size}
+      per_density: true
+      count: 10
+      range: [16px, 96px]
+      description: Ring outer diameter
+    - name: --ring-stroke-{size}
+      per_density: true
+      count: 10
+      range: [2px, 7px]
+      description: Arc stroke width
+    - name: --ring-gap-{size}
+      per_density: true
+      count: 10
+      description: Gap between ring and external label
+    - name: --ring-indeterminate-width
+      default: "25%"
+
+  surface:
+    - name: --ring-{role}-fill
+      description: Arc color per role (6 vars)
+    - name: --ring-{role}-soft-track
+      description: Soft track bg per role (6 vars)
+    - name: --ring-{role}-label
+      description: Centered label text color per role (6 vars)
+    - name: --ring-track-bg
+      description: Default track background
+
+  typography:
+    - name: --ring-font-family
+      default: var(--font-family-sans)
+    - name: --ring-font-weight
+      default: var(--font-weight-semibold)
+    - name: --ring-label-font-size-{size}
+      per_density: true
+      count: 10
+
+  motion:
+    - name: --ring-transition-duration
+      default: var(--duration-normal)
+    - name: --ring-indeterminate-duration
+      default: 1.4s
+    - name: --ring-animation-easing
+      default: linear
+
+  a11y:
+    - name: --ring-disabled-opacity
+      default: "0.5"
+
+summary:
+  total_variables: ~95
+  per_density_tokens: 30
+  variant_count: 3
+  role_count: 6

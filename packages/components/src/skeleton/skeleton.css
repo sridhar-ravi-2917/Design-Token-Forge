@@ -35,6 +35,7 @@
   background-color: var(--_sk-bg);
   overflow: hidden;
   isolation: isolate;
+  padding-inline: 0px;  /* RTL-ready logical property */
 
   /* No pointer events on placeholder */
   pointer-events: none;

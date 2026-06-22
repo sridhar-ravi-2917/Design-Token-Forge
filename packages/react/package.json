@@ -1,0 +1,141 @@
+{
+  "name": "@design-token-forge/react",
+  "version": "0.1.0",
+  "private": false,
+  "description": "React wrapper components for Design Token Forge CSS design system",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./button": {
+      "import": "./dist/Button.js",
+      "types": "./dist/Button.d.ts"
+    },
+    "./icon-button": {
+      "import": "./dist/IconButton.js",
+      "types": "./dist/IconButton.d.ts"
+    },
+    "./split-button": {
+      "import": "./dist/SplitButton.js",
+      "types": "./dist/SplitButton.d.ts"
+    },
+    "./menu-button": {
+      "import": "./dist/MenuButton.js",
+      "types": "./dist/MenuButton.d.ts"
+    },
+    "./toggle": {
+      "import": "./dist/Toggle.js",
+      "types": "./dist/Toggle.d.ts"
+    },
+    "./checkbox": {
+      "import": "./dist/Checkbox.js",
+      "types": "./dist/Checkbox.d.ts"
+    },
+    "./radio": {
+      "import": "./dist/Radio.js",
+      "types": "./dist/Radio.d.ts"
+    },
+    "./input": {
+      "import": "./dist/Input.js",
+      "types": "./dist/Input.d.ts"
+    },
+    "./textarea": {
+      "import": "./dist/Textarea.js",
+      "types": "./dist/Textarea.d.ts"
+    },
+    "./select": {
+      "import": "./dist/Select.js",
+      "types": "./dist/Select.d.ts"
+    },
+    "./slider": {
+      "import": "./dist/Slider.js",
+      "types": "./dist/Slider.d.ts"
+    },
+    "./datepicker": {
+      "import": "./dist/DatePicker.js",
+      "types": "./dist/DatePicker.d.ts"
+    },
+    "./file-upload": {
+      "import": "./dist/FileUpload.js",
+      "types": "./dist/FileUpload.d.ts"
+    },
+    "./avatar": {
+      "import": "./dist/Avatar.js",
+      "types": "./dist/Avatar.d.ts"
+    },
+    "./badge": {
+      "import": "./dist/Badge.js",
+      "types": "./dist/Badge.d.ts"
+    },
+    "./tooltip": {
+      "import": "./dist/Tooltip.js",
+      "types": "./dist/Tooltip.d.ts"
+    },
+    "./alert": {
+      "import": "./dist/Alert.js",
+      "types": "./dist/Alert.d.ts"
+    },
+    "./toast": {
+      "import": "./dist/Toast.js",
+      "types": "./dist/Toast.d.ts"
+    },
+    "./progress-bar": {
+      "import": "./dist/ProgressBar.js",
+      "types": "./dist/ProgressBar.d.ts"
+    },
+    "./progress-ring": {
+      "import": "./dist/ProgressRing.js",
+      "types": "./dist/ProgressRing.d.ts"
+    },
+    "./spinner": {
+      "import": "./dist/Spinner.js",
+      "types": "./dist/Spinner.d.ts"
+    },
+    "./skeleton": {
+      "import": "./dist/Skeleton.js",
+      "types": "./dist/Skeleton.d.ts"
+    },
+    "./kbd": {
+      "import": "./dist/Kbd.js",
+      "types": "./dist/Kbd.d.ts"
+    },
+    "./card": {
+      "import": "./dist/Card.js",
+      "types": "./dist/Card.d.ts"
+    },
+    "./divider": {
+      "import": "./dist/Divider.js",
+      "types": "./dist/Divider.d.ts"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "peerDependencies": {
+    "@design-token-forge/components": "^0.1.0",
+    "@design-token-forge/tokens": "^0.1.0",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sridhar-ravi-2917/Design-Token-Forge"
+  }
+}

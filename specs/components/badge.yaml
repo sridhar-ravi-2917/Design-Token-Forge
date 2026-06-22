@@ -1,0 +1,135 @@
+component: badge
+prefix: badge
+category: Display & Feedback
+description: Compact pill-shaped label communicating status, count, or category. Never wraps. Display-only unless interactive.
+
+classification:
+  type: display-feedback
+  has_variants: true
+  has_roles: true
+  density_modes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+variants:
+  structural:
+    - name: filled
+      description: Solid color fill (default)
+      default: true
+    - name: outlined
+      description: Transparent bg with role-colored border
+    - name: soft
+      description: Tinted container background
+    - name: dot
+      description: No text — small solid color indicator circle
+
+roles:
+  - brand
+  - danger
+  - success
+  - warning
+  - info
+  - neutral
+
+sizes: [micro, tiny, small, base, medium, large, big, huge, mega, ultra]
+
+slots:
+  - name: icon
+    element: .badge__icon
+    tokens: [size, color]
+  - name: label
+    element: text content
+    tokens: [font-size, font-weight, color]
+  - name: count
+    element: .badge__count
+    tokens: [font-size, color]
+
+states:
+  - default
+  - hover (interactive mode)
+  - disabled
+
+variables:
+  shape:
+    - name: --badge-radius-{size}
+      per_density: true
+      count: 10
+      default: var(--radius-full)
+      description: Pill radius per density
+    - name: --badge-radius-rounded
+      default: var(--radius-md)
+    - name: --badge-radius-square
+      default: var(--radius-xs)
+    - name: --badge-border-width
+      default: 1px
+    - name: --badge-border-style
+      default: solid
+
+  dimension:
+    - name: --badge-height-{size}
+      per_density: true
+      count: 10
+      range: [16px, 48px]
+    - name: --badge-padding-x-{size}
+      per_density: true
+      count: 10
+      range: [4px, 24px]
+    - name: --badge-gap-{size}
+      per_density: true
+      count: 10
+      description: Gap between icon and label
+
+  surface:
+    - name: --badge-filled-bg
+      default: var(--brand-component-bg-default)
+    - name: --badge-filled-fg
+      default: var(--brand-on-component)
+    - name: --badge-filled-border-color
+      default: transparent
+    - name: --badge-outlined-bg
+      default: transparent
+    - name: --badge-outlined-fg
+      default: var(--brand-content-default)
+    - name: --badge-outlined-border-color
+      default: var(--brand-component-outline-default)
+    - name: --badge-soft-bg
+      default: var(--brand-container-bg)
+    - name: --badge-soft-fg
+      default: var(--brand-content-default)
+    - name: --badge-soft-border-color
+      default: transparent
+
+  typography:
+    - name: --badge-font-size-{size}
+      per_density: true
+      count: 10
+      range: [10px, 20px]
+    - name: --badge-font-weight
+      default: var(--font-weight-medium)
+    - name: --badge-font-family
+      default: var(--font-family-sans)
+    - name: --badge-line-height
+      default: 1
+
+  slots:
+    icon:
+      - name: --badge-icon-size
+        default: 1em
+
+  motion:
+    - name: --badge-transition-property
+      default: background-color, border-color, color, opacity
+    - name: --badge-transition-duration
+      default: var(--duration-fast)
+    - name: --badge-transition-easing
+      default: var(--easing-in-out)
+
+  a11y:
+    - name: --badge-focus-ring-color
+      default: var(--focus-ring-color)
+    - name: --badge-focus-ring-width
+      default: var(--focus-ring-width)
+
+summary:
+  total_variables: ~90
+  per_density_tokens: 40
+  variant_count: 4
+  role_count: 6

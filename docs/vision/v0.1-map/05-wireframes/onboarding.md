@@ -1,3 +1,6 @@
+<!-- status: superseded -->
+<!-- superseded-by: docs/vision/v0.2-map/ -->
+
 # Wireframe — Onboarding
 
 **Goal:** Brand color in, working themed system + archetype scaffold out, in

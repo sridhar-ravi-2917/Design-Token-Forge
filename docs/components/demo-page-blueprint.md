@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # Demo Page Blueprint
 
 > **Canonical specification for every component demo page in Design Token Forge.**

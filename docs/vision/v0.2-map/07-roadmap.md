@@ -1,3 +1,6 @@
+<!-- status: draft -->
+<!-- last-verified: 2026-06-18 -->
+
 # 07 — Roadmap (v0.2)
 
 > **Delta from [v0.1](../v0.1-map/07-roadmap.md):** Phase 2.5 restructured

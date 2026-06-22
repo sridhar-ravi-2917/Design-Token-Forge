@@ -1,3 +1,6 @@
+<!-- status: current -->
+<!-- last-verified: 2026-06-18 -->
+
 # Figma Binding Rules
 
 The plugin's job is to keep **bindings stable** across regenerations.

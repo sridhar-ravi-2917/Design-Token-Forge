@@ -1,0 +1,102 @@
+{
+  "button": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo complete. Gate 4 (demo) passes. Gate 5 (QC) and Gate 6 (Figma) need formal verification pass. Brief not yet written retroactively."
+  },
+  "split-button": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo complete. Same status as button. No brief."
+  },
+  "menu-button": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo complete. Same status as button. No brief."
+  },
+  "icon-button": {
+    "gate": 5,
+    "note": "Tokens+CSS complete. Demo exists. Missing logical props in CSS (icon-button). No brief. Gate 3 fails."
+  },
+  "toggle": {
+    "gate": 5,
+    "note": "Gate 0 brief complete. Tokens+CSS+demo complete. Gate 3: verify logical props (RTL)."
+  },
+  "checkbox": {
+    "gate": 5,
+    "note": "Gate 0 brief complete. Tokens+CSS+demo complete."
+  },
+  "radio": {
+    "gate": 5,
+    "note": "Gate 0 brief complete. Tokens+CSS+demo complete."
+  },
+  "input": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo complete. Brief not written. Logical props present."
+  },
+  "textarea": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo complete. Missing logical props in CSS. Brief not written."
+  },
+  "select": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo complete. Brief not written."
+  },
+  "slider": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo complete. Missing logical props. Brief not written."
+  },
+  "datepicker": {
+    "gate": 5,
+    "note": "Spec exists. Tokens+CSS+demo complete BUT: no data-variant, no logical props. Gate 2 technically fails variant requirement. Brief not written."
+  },
+  "file-upload": {
+    "gate": 5,
+    "note": "Spec missing. Tokens+CSS+demo exist. Missing logical props. Brief not written. Gate 1 fails."
+  },
+  "alert": {
+    "gate": 5,
+    "note": "Spec missing. Tokens+CSS+demo exist. Brief not written."
+  },
+  "toast": {
+    "gate": 5,
+    "note": "Spec missing. Tokens+CSS+demo exist. Brief not written."
+  },
+  "avatar": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo exist. Spec missing. No variants in CSS (no data-variant). Brief not written."
+  },
+  "badge": {
+    "gate": 5,
+    "note": "Spec missing. Tokens+CSS+demo exist. Brief not written."
+  },
+  "tooltip": {
+    "gate": 5,
+    "note": "Spec missing. Tokens+CSS+demo exist. Missing focus-visible on trigger. Brief not written."
+  },
+  "progress-bar": {
+    "gate": 5,
+    "note": "Spec missing. Tokens+CSS+demo exist. Missing logical props. Brief not written."
+  },
+  "progress-ring": {
+    "gate": 5,
+    "note": "Spec missing. Tokens+CSS exist. Demo MISSING. Brief not written."
+  },
+  "spinner": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo exist. Spec exists. Missing logical props (display component — ok). Brief not written."
+  },
+  "skeleton": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo exist. Spec exists. Only 35 tokens — shallow. Brief not written."
+  },
+  "kbd": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo exist. Spec exists. Brief not written."
+  },
+  "card": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo exist. Spec exists. Brief not written."
+  },
+  "divider": {
+    "gate": 5,
+    "note": "Tokens+CSS+demo exist. Spec exists. Brief not written."
+  }
+}
