@@ -76,10 +76,10 @@
     }
   },
   "latestVersion": {
-    "version": "v0.0.40",
-    "name": "Jun22 11:01",
+    "version": "v0.0.41",
+    "name": "Jun22 11:04",
     "description": "",
-    "savedAt": "2026-06-22T05:31:38.856Z",
+    "savedAt": "2026-06-22T05:34:27.639Z",
     "savedBy": "sridhar-ravi-2917"
   },
   "t1Picks": {
@@ -137,7 +137,7 @@
         "container": "850",
         "borderStep": "350",
         "separatorStep": "250",
-        "onComponent": "black",
+        "onComponent": "white",
         "onContainerStep": "200"
       },
       "danger": {
