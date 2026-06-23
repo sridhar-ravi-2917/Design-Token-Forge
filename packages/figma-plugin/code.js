@@ -129,7 +129,19 @@ var REQUIRED_COMPSIZE_VARS = [
   { name: 'menu-button/chevron-size',   defaultVal: 14 },
   { name: 'menu-button/font-size',      defaultVal: 14 },
   { name: 'menu-button/radius',         defaultVal: 6  },
-  { name: 'menu-button/radius-rounded', defaultVal: 9999 }
+  { name: 'menu-button/radius-rounded', defaultVal: 9999 },
+  /* Toggle — track-thumb layout.
+     base-mode values; token sync fills per-density values from toggle.tokens.css.
+     thumb-inset = (track-h - thumb-size) / 2 — same value used for both
+     Y-centering and X off-position.
+     thumb-x-on  = track-w - thumb-size - thumb-inset (right edge inset).
+     radius = 9999 (pill) — same for track and thumb.                    */
+  { name: 'toggle/track-w',      defaultVal: 40   },
+  { name: 'toggle/track-h',      defaultVal: 24   },
+  { name: 'toggle/thumb-size',   defaultVal: 20   },
+  { name: 'toggle/thumb-inset',  defaultVal: 2    },
+  { name: 'toggle/thumb-x-on',   defaultVal: 18   },
+  { name: 'toggle/radius',       defaultVal: 9999 }
 ];
 log('code.js loaded — version ' + CODE_VERSION);
 
@@ -1308,6 +1320,170 @@ function _recordBoundVarId(id, name){
   if (_boundIdsForBuild) _boundIdsForBuild[id] = 1;
   if (_boundNamesForBuild && name && !_boundNamesForBuild[id]) _boundNamesForBuild[id] = name;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TOGGLE BLUEPRINT — Track + Thumb Architecture
+   ──────────────────────────────────────────────────────────────
+   kind: 'track-thumb' — root frame IS the track (pill rail).
+   Thumb is an absolutely-positioned child circle inside the track.
+   Off position: thumb at toggle/thumb-inset from left edge.
+   On  position: thumb at toggle/thumb-x-on  from left edge.
+
+   Three families map to the CSS variant × role matrix:
+     Filled   — solid neutral rail (off) → brand-filled rail (on)
+     Outlined — transparent + border (off) → brand-filled (on)
+     Danger   — solid neutral rail (off) → danger-filled rail (on)
+
+   States encode both checked state and interaction state as a flat
+   8-item list (Off / On × Default / Hover / Focus / Disabled).
+   On-* states include thumbXOverride to rebind thumb X at build time.
+
+   skipRounded: true — toggle is always pill-shaped (radius=9999);
+   no separate "Rounded" variant property axis needed.
+   ══════════════════════════════════════════════════════════════ */
+
+var TOGGLE_BLUEPRINT = {
+  name: 'Toggle',
+  kind: 'track-thumb',
+  skipRounded: true,
+  description: 'Binary on/off switch with track + thumb structure. Filled and outlined variants, brand and danger roles, 10 density sizes, and 8 interactive states (off/on \u00d7 default/hover/focus/disabled). Uses comp-size variables for all dimensions and T2/T3 context tokens for color.',
+
+  /* One master: the Switch — track frame containing an absolute thumb.
+     Thumb X defaults to the Off (left) position. On-state variants
+     rebind thumb X to toggle/thumb-x-on via thumbXOverride in stateOverrides. */
+  masters: {
+    'Switch': {
+      thumbXVar: 'toggle/thumb-inset'
+    }
+  },
+
+  /* comp-size variable paths.
+     root    — the track frame (width × height × radius).
+     thumb   — the circle inside the track (size × radius).
+     thumbY  — vertical centering of thumb = (track-h \u2212 thumb-size) / 2 = same as thumb-inset. */
+  sizeBindings: {
+    root: {
+      width:             'toggle/track-w',
+      height:            'toggle/track-h',
+      topLeftRadius:     'toggle/radius',
+      topRightRadius:    'toggle/radius',
+      bottomLeftRadius:  'toggle/radius',
+      bottomRightRadius: 'toggle/radius'
+    },
+    thumb: {
+      width:             'toggle/thumb-size',
+      height:            'toggle/thumb-size',
+      topLeftRadius:     'toggle/radius',
+      topRightRadius:    'toggle/radius',
+      bottomLeftRadius:  'toggle/radius',
+      bottomRightRadius: 'toggle/radius'
+    },
+    thumbY: 'toggle/thumb-inset'
+  },
+
+  /* ── Families ──────────────────────────────────────────────
+     Each family produces one ComponentSet (per master, but only
+     one master exists here). The component set has:
+       Type  = Default          (no structural variation within a family)
+       State = Off | Off-Hover | Off-Focus | Off-Disabled |
+               On  | On-Hover  | On-Focus  | On-Disabled
+
+     stateOverrides['Default'][state] format:
+       fill / stroke / strokeWeight  — T2 or T3 paint bindings (same as button)
+       componentOpacity              — applied to the variant component node
+       t3Mode                        — per-state T3 mode override
+       thumbXOverride                — comp-size var path to rebind thumb X
+                                       (used on all On-* states to slide thumb right)
+     ─────────────────────────────────────────────────────────── */
+  families: {
+
+    /* ── FILLED — solid neutral rail (off) → solid brand rail (on) ── */
+    'Filled': {
+      types:  ['Default'],
+      states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
+               'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
+      stateOverrides: {
+        'Default': {
+          /* Off states: neutral outline fill — the "inactive" appearance */
+          'Off':          { fill: 'default/component/outline-default' },
+          'Off-Hover':    { fill: 'default/component/outline-hover' },
+          'Off-Focus':    { fill: 'default/component/outline-default',
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2, t3Mode: 'brand' },
+          'Off-Disabled': { fill: 'default/component/outline-default', componentOpacity: 0.5 },
+
+          /* On states: brand component fill + slide thumb to right edge */
+          'On':           { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Hover':     { t3Mode: 'brand', fill: { t3: 'component/bg-hover' },
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Disabled':  { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
+                            thumbXOverride: 'toggle/thumb-x-on', componentOpacity: 0.5 }
+        }
+      }
+    },
+
+    /* ── OUTLINED — transparent track + border (off) → brand-filled (on) ── */
+    'Outlined': {
+      types:  ['Default'],
+      states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
+               'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
+      stateOverrides: {
+        'Default': {
+          /* Off: transparent fill, outline stroke */
+          'Off':          { stroke: 'default/component/outline-default', strokeWeight: 2 },
+          'Off-Hover':    { fill: 'default/component/bg-hover',
+                            stroke: 'default/component/outline-hover', strokeWeight: 2 },
+          'Off-Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2, t3Mode: 'brand' },
+          'Off-Disabled': { stroke: 'default/component/outline-default', strokeWeight: 2,
+                            componentOpacity: 0.5 },
+
+          /* On: same brand fill as Filled variant (track becomes solid) */
+          'On':           { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Hover':     { t3Mode: 'brand', fill: { t3: 'component/bg-hover' },
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Disabled':  { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
+                            thumbXOverride: 'toggle/thumb-x-on', componentOpacity: 0.5 }
+        }
+      }
+    },
+
+    /* ── DANGER — neutral (off) → danger-filled (on) ── */
+    'Danger': {
+      types:  ['Default'],
+      t3Mode: 'danger',
+      states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
+               'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
+      stateOverrides: {
+        'Default': {
+          /* Off: same as Filled off — neutral outline, role-agnostic */
+          'Off':          { fill: 'default/component/outline-default' },
+          'Off-Hover':    { fill: 'default/component/outline-hover' },
+          'Off-Focus':    { fill: 'default/component/outline-default',
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'Off-Disabled': { fill: 'default/component/outline-default', componentOpacity: 0.5 },
+
+          /* On: danger fill */
+          'On':           { fill: { t3: 'component/bg-default' },
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Hover':     { fill: { t3: 'component/bg-hover' },
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Focus':     { fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                            thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Disabled':  { fill: { t3: 'component/bg-default' },
+                            thumbXOverride: 'toggle/thumb-x-on', componentOpacity: 0.5 }
+        }
+      }
+    }
+  }
+};
 
 /* ══════════════════════════════════════════════════════════════
    BUTTON BLUEPRINT — Two-Tier Master/Instance Architecture
@@ -4004,6 +4180,96 @@ async function generateComponentFromBlueprint(blueprint) {
       continue; /* skip the slot-based construction below */
     }
 
+    /* ── Track-Thumb branch (kind: 'track-thumb', e.g. Toggle) ──────────────
+       Root frame IS the track: fixed-size pill, layoutMode=NONE, clips content.
+       Thumb is an absolutely-positioned circle child.
+       sizeBindings.root   → track frame dimensions + radius
+       sizeBindings.thumb  → thumb dimensions + radius
+       sizeBindings.thumbY → Y centering offset (comp-size var)
+       masterCfg.thumbXVar → X off-position offset (comp-size var) */
+    if (BP.kind === 'track-thumb') {
+      var ttMaster = figma.createComponent();
+      ttMaster.name = 'mc / ' + masterName;
+      stampOwner(ttMaster);
+      ttMaster.description = BP.description || '';
+
+      /* Default dimensions (base mode values; variables override at render) */
+      var ttW = 40, ttH = 24;
+      ttMaster.resize(ttW, ttH);
+      ttMaster.layoutMode = 'NONE';       /* absolute positioning for thumb */
+      ttMaster.clipsContent = true;       /* thumb stays within track bounds */
+      ttMaster.fills = [];                /* fill comes from variant override */
+      ttMaster.strokes = [];
+
+      /* Bind track frame dimensions and radius to comp-size variables */
+      var ttRootBinds = BP.sizeBindings.root;
+      var ttRootKeys = Object.keys(ttRootBinds);
+      for (var ttrk = 0; ttrk < ttRootKeys.length; ttrk++) {
+        var ttrv = compSizeVars[ttRootBinds[ttRootKeys[ttrk]]];
+        if (ttrv) { await tryBindVar(ttMaster, ttRootKeys[ttrk], ttrv); stats.bindings++; }
+      }
+
+      /* Thumb — absolutely positioned circle */
+      var ttThumb = figma.createFrame();
+      ttThumb.name = 'Thumb';
+      ttThumb.resize(20, 20); /* default base; variables override */
+      ttThumb.layoutMode = 'NONE';
+      ttThumb.cornerRadius = 9999;
+      /* Fixed white fill (--color-fixed-white; immune to theme changes) */
+      ttThumb.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 1 }];
+      ttThumb.strokes = [];
+      /* Drop shadow — matches --switch-thumb-shadow (shadow-sm) */
+      ttThumb.effects = [{
+        type: 'DROP_SHADOW',
+        color: { r: 0, g: 0, b: 0, a: 0.18 },
+        offset: { x: 0, y: 1 },
+        radius: 4,
+        spread: 0,
+        visible: true,
+        blendMode: 'NORMAL'
+      }];
+
+      /* Append BEFORE setting position/sizing (Figma rule: parent context first) */
+      ttMaster.appendChild(ttThumb);
+
+      /* Bind thumb dimensions and radius */
+      var ttThumbBinds = BP.sizeBindings.thumb;
+      var ttThumbKeys = Object.keys(ttThumbBinds);
+      for (var tthk = 0; tthk < ttThumbKeys.length; tthk++) {
+        var tthv = compSizeVars[ttThumbBinds[ttThumbKeys[tthk]]];
+        if (tthv) { await tryBindVar(ttThumb, ttThumbKeys[tthk], tthv); stats.bindings++; }
+      }
+
+      /* Bind thumb X (off-position) and Y (vertical centering) */
+      var ttThumbXVar = masterCfg.thumbXVar && compSizeVars[masterCfg.thumbXVar];
+      var ttThumbYVar = BP.sizeBindings.thumbY && compSizeVars[BP.sizeBindings.thumbY];
+      if (ttThumbXVar) { await tryBindVar(ttThumb, 'x', ttThumbXVar); stats.bindings++; }
+      if (ttThumbYVar) { await tryBindVar(ttThumb, 'y', ttThumbYVar); stats.bindings++; }
+
+      /* Place into master frame section */
+      masterFrame.appendChild(ttMaster);
+      ttMaster.x = _masterCursorX;
+      ttMaster.y = 0;
+
+      var ttMasterLabel = createLabel(masterName, 13, true, COLOR_HEADING);
+      masterSec.section.appendChild(ttMasterLabel);
+      ttMasterLabel.x = masterSec.innerX + _masterCursorX;
+      ttMasterLabel.y = masterSec.innerY + mHeaderBar.height + 24;
+      tryBindFill(ttMasterLabel, t2Vars['default/content/strong']);
+
+      var ttMasterBadge = createBadge('track \u00b7 thumb', COLOR_CM_BG, COLOR_DIMMED);
+      masterSec.section.appendChild(ttMasterBadge);
+      ttMasterBadge.x = masterSec.innerX + _masterCursorX;
+      ttMasterBadge.y = masterSec.innerY + mHeaderBar.height + 24 + 20;
+      tryBindFill(ttMasterBadge, t2Vars['default/component/bg']);
+      if (ttMasterBadge.children.length > 0) tryBindFill(ttMasterBadge.children[0], t2Vars['default/content/subtle']);
+
+      var _ttColW = Math.max(ttMasterLabel.width, ttMasterBadge.width, ttMaster.width);
+      _masterCursorX += _ttColW + 48;
+      masterComponents[masterName] = ttMaster;
+      log('Created track-thumb master: ' + masterName + ' (thumbX=' + masterCfg.thumbXVar + ')');
+      continue; /* skip generic slot-based construction below */
+    }
 
     /* Create master component */
     var master = figma.createComponent();
@@ -4452,7 +4718,9 @@ async function generateComponentFromBlueprint(blueprint) {
       var radiusRoundedVar = (BP.radiusRoundedPath && compSizeVars[BP.radiusRoundedPath])
                           || compSizeVars['button/radius-rounded']
                           || compSizeVars['button/default/radius-rounded'];
-      var roundedValues = [false, true];
+      /* skipRounded: true → the component is always pill-shaped; skip the
+         Rounded=True axis entirely so the variant set stays clean. */
+      var roundedValues = BP.skipRounded ? [false] : [false, true];
 
       for (var ri2 = 0; ri2 < roundedValues.length; ri2++) {
         var isRounded = roundedValues[ri2];
@@ -4463,7 +4731,11 @@ async function generateComponentFromBlueprint(blueprint) {
           var overrides = famOverrides[typeName] && famOverrides[typeName][stateName];
           if (!overrides) continue;
 
-          var _variantName = 'Type=' + typeName + ', State=' + stateName + ', Rounded=' + (isRounded ? 'True' : 'False');
+          /* skipRounded → omit Rounded property from variant name so the
+             ComponentSet doesn't expose a superfluous axis to designers. */
+          var _variantName = BP.skipRounded
+            ? 'Type=' + typeName + ', State=' + stateName
+            : 'Type=' + typeName + ', State=' + stateName + ', Rounded=' + (isRounded ? 'True' : 'False');
 
           /* SAFE_REBUILD: reuse the existing COMPONENT node so placed instances
              keep their mainComponent reference (same node ID). Clear its
@@ -4516,8 +4788,15 @@ async function generateComponentFromBlueprint(blueprint) {
           /* Create instance of master component */
           var instance = masterComp.createInstance();
           varComp.appendChild(instance);
-          instance.layoutSizingHorizontal = 'HUG';
-          instance.layoutSizingVertical = 'FIXED';
+          /* track-thumb: both axes FIXED (track is a fixed-size pill, not HUG).
+             All other components: HUG width so the instance wraps its content. */
+          if (BP.kind === 'track-thumb') {
+            instance.layoutSizingHorizontal = 'FIXED';
+            instance.layoutSizingVertical   = 'FIXED';
+          } else {
+            instance.layoutSizingHorizontal = 'HUG';
+            instance.layoutSizingVertical   = 'FIXED';
+          }
 
           /* Rounded override — rebind all four corner radii on the instance
              to button/radius-rounded. Master remains bound to button/default/radius;
@@ -4813,6 +5092,25 @@ async function generateComponentFromBlueprint(blueprint) {
                 if (_icHasStrokes) {
                   setPaintBoundToVariable(_icv, 'strokes', iconColorVar);
                   stats.bindings++;
+                }
+              }
+            }
+          }
+
+          /* thumbXOverride (track-thumb components only) — rebind the Thumb
+             child's X position to the 'on' position comp-size variable.
+             Used on all On-* states so the thumb slides to the right edge.
+             Locate the Thumb node inside the instance (not inside varComp). */
+          if (overrides.thumbXOverride) {
+            var ttOnXVar = compSizeVars[overrides.thumbXOverride];
+            if (ttOnXVar) {
+              var ttThumbNode = instance.findOne(function(n) { return n.name === 'Thumb'; });
+              if (ttThumbNode) {
+                try {
+                  await tryBindVar(ttThumbNode, 'x', ttOnXVar);
+                  stats.bindings++;
+                } catch (ttXErr) {
+                  log('thumbXOverride bind failed (' + familyName + '/' + stateName + '): ' + ttXErr.message);
                 }
               }
             }
@@ -5343,7 +5641,8 @@ async function generateComponentFromBlueprint(blueprint) {
 var COMPONENT_BLUEPRINTS = {
   button: BUTTON_BLUEPRINT,
   'split-button': SPLIT_BUTTON_BLUEPRINT,
-  'menu-button': MENU_BUTTON_BLUEPRINT
+  'menu-button': MENU_BUTTON_BLUEPRINT,
+  toggle: TOGGLE_BLUEPRINT
 };
 
 /* ── Auto-wire prototype interactions on every COMPONENT_SET on the
@@ -5772,7 +6071,7 @@ figma.ui.onmessage = async function(msg) {
       var requested = msg.components || ['button'];
       /* Ensure dependencies are generated first. Split-button instances the
          button master, so button must run earlier in the same dispatch. */
-      var depOrder = { 'button': 0, 'split-button': 1 };
+      var depOrder = { 'button': 0, 'split-button': 1, 'menu-button': 2, 'toggle': 3 };
       requested.sort(function(a, b) {
         var oa = depOrder[a.toLowerCase()]; if (oa === undefined) oa = 99;
         var ob = depOrder[b.toLowerCase()]; if (ob === undefined) ob = 99;
