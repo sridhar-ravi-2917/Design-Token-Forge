@@ -1356,25 +1356,25 @@ var TOGGLE_BLUEPRINT = {
 
   masters: {
     /* Pill track — rootRadiusPath overrides all 4 sizeBindings.root corners
-       to toggle/radius (9999) at master-build time. */
+       to toggle/radius (9999) at master-build time. Thumb stays circular. */
     'Switch': {
       thumbXVar:      'toggle/thumb-inset',
-      rootRadiusPath: 'toggle/radius',
-      trackLabels:    true
+      rootRadiusPath: 'toggle/radius'
     },
-    /* Square track — inherits toggle/radius-square (6px) from sizeBindings.root.
-       No rootRadiusPath needed. */
+    /* Square track — corners from sizeBindings.root (toggle/radius-square 6px).
+       thumbRadiusPath overrides thumb corners to match the square track shape. */
     'Switch Square': {
-      thumbXVar:   'toggle/thumb-inset',
-      trackLabels: true
+      thumbXVar:       'toggle/thumb-inset',
+      thumbRadiusPath: 'toggle/radius-square'
     }
   },
 
   /* comp-size variable paths.
-     root.corners → toggle/radius-square (square default); pill 'Switch' master
+     root.corners → toggle/radius-square (6px default); pill 'Switch' master
      overrides via rootRadiusPath → toggle/radius (9999) at master-build time.
-     thumb.corners → toggle/radius (9999, always circular — independent of track shape).
-     thumbY → not used in labeled masters (auto-layout manages vertical centering). */
+     thumb.corners → toggle/radius (9999 circle) by default; 'Switch Square' overrides
+     via thumbRadiusPath → toggle/radius-square (6px) for a matching square thumb.
+     thumbY → toggle/thumb-inset (2px; centred at sizes micro–small; slight drift at medium+). */
   sizeBindings: {
     root: {
       width:             'toggle/track-w',
@@ -1399,30 +1399,45 @@ var TOGGLE_BLUEPRINT = {
 
     /* ── FILLED — neutral grey off → success green on ─────────── */
     'Filled': {
-      types:  ['Default'],
+      types:  ['Default', 'Labeled'],
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
         'Default': {
-          'Off':          { fill: 'default/component/outline-default' },
+          'Off':          { fill: 'default/surfaces/strong' },
           'Off-Hover':    { fill: 'default/component/outline-hover' },
-          'Off-Focus':    { fill: 'default/component/outline-default',
+          'Off-Focus':    { fill: 'default/surfaces/strong',
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
                             t3Mode: 'brand' },
-          'Off-Disabled': { fill: 'default/component/outline-default', componentOpacity: 0.5 },
+          'Off-Disabled': { fill: 'default/surfaces/strong', componentOpacity: 0.5 },
           'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
                             componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
+        },
+        /* Labeled — same fills; no thumbXOverride (thumb stays centred in HUG layout) */
+        'Labeled': {
+          'Off':          { fill: 'default/surfaces/strong' },
+          'Off-Hover':    { fill: 'default/component/outline-hover' },
+          'Off-Focus':    { fill: 'default/surfaces/strong',
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                            t3Mode: 'brand' },
+          'Off-Disabled': { fill: 'default/surfaces/strong', componentOpacity: 0.5 },
+          'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' } },
+          'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' } },
+          'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
+                            componentOpacity: 0.5 }
         }
       }
     },
 
     /* ── OUTLINED — transparent + border off → success green on ──── */
     'Outlined': {
-      types:  ['Default'],
+      types:  ['Default', 'Labeled'],
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
@@ -1440,6 +1455,22 @@ var TOGGLE_BLUEPRINT = {
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
                             componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
+        },
+        /* Labeled — same fills; no thumbXOverride */
+        'Labeled': {
+          'Off':          { stroke: 'default/component/outline-default', strokeWeight: 2 },
+          'Off-Hover':    { fill: 'default/component/bg-hover',
+                            stroke: 'default/component/outline-hover', strokeWeight: 2 },
+          'Off-Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                            t3Mode: 'brand' },
+          'Off-Disabled': { stroke: 'default/component/outline-default', strokeWeight: 2,
+                            componentOpacity: 0.5 },
+          'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' } },
+          'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' } },
+          'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
+                            componentOpacity: 0.5 }
         }
       }
     },
@@ -1448,23 +1479,37 @@ var TOGGLE_BLUEPRINT = {
        Family t3Mode = 'danger'. Focus states override to 'brand' so
        the focus ring stays the universal blue (never red). */
     'Danger': {
-      types:  ['Default'],
+      types:  ['Default', 'Labeled'],
       t3Mode: 'danger',
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
         'Default': {
-          'Off':          { fill: 'default/component/outline-default' },
+          'Off':          { fill: 'default/surfaces/strong' },
           'Off-Hover':    { fill: 'default/component/outline-hover' },
-          'Off-Focus':    { fill: 'default/component/outline-default',
+          'Off-Focus':    { fill: 'default/surfaces/strong',
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
                             t3Mode: 'brand' },
-          'Off-Disabled': { fill: 'default/component/outline-default', componentOpacity: 0.5 },
+          'Off-Disabled': { fill: 'default/surfaces/strong', componentOpacity: 0.5 },
           'On':           { fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Disabled':  { fill: { t3: 'component/bg-default' }, componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
+        },
+        /* Labeled — same fills; no thumbXOverride */
+        'Labeled': {
+          'Off':          { fill: 'default/surfaces/strong' },
+          'Off-Hover':    { fill: 'default/component/outline-hover' },
+          'Off-Focus':    { fill: 'default/surfaces/strong',
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
+                            t3Mode: 'brand' },
+          'Off-Disabled': { fill: 'default/surfaces/strong', componentOpacity: 0.5 },
+          'On':           { fill: { t3: 'component/bg-default' } },
+          'On-Hover':     { fill: { t3: 'component/bg-hover' } },
+          'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'On-Disabled':  { fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 }
         }
       }
     }
@@ -4237,74 +4282,25 @@ async function generateComponentFromBlueprint(blueprint) {
         }
       }
 
-      if (masterCfg.trackLabels) {
-        /* ── LABELED TRACK — absolute-positioned labels, sliding thumb ────────
-           Structure (OFF state master):
-             [● Thumb at x=inset] | [LabelOff — right zone, visible]
-             LabelOn is in LEFT zone (same position as thumb), opacity=0 (hidden under thumb).
-           In ON variants: thumbXOverride slides thumb right; label opacities swap.
-           Track is FIXED WIDTH (standard toggle/track-w) — not HUG.
-           Mirrors CSS [data-track-labels] absolute-label approach.               */
-        ttMaster.clipsContent = false; /* allow shadow + labels to render cleanly */
-
-        var ttLblInset  = 2;  /* default base inset (px) */
-        var ttLblThumbW = 20; /* default base thumb width (px) */
-        var ttLblZoneW  = Math.max(ttW - 2 * ttLblInset - ttLblThumbW, 8);
-        var ttLblFS     = Math.max(Math.floor(ttH * 0.38), 6); /* ~9px at 24px base */
-
-        /* LabelOff — RIGHT zone: x = inset + thumb + inset, full-height zone */
-        var ttLblOffTxt = figma.createText();
-        ttLblOffTxt.name = 'LabelOff';
-        ttLblOffTxt.fontName = fontNameBold;
-        ttLblOffTxt.characters = 'OFF';
-        ttLblOffTxt.fontSize = ttLblFS;
-        ttLblOffTxt.textAutoResize = 'NONE';
-        ttLblOffTxt.textAlignHorizontal = 'CENTER';
-        ttLblOffTxt.textAlignVertical = 'CENTER';
-        ttLblOffTxt.fills = [{ type: 'SOLID', color: COLOR_BODY }];
-        ttLblOffTxt.resize(ttLblZoneW, ttH);
-        ttLblOffTxt.x = ttLblInset + ttLblThumbW + ttLblInset;
-        ttLblOffTxt.y = 0;
-        ttMaster.appendChild(ttLblOffTxt);
-        tryBindFill(ttLblOffTxt, t2Vars['default/content/default']);
-        stats.bindings++;
-
-        /* LabelOn — LEFT zone: x = inset (same as thumb OFF position).
-           opacity=0 in master (OFF state) — hidden under the thumb.
-           Variant builder sets opacity=1 for On-* states. */
-        var ttLblOnTxt = figma.createText();
-        ttLblOnTxt.name = 'LabelOn';
-        ttLblOnTxt.fontName = fontNameBold;
-        ttLblOnTxt.characters = 'ON';
-        ttLblOnTxt.fontSize = ttLblFS;
-        ttLblOnTxt.textAutoResize = 'NONE';
-        ttLblOnTxt.textAlignHorizontal = 'CENTER';
-        ttLblOnTxt.textAlignVertical = 'CENTER';
-        ttLblOnTxt.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-        ttLblOnTxt.resize(ttLblZoneW, ttH);
-        ttLblOnTxt.x = ttLblInset;
-        ttLblOnTxt.y = 0;
-        ttLblOnTxt.opacity = 0; /* hidden in OFF master */
-        ttMaster.appendChild(ttLblOnTxt);
-        tryBindFill(ttLblOnTxt, t3Vars['oncomponent-content/default']);
-        stats.bindings++;
-
-        /* Thumb — appended LAST so it renders above LabelOn (which it overlaps in OFF state) */
-        ttMaster.appendChild(ttThumb);
-        var ttThumbXVar = masterCfg.thumbXVar && compSizeVars[masterCfg.thumbXVar];
-        var ttThumbYVar = BP.sizeBindings.thumbY && compSizeVars[BP.sizeBindings.thumbY];
-        if (ttThumbXVar) { await tryBindVar(ttThumb, 'x', ttThumbXVar); stats.bindings++; }
-        if (ttThumbYVar) { await tryBindVar(ttThumb, 'y', ttThumbYVar); stats.bindings++; }
-        log('Track-thumb labeled master built (absolute labels): ' + masterName);
-
-      } else {
-        /* ── STANDARD TRACK — NONE layout, absolute thumb, no labels ────────── */
-        ttMaster.appendChild(ttThumb);
-        var ttThumbXVar = masterCfg.thumbXVar && compSizeVars[masterCfg.thumbXVar];
-        var ttThumbYVar = BP.sizeBindings.thumbY && compSizeVars[BP.sizeBindings.thumbY];
-        if (ttThumbXVar) { await tryBindVar(ttThumb, 'x', ttThumbXVar); stats.bindings++; }
-        if (ttThumbYVar) { await tryBindVar(ttThumb, 'y', ttThumbYVar); stats.bindings++; }
+      /* Per-master thumb radius override.
+         Default: sizeBindings.thumb bound toggle/radius (9999 = circle) for all masters.
+         'Switch Square': thumbRadiusPath = 'toggle/radius-square' (6px) → square thumb. */
+      if (masterCfg.thumbRadiusPath) {
+        var ttThumbRadVar = compSizeVars[masterCfg.thumbRadiusPath];
+        if (ttThumbRadVar) {
+          var ttTRKeys = ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'];
+          for (var ttrk = 0; ttrk < ttTRKeys.length; ttrk++) {
+            if (await tryBindVar(ttThumb, ttTRKeys[ttrk], ttThumbRadVar)) stats.bindings++;
+          }
+        }
       }
+
+      /* Append thumb and bind OFF-state position */
+      ttMaster.appendChild(ttThumb);
+      var ttThumbXVar = masterCfg.thumbXVar && compSizeVars[masterCfg.thumbXVar];
+      var ttThumbYVar = BP.sizeBindings.thumbY && compSizeVars[BP.sizeBindings.thumbY];
+      if (ttThumbXVar) { await tryBindVar(ttThumb, 'x', ttThumbXVar); stats.bindings++; }
+      if (ttThumbYVar) { await tryBindVar(ttThumb, 'y', ttThumbYVar); stats.bindings++; }
 
       /* Place into master frame section */
       masterFrame.appendChild(ttMaster);
@@ -4843,6 +4839,125 @@ async function generateComponentFromBlueprint(blueprint) {
           /* Disabled opacity lives on the COMPONENT (not the instance) */
           if (overrides.componentOpacity !== undefined) {
             varComp.opacity = overrides.componentOpacity;
+          }
+
+          /* ── LABELED TRACK VARIANT — HUG, direct build ────────────────────────
+             Type=Labeled for track-thumb: varComp IS the track (HORIZONTAL HUG).
+             Layout children: [LabelOn] [Thumb] [LabelOff] — thumb stays centred.
+             OFF states: LabelOn opacity=0, LabelOff opacity=1.
+             ON  states: LabelOn opacity=1, LabelOff opacity=0.
+             No thumbXOverride — position is implicit from visible child ordering.
+             Width HUGs text + thumb (wider than fixed-width Default toggle).    */
+          if (BP.kind === 'track-thumb' && typeName === 'Labeled') {
+            var _lblIsOn  = (stateName.indexOf('On') === 0);
+            var _lblInset = 4; /* px outer padding */
+            var _lblGap   = 4; /* px gap between children */
+            var _lblFS    = 9; /* base font size (px) */
+
+            /* Reconfigure varComp as the track frame */
+            varComp.layoutMode = 'HORIZONTAL';
+            varComp.counterAxisAlignItems = 'CENTER';
+            varComp.primaryAxisAlignItems = 'CENTER';
+            varComp.layoutSizingHorizontal = 'HUG';
+            varComp.layoutSizingVertical   = 'FIXED';
+            varComp.paddingLeft   = _lblInset;
+            varComp.paddingRight  = _lblInset;
+            varComp.paddingTop    = 0;
+            varComp.paddingBottom = 0;
+            varComp.itemSpacing   = _lblGap;
+            varComp.clipsContent  = false;
+
+            /* Bind track height to comp-size variable */
+            var _lblHVar = compSizeVars['toggle/track-h'];
+            if (_lblHVar) { await tryBindVar(varComp, 'height', _lblHVar); stats.bindings++; }
+
+            /* Bind track corner radii — pill (9999) or square (6px) per master */
+            var _lblTrackRadVar = masterCfg.rootRadiusPath
+              ? compSizeVars[masterCfg.rootRadiusPath]
+              : compSizeVars['toggle/radius-square'];
+            if (_lblTrackRadVar) {
+              var _lbRadKeys = ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'];
+              for (var _lbk = 0; _lbk < _lbRadKeys.length; _lbk++) {
+                if (await tryBindVar(varComp, _lbRadKeys[_lbk], _lblTrackRadVar)) stats.bindings++;
+              }
+            }
+
+            /* Track fill */
+            if (overrides.fill) {
+              var _lbFv = resolveColorSpec(overrides.fill, t2Vars, t3Vars);
+              if (_lbFv) { setPaintBoundToVariable(varComp, 'fills', _lbFv); stats.bindings++; }
+            } else { varComp.fills = []; }
+
+            /* Track stroke */
+            if (overrides.stroke) {
+              var _lbSv = resolveColorSpec(overrides.stroke, t2Vars, t3Vars);
+              if (_lbSv) {
+                setPaintBoundToVariable(varComp, 'strokes', _lbSv);
+                varComp.strokeWeight = overrides.strokeWeight || 1;
+                varComp.strokeAlign  = 'INSIDE';
+                stats.bindings++;
+              }
+            } else { varComp.strokes = []; }
+
+            /* LabelOn — LEFT child */
+            var _lbOn = figma.createText();
+            _lbOn.name = 'LabelOn';
+            _lbOn.fontName = fontNameBold;
+            _lbOn.characters = 'ON';
+            _lbOn.fontSize = _lblFS;
+            _lbOn.textAutoResize = 'WIDTH_AND_HEIGHT';
+            _lbOn.opacity = _lblIsOn ? 1 : 0;
+            var _lbOnFv = _lblIsOn
+              ? (t3Vars['oncomponent-content/default'] || t2Vars['default/content/inverse'])
+              : t2Vars['default/content/default'];
+            if (_lbOnFv) { tryBindFill(_lbOn, _lbOnFv); stats.bindings++; }
+            else { _lbOn.fills = [{ type: 'SOLID', color: _lblIsOn ? { r:1,g:1,b:1 } : COLOR_BODY }]; }
+            varComp.appendChild(_lbOn);
+
+            /* Thumb — FIXED centre child */
+            var _lbThumb = figma.createFrame();
+            _lbThumb.name = 'Thumb';
+            _lbThumb.resize(20, 20);
+            _lbThumb.layoutMode = 'NONE';
+            _lbThumb.layoutSizingHorizontal = 'FIXED';
+            _lbThumb.layoutSizingVertical   = 'FIXED';
+            _lbThumb.fills   = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 1 }];
+            _lbThumb.strokes = [];
+            _lbThumb.cornerRadius = 9999;
+            _lbThumb.effects = [{ type: 'DROP_SHADOW', color: { r:0,g:0,b:0,a:0.18 },
+              offset: { x:0, y:1 }, radius: 4, spread: 0, visible: true, blendMode: 'NORMAL' }];
+            var _lbThSVar = compSizeVars['toggle/thumb-size'];
+            if (_lbThSVar) {
+              await tryBindVar(_lbThumb, 'width',  _lbThSVar);
+              await tryBindVar(_lbThumb, 'height', _lbThSVar);
+              stats.bindings += 2;
+            }
+            /* Thumb radius — circle for Switch, square for Switch Square */
+            var _lbThRadVar = compSizeVars[masterCfg.thumbRadiusPath || 'toggle/radius'];
+            if (_lbThRadVar) {
+              var _lbtrKeys = ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'];
+              for (var _lbt = 0; _lbt < _lbtrKeys.length; _lbt++) {
+                if (await tryBindVar(_lbThumb, _lbtrKeys[_lbt], _lbThRadVar)) stats.bindings++;
+              }
+            }
+            varComp.appendChild(_lbThumb);
+
+            /* LabelOff — RIGHT child */
+            var _lbOff = figma.createText();
+            _lbOff.name = 'LabelOff';
+            _lbOff.fontName = fontNameBold;
+            _lbOff.characters = 'OFF';
+            _lbOff.fontSize = _lblFS;
+            _lbOff.textAutoResize = 'WIDTH_AND_HEIGHT';
+            _lbOff.opacity = _lblIsOn ? 0 : 1;
+            var _lbOffFv = t2Vars['default/content/default'];
+            if (_lbOffFv) { tryBindFill(_lbOff, _lbOffFv); stats.bindings++; }
+            else { _lbOff.fills = [{ type: 'SOLID', color: COLOR_BODY }]; }
+            varComp.appendChild(_lbOff);
+
+            components.push({ component: varComp, type: typeName, state: stateName, rounded: isRounded });
+            stats.components++;
+            continue; /* skip instance-creation + override code */
           }
 
           /* Create instance of master component */
