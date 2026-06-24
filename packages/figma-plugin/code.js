@@ -1361,11 +1361,24 @@ var TOGGLE_BLUEPRINT = {
       thumbXVar:      'toggle/thumb-inset',
       rootRadiusPath: 'toggle/radius'
     },
+    /* Pill track with ON/OFF text labels (HUG width). isLabeled = true means no
+       physical master component is created; labeled variants are built directly. */
+    'Switch Labeled': {
+      thumbXVar:      'toggle/thumb-inset',
+      rootRadiusPath: 'toggle/radius',
+      isLabeled:      true
+    },
     /* Square track — corners from sizeBindings.root (toggle/radius-square 6px).
        thumbRadiusPath overrides thumb corners to match the square track shape. */
     'Switch Square': {
       thumbXVar:       'toggle/thumb-inset',
       thumbRadiusPath: 'toggle/radius-square'
+    },
+    /* Square track with ON/OFF text labels (HUG width). */
+    'Switch Square Labeled': {
+      thumbXVar:       'toggle/thumb-inset',
+      thumbRadiusPath: 'toggle/radius-square',
+      isLabeled:       true
     }
   },
 
@@ -1399,7 +1412,7 @@ var TOGGLE_BLUEPRINT = {
 
     /* ── FILLED — neutral grey off → success green on ─────────── */
     'Filled': {
-      types:  ['Default', 'Labeled'],
+      types:  ['Default'],
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
@@ -1416,28 +1429,13 @@ var TOGGLE_BLUEPRINT = {
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
                             componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
-        },
-        /* Labeled — same fills; no thumbXOverride (thumb stays centred in HUG layout) */
-        'Labeled': {
-          'Off':          { fill: 'default/surfaces/strong' },
-          'Off-Hover':    { fill: 'default/component/outline-hover' },
-          'Off-Focus':    { fill: 'default/surfaces/strong',
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
-                            t3Mode: 'brand' },
-          'Off-Disabled': { fill: 'default/surfaces/strong', componentOpacity: 0.5 },
-          'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' } },
-          'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' } },
-          'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
-          'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
-                            componentOpacity: 0.5 }
         }
       }
     },
 
     /* ── OUTLINED — transparent + border off → success green on ──── */
     'Outlined': {
-      types:  ['Default', 'Labeled'],
+      types:  ['Default'],
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
@@ -1455,22 +1453,6 @@ var TOGGLE_BLUEPRINT = {
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
                             componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
-        },
-        /* Labeled — same fills; no thumbXOverride */
-        'Labeled': {
-          'Off':          { stroke: 'default/component/outline-default', strokeWeight: 2 },
-          'Off-Hover':    { fill: 'default/component/bg-hover',
-                            stroke: 'default/component/outline-hover', strokeWeight: 2 },
-          'Off-Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
-                            t3Mode: 'brand' },
-          'Off-Disabled': { stroke: 'default/component/outline-default', strokeWeight: 2,
-                            componentOpacity: 0.5 },
-          'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' } },
-          'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' } },
-          'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
-          'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
-                            componentOpacity: 0.5 }
         }
       }
     },
@@ -1479,7 +1461,7 @@ var TOGGLE_BLUEPRINT = {
        Family t3Mode = 'danger'. Focus states override to 'brand' so
        the focus ring stays the universal blue (never red). */
     'Danger': {
-      types:  ['Default', 'Labeled'],
+      types:  ['Default'],
       t3Mode: 'danger',
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
@@ -1496,20 +1478,6 @@ var TOGGLE_BLUEPRINT = {
           'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Disabled':  { fill: { t3: 'component/bg-default' }, componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
-        },
-        /* Labeled — same fills; no thumbXOverride */
-        'Labeled': {
-          'Off':          { fill: 'default/surfaces/strong' },
-          'Off-Hover':    { fill: 'default/component/outline-hover' },
-          'Off-Focus':    { fill: 'default/surfaces/strong',
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
-                            t3Mode: 'brand' },
-          'Off-Disabled': { fill: 'default/surfaces/strong', componentOpacity: 0.5 },
-          'On':           { fill: { t3: 'component/bg-default' } },
-          'On-Hover':     { fill: { t3: 'component/bg-hover' } },
-          'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
-          'On-Disabled':  { fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 }
         }
       }
     }
@@ -4219,6 +4187,13 @@ async function generateComponentFromBlueprint(blueprint) {
        sizeBindings.thumbY → Y centering offset (comp-size var)
        masterCfg.thumbXVar → X off-position offset (comp-size var) */
     if (BP.kind === 'track-thumb') {
+      /* isLabeled masters don't need a physical master component — labeled
+         variants are built directly in the variant loop (no instance of a
+         master). Register null and skip all master-section work. */
+      if (masterCfg.isLabeled) {
+        masterComponents[masterName] = null;
+        continue;
+      }
       var ttMaster = figma.createComponent();
       ttMaster.name = 'mc / ' + masterName;
       stampOwner(ttMaster);
@@ -4789,9 +4764,13 @@ async function generateComponentFromBlueprint(blueprint) {
 
           /* skipRounded → omit Rounded property from variant name so the
              ComponentSet doesn't expose a superfluous axis to designers. */
-          var _variantName = BP.skipRounded
-            ? 'Type=' + typeName + ', State=' + stateName
-            : 'Type=' + typeName + ', State=' + stateName + ', Rounded=' + (isRounded ? 'True' : 'False');
+          /* Labeled masters produce single-type sets — drop the redundant
+             Type axis so the component panel only shows the State picker. */
+          var _variantName = masterCfg.isLabeled
+            ? 'State=' + stateName
+            : BP.skipRounded
+              ? 'Type=' + typeName + ', State=' + stateName
+              : 'Type=' + typeName + ', State=' + stateName + ', Rounded=' + (isRounded ? 'True' : 'False');
 
           /* SAFE_REBUILD: reuse the existing COMPONENT node so placed instances
              keep their mainComponent reference (same node ID). Clear its
@@ -4848,10 +4827,15 @@ async function generateComponentFromBlueprint(blueprint) {
              ON  states: LabelOn opacity=1, LabelOff opacity=0.
              No thumbXOverride — position is implicit from visible child ordering.
              Width HUGs text + thumb (wider than fixed-width Default toggle).    */
-          if (BP.kind === 'track-thumb' && typeName === 'Labeled') {
+          if (BP.kind === 'track-thumb' && masterCfg.isLabeled) {
             var _lblIsOn  = (stateName.indexOf('On') === 0);
-            var _lblInset = 4; /* px outer padding */
-            var _lblGap   = 4; /* px gap between children */
+            /* Thumb-side inset = (track-h - thumb-size)/2 = (24-20)/2 = 2px.
+               Matches the Default toggle OFF position so the thumb circle sits
+               in the same position relative to the pill arc in both variants.
+               Text side gets 4px for breathing room. */
+            var _lblThumbPad = 2; /* inset side (thumb nestles against pill end) */
+            var _lblTextPad  = 4; /* text side (more breathing room for label)  */
+            var _lblGap   = 4; /* px gap between thumb and text */
             var _lblFS    = 9; /* base font size (px) */
 
             /* Reconfigure varComp as the track frame */
@@ -4860,8 +4844,10 @@ async function generateComponentFromBlueprint(blueprint) {
             varComp.primaryAxisAlignItems = 'CENTER';
             varComp.layoutSizingHorizontal = 'HUG';
             varComp.layoutSizingVertical   = 'FIXED';
-            varComp.paddingLeft   = _lblInset;
-            varComp.paddingRight  = _lblInset;
+            /* OFF: thumb on LEFT → left=thumbPad, right=textPad
+               ON:  thumb on RIGHT → left=textPad, right=thumbPad */
+            varComp.paddingLeft   = _lblIsOn ? _lblTextPad  : _lblThumbPad;
+            varComp.paddingRight  = _lblIsOn ? _lblThumbPad : _lblTextPad;
             varComp.paddingTop    = 0;
             varComp.paddingBottom = 0;
             varComp.itemSpacing   = _lblGap;
@@ -4974,6 +4960,9 @@ async function generateComponentFromBlueprint(blueprint) {
           if (BP.kind === 'track-thumb') {
             instance.layoutSizingHorizontal = 'FIXED';
             instance.layoutSizingVertical   = 'FIXED';
+            /* Ensure shadow from the thumb is clipped at the track boundary.
+               Instances do not inherit clipsContent from the master component. */
+            try { instance.clipsContent = true; } catch(e) {}
           } else {
             instance.layoutSizingHorizontal = 'HUG';
             instance.layoutSizingVertical   = 'FIXED';
