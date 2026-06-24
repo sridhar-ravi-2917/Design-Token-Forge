@@ -1410,8 +1410,8 @@ var TOGGLE_BLUEPRINT = {
 
   families: {
 
-    /* ── FILLED — neutral grey off → success green on ─────────── */
-    'Filled': {
+    /* ── NEUTRAL (default) — neutral grey off → success green on ── */
+    'Neutral': {
       types:  ['Default'],
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
@@ -1459,12 +1459,9 @@ var TOGGLE_BLUEPRINT = {
       }
     },
 
-    /* ── DANGER — neutral grey off → danger red on ─────────────
-       Family t3Mode = 'danger'. Focus states override to 'brand' so
-       the focus ring stays the universal blue (never red). */
-    'Danger': {
+    /* ── BRAND (secondary) — neutral grey off → brand blue on ─── */
+    'Brand': {
       types:  ['Default'],
-      t3Mode: 'danger',
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
@@ -1474,11 +1471,11 @@ var TOGGLE_BLUEPRINT = {
           'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
           'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
-          'On':           { fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
-          'On-Hover':     { fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
+          'On':           { t3Mode: 'brand', fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
+          'On-Hover':     { t3Mode: 'brand', fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2, thumbXOverride: 'toggle/thumb-x-on' },
-          'On-Disabled':  { fill: { t3: 'component/bg-default' }, componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
+          'On-Disabled':  { t3Mode: 'brand', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
         }
       }
     }
