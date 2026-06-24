@@ -1417,12 +1417,14 @@ var TOGGLE_BLUEPRINT = {
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
         'Default': {
-          'Off':          { fill: 'default/component/bg-default' },
-          'Off-Hover':    { fill: 'default/component/bg-hover' },
-          'Off-Focus':    { fill: 'default/component/bg-default',
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
-                            t3Mode: 'brand' },
-          'Off-Disabled': { fill: 'default/component/bg-default', componentOpacity: 0.5 },
+          /* neutral t3Mode gives neutral-component-bg-default=#6B7680 (4.64:1 vs white)
+             All surface-adaptive T2 component/bg tokens resolve to white or near-white
+             (1.00–1.23:1) — they are designed for button borders, not filled tracks. */
+          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
+          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
+          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
           'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
@@ -1467,12 +1469,11 @@ var TOGGLE_BLUEPRINT = {
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
         'Default': {
-          'Off':          { fill: 'default/component/bg-default' },
-          'Off-Hover':    { fill: 'default/component/bg-hover' },
-          'Off-Focus':    { fill: 'default/component/bg-default',
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
-                            t3Mode: 'brand' },
-          'Off-Disabled': { fill: 'default/component/bg-default', componentOpacity: 0.5 },
+          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
+          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
+          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
+                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
+          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
           'On':           { fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'brand', fill: { t3: 'component/bg-default' },

@@ -70,10 +70,12 @@
      ──────────────────────────────────────────────────────────── */
 
   /* ── Track: unchecked (off) ── */
-  --switch-track-bg-off: var(--surface-base-cm-outline);
-  --switch-track-bg-off-hover: var(--surface-base-cm-outline-hover);
-  --switch-track-border-color-off: var(--surface-base-cm-outline);
-  --switch-track-border-color-off-hover: var(--surface-base-cm-outline-hover);
+  /* neutral-component-bg-default=#6B7680 (4.64:1 vs white) — passes WCAG 1.4.11 3:1.
+     surface-base-cm-outline=#CFCFCF was only 1.56:1 (fail). */
+  --switch-track-bg-off: var(--neutral-component-bg-default);
+  --switch-track-bg-off-hover: var(--neutral-component-bg-hover);
+  --switch-track-border-color-off: var(--neutral-component-bg-default);
+  --switch-track-border-color-off-hover: var(--neutral-component-bg-hover);
 
   /* ── Track: checked (on) ── */
   --switch-track-bg-on: var(--brand-component-bg-default);
