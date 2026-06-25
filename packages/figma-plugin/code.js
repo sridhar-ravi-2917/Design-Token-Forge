@@ -2276,6 +2276,30 @@ async function generateComponentFromBlueprint(blueprint) {
   }
 
 
+  /* ── Step 2b: Normalize legacy T3 variable names ────────────────────────
+     Older project files have T3 vars named `component/bg` and
+     `component/outline` (no -default suffix). Rename in-place so that
+     { t3: 'component/bg-default' } and T3 alias repair both work. */
+  var t3Aliases = [
+    { from: 'component/bg',      to: 'component/bg-default' },
+    { from: 'component/outline', to: 'component/outline-default' }
+  ];
+  for (var ai3 = 0; ai3 < t3Aliases.length; ai3++) {
+    var t3from = t3Aliases[ai3].from;
+    var t3to   = t3Aliases[ai3].to;
+    if (t3Vars[t3from] && !t3Vars[t3to]) {
+      try {
+        t3Vars[t3from].name = t3to;
+        t3Vars[t3to] = t3Vars[t3from];
+        delete t3Vars[t3from];
+        log('Renamed T3 var: ' + t3from + ' \u2192 ' + t3to);
+        stats.bindings++;
+      } catch (rne3) {
+        log('Failed to rename T3 var ' + t3from + ': ' + rne3.message);
+      }
+    }
+  }
+
   var csCount = Object.keys(compSizeVars).length;
   var t2Count = Object.keys(t2Vars).length;
   var t3Count = Object.keys(t3Vars).length;
@@ -4340,6 +4364,84 @@ async function generateComponentFromBlueprint(blueprint) {
       _masterCursorX += _ttColW + 48;
       masterComponents[masterName] = ttMaster;
       log('Created track-thumb master: ' + masterName + ' (thumbX=' + masterCfg.thumbXVar + ')');
+
+      /* ── ON master — thumb pre-positioned at toggle/thumb-x-on (right side) ──
+         Figma cannot override a variable-bound x on an instance child, so any
+         attempt to move the thumb right on an OFF-master instance silently fails.
+         The correct approach is a second master where the Thumb.x variable is
+         already bound to toggle/thumb-x-on (= 18 in base). ON-state variants
+         use instances of this master; OFF-state variants use the OFF master.  */
+      var _onM = figma.createComponent();
+      _onM.name = 'mc / ' + masterName + ' [On]';
+      stampOwner(_onM);
+      _onM.description = ttMaster.description;
+      _onM.resize(ttW, ttH);
+      _onM.layoutMode = 'NONE';
+      _onM.clipsContent = true;
+      _onM.fills = [];
+      _onM.strokes = [];
+      /* Bind same root dimensions + radius as OFF master */
+      for (var _onrk = 0; _onrk < ttRootKeys.length; _onrk++) {
+        var _onrv = compSizeVars[ttRootBinds[ttRootKeys[_onrk]]];
+        if (_onrv) { await tryBindVar(_onM, ttRootKeys[_onrk], _onrv); stats.bindings++; }
+      }
+      if (masterCfg.rootRadiusPath) {
+        var _onRRV = compSizeVars[masterCfg.rootRadiusPath];
+        if (_onRRV) {
+          var _onRRK = ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'];
+          for (var _onrrk = 0; _onrrk < _onRRK.length; _onrrk++) {
+            if (await tryBindVar(_onM, _onRRK[_onrrk], _onRRV)) stats.bindings++;
+          }
+        }
+      }
+      /* ON thumb — identical to OFF thumb except x binds to toggle/thumb-x-on */
+      var _onTh = figma.createFrame();
+      _onTh.name = 'Thumb';
+      _onTh.resize(20, 20);
+      _onTh.layoutMode = 'NONE';
+      _onTh.cornerRadius = 9999;
+      _onTh.fills  = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 1 }];
+      _onTh.strokes = [];
+      _onTh.effects = ttThumb.effects.slice();
+      for (var _onthk = 0; _onthk < ttThumbKeys.length; _onthk++) {
+        var _onthv = compSizeVars[ttThumbBinds[ttThumbKeys[_onthk]]];
+        if (_onthv) { await tryBindVar(_onTh, ttThumbKeys[_onthk], _onthv); stats.bindings++; }
+      }
+      if (masterCfg.thumbRadiusPath) {
+        var _onTRV = compSizeVars[masterCfg.thumbRadiusPath];
+        if (_onTRV) {
+          var _onTRK = ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'];
+          for (var _ontrk = 0; _ontrk < _onTRK.length; _ontrk++) {
+            if (await tryBindVar(_onTh, _onTRK[_ontrk], _onTRV)) stats.bindings++;
+          }
+        }
+      }
+      _onM.appendChild(_onTh);
+      _onTh.x = 18; /* literal fallback = track-w(40)−thumb-size(20)−inset(2) */
+      _onTh.y = 2;
+      var _onThXVar = compSizeVars['toggle/thumb-x-on'];
+      if (_onThXVar) { await tryBindVar(_onTh, 'x', _onThXVar); stats.bindings++; }
+      if (ttThumbYVar) { await tryBindVar(_onTh, 'y', ttThumbYVar); stats.bindings++; }
+
+      /* Place ON master in the master-section display */
+      masterFrame.appendChild(_onM);
+      _onM.x = _masterCursorX;
+      _onM.y = 0;
+      var _onLbl = createLabel(masterName + ' [On]', 13, true, COLOR_HEADING);
+      masterSec.section.appendChild(_onLbl);
+      _onLbl.x = masterSec.innerX + _masterCursorX;
+      _onLbl.y = masterSec.innerY + mHeaderBar.height + 24;
+      tryBindFill(_onLbl, t2Vars['default/content/strong']);
+      var _onBdg = createBadge('track \u00b7 thumb [On]', COLOR_CM_BG, COLOR_DIMMED);
+      masterSec.section.appendChild(_onBdg);
+      _onBdg.x = masterSec.innerX + _masterCursorX;
+      _onBdg.y = masterSec.innerY + mHeaderBar.height + 24 + 20;
+      tryBindFill(_onBdg, t2Vars['default/component/bg']);
+      if (_onBdg.children.length > 0) tryBindFill(_onBdg.children[0], t2Vars['default/content/subtle']);
+      var _onColW = Math.max(_onLbl.width, _onBdg.width, _onM.width);
+      _masterCursorX += _onColW + 48;
+      masterComponents[masterName + '_on'] = _onM;
+      log('Created ON track-thumb master: ' + masterName + ' [On]');
       continue; /* skip generic slot-based construction below */
     }
 
@@ -4813,6 +4915,15 @@ async function generateComponentFromBlueprint(blueprint) {
           var overrides = famOverrides[typeName] && famOverrides[typeName][stateName];
           if (!overrides) continue;
 
+          /* For track-thumb ON states, switch to the ON master whose Thumb.x
+             is already bound to toggle/thumb-x-on (right side). Figma does
+             not allow overriding a variable-bound layout property (x) on an
+             instance child, so swapping the whole master is the only solution. */
+          var _activeMaster = (BP.kind === 'track-thumb' && overrides.thumbXOverride &&
+                               masterComponents[mName + '_on'])
+            ? masterComponents[mName + '_on']
+            : masterComp;
+
           /* Build the full variant name from all active axes. */
           var _labeledSuffix = BP.labeledAxis ? (', Label=' + (isLabeledIter ? 'On' : 'Off')) : '';
           var _variantName = BP.skipRounded
@@ -4942,18 +5053,19 @@ async function generateComponentFromBlueprint(blueprint) {
             _lbOn.fontSize = _lblFS;
             _lbOn.textAutoResize = 'WIDTH_AND_HEIGHT';
             _lbOn.visible = _lblIsOn;
-            /* Label text is always white-on-coloured — track fill is either a
-               T3 component/bg (neutral grey, success, brand) or an outlined
-               T2 bg-hover which is very light (Outlined OFF).  
-               ON state: oncomponent-content/default via T3 (white).
-               OFF state: content/inverse (white) for Neutral/Brand; content/default for Outlined.
-               Outlined OFF has no fill (stroke only), so content/default is correct there. */
-            var _trackHasFill = !!(overrides.fill);
-            var _lbOnFv = _lblIsOn
+            /* Label text color:
+               - T3 semantic fill (success/brand ON states): T3 oncomponent-content/default
+                 (resolves to white in T3 mode locked on varComp → white-on-colour).
+               - T2 fill or no fill (Neutral/Brand OFF, Outlined OFF): T2 default/content/default
+                 (dark body text — readable on light grey bg-pressed or on empty track).
+               Just like buttons, Neutral toggle label text uses the content token,
+               NOT oncomponent-content (which is white — invisible on light grey). */
+            var _useOnComponent = !!(overrides.t3Mode);
+            var _lbOnFv = _useOnComponent
               ? (t3Vars['oncomponent-content/default'] || t2Vars['default/content/inverse'])
-              : (_trackHasFill ? (t3Vars['oncomponent-content/default'] || t2Vars['default/content/inverse']) : t2Vars['default/content/default']);
+              : t2Vars['default/content/default'];
             if (_lbOnFv) { tryBindFill(_lbOn, _lbOnFv); stats.bindings++; }
-            else { _lbOn.fills = [{ type: 'SOLID', color: { r:1,g:1,b:1 } }]; }
+            else { _lbOn.fills = [{ type: 'SOLID', color: { r:0.35,g:0.35,b:0.40 } }]; }
             varComp.appendChild(_lbOn);
             try { _lbOn.layoutPositioning = _lblIsOn ? 'AUTO' : 'ABSOLUTE'; } catch (e) {}
 
@@ -4995,12 +5107,12 @@ async function generateComponentFromBlueprint(blueprint) {
             _lbOff.fontSize = _lblFS;
             _lbOff.textAutoResize = 'WIDTH_AND_HEIGHT';
             _lbOff.visible = !_lblIsOn;
-            /* Same logic as LabelOn: white on coloured fill, body colour on no-fill (Outlined OFF). */
-            var _lbOffFv = _trackHasFill
+            /* Same rule as LabelOn: T3 mode = white on colour; no T3 mode = dark body text. */
+            var _lbOffFv = _useOnComponent
               ? (t3Vars['oncomponent-content/default'] || t2Vars['default/content/inverse'])
               : t2Vars['default/content/default'];
             if (_lbOffFv) { tryBindFill(_lbOff, _lbOffFv); stats.bindings++; }
-            else { _lbOff.fills = [{ type: 'SOLID', color: _trackHasFill ? { r:1,g:1,b:1 } : COLOR_BODY }]; }
+            else { _lbOff.fills = [{ type: 'SOLID', color: COLOR_BODY }]; }
             varComp.appendChild(_lbOff);
             try { _lbOff.layoutPositioning = _lblIsOn ? 'ABSOLUTE' : 'AUTO'; } catch (e) {}
 
@@ -5009,8 +5121,10 @@ async function generateComponentFromBlueprint(blueprint) {
             continue; /* skip instance-creation + override code */
           }
 
-          /* Create instance of master component */
-          var instance = masterComp.createInstance();
+          /* Create instance of master component.
+             For track-thumb ON states _activeMaster is the ON master (thumb
+             pre-positioned right); for OFF states it is the regular master. */
+          var instance = _activeMaster.createInstance();
           varComp.appendChild(instance);
           /* track-thumb: both axes FIXED (track is a fixed-size pill, not HUG).
              All other components: HUG width so the instance wraps its content. */
@@ -5335,30 +5449,9 @@ async function generateComponentFromBlueprint(blueprint) {
             }
           }
 
-          /* thumbXOverride — move thumb to ON-position by literal override.
-             setBoundVariable('x') on instance children is NOT supported by
-             Figma (the master's binding silently wins). Use a literal position
-             override instead — this creates a persistent instance override. */
-          if (overrides.thumbXOverride) {
-            var ttThumbNode = instance.findOne(function(n) { return n.name === 'Thumb'; });
-            if (ttThumbNode) {
-              /* Read ON-x from the comp-size variable value if available,
-                 fall back to hard-calculated default: track-w(44)−thumb-size(20)−inset(2)=22. */
-              var ttOnXVar = compSizeVars[overrides.thumbXOverride];
-              var ttOnXVal = 18; /* track-w(40)−thumb-size(20)−inset(2) base */
-              if (ttOnXVar) {
-                try {
-                  var ttOnXModes = Object.values(ttOnXVar.valuesByMode || {});
-                  if (ttOnXModes.length > 0 && typeof ttOnXModes[0] === 'number') {
-                    ttOnXVal = ttOnXModes[0];
-                  }
-                } catch (_tve) {}
-              }
-              try { ttThumbNode.x = ttOnXVal; } catch (_tXe) {
-                log('thumbXOverride literal set failed (' + familyName + '/' + stateName + '): ' + _tXe.message);
-              }
-            }
-          }
+          /* thumbXOverride is now handled by master selection (_activeMaster):
+             ON states use the [On] master whose Thumb.x is bound to
+             toggle/thumb-x-on. No instance-level override needed. */
 
           /* Track label visibility — only when master has trackLabels: true.
              Detect On vs Off state from the state name prefix.
