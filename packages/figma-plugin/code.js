@@ -1423,11 +1423,11 @@ var TOGGLE_BLUEPRINT = {
       stateOverrides: {
         /* ── NEUTRAL — grey off → success green on ─────────────────── */
         'Neutral': {
-          'Off':          { solidFill: { r: 0.420, g: 0.463, b: 0.502 } },
-          'Off-Hover':    { solidFill: { r: 0.478, g: 0.522, b: 0.565 } },
-          'Off-Focus':    { solidFill: { r: 0.420, g: 0.463, b: 0.502 },
+          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
+          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
+          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
                             stroke: 'default/component/outline-default', strokeWeight: 2 },
-          'Off-Disabled': { solidFill: { r: 0.420, g: 0.463, b: 0.502 }, componentOpacity: 0.5 },
+          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
           'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
@@ -1437,11 +1437,11 @@ var TOGGLE_BLUEPRINT = {
         },
         /* ── BRAND — grey off → brand blue on ──────────────────────── */
         'Brand': {
-          'Off':          { solidFill: { r: 0.420, g: 0.463, b: 0.502 } },
-          'Off-Hover':    { solidFill: { r: 0.478, g: 0.522, b: 0.565 } },
-          'Off-Focus':    { solidFill: { r: 0.420, g: 0.463, b: 0.502 },
+          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
+          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
+          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
                             stroke: 'default/component/outline-default', strokeWeight: 2 },
-          'Off-Disabled': { solidFill: { r: 0.420, g: 0.463, b: 0.502 }, componentOpacity: 0.5 },
+          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
           'On':           { t3Mode: 'brand',   fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'brand',   fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'brand',   fill: { t3: 'component/bg-default' },
@@ -1452,8 +1452,8 @@ var TOGGLE_BLUEPRINT = {
         /* ── OUTLINED — transparent + border off → success green on ── */
         'Outlined': {
           'Off':          { stroke: 'default/component/outline-default', strokeWeight: 2 },
-          'Off-Hover':    { fill: 'default/component/bg-default',
-                            stroke: 'default/component/outline-default', strokeWeight: 2 },
+          'Off-Hover':    { fill: 'default/component/bg-hover',
+                            stroke: 'default/component/outline-hover', strokeWeight: 2 },
           'Off-Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
                             t3Mode: 'brand' },
           'Off-Disabled': { stroke: 'default/component/outline-default', strokeWeight: 2,
