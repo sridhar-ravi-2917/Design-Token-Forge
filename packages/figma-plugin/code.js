@@ -1369,9 +1369,11 @@ var TOGGLE_BLUEPRINT = {
       isLabeled: false
     },
     'Switch / Pill': {
-      thumbXVar: 'toggle/thumb-inset',
-      isRounded: true,
-      isLabeled: false
+      thumbXVar:      'toggle/thumb-inset',
+      isRounded:      true,
+      isLabeled:      false,
+      rootRadiusPath: 'toggle/radius',   /* pill track  — 9999 */
+      thumbRadiusPath:'toggle/radius'    /* circle thumb — 9999 */
     },
     'Switch / Labeled': {
       thumbXVar: 'toggle/thumb-inset',
@@ -1379,9 +1381,11 @@ var TOGGLE_BLUEPRINT = {
       isLabeled: true
     },
     'Switch / Pill / Labeled': {
-      thumbXVar: 'toggle/thumb-inset',
-      isRounded: true,
-      isLabeled: true
+      thumbXVar:      'toggle/thumb-inset',
+      isRounded:      true,
+      isLabeled:      true,
+      rootRadiusPath: 'toggle/radius',   /* pill track  — 9999 */
+      thumbRadiusPath:'toggle/radius'    /* circle thumb — 9999 */
     }
   },
 
@@ -4989,14 +4993,13 @@ async function generateComponentFromBlueprint(blueprint) {
             instance.layoutSizingVertical   = 'FIXED';
           }
 
-          /* Rounded override — rebind all four corner radii on the instance
-             to the radiusRoundedPath variable (pill shape).
-             For track-thumb (toggle): rebind only the INSTANCE root (the track);
-             the Thumb child is bound to toggle/radius (9999) in the master
-             For track-thumb (toggle): also rebinds the Thumb child so track+thumb
-             both become pill/circle on Rounded=True.
-             For buttons: behavior unchanged (rebinds instance root corners only). */
-          if (isRounded && radiusRoundedVar) {
+          /* Rounded override — for NON-track-thumb (buttons): rebind corner radii
+             variable on the instance root.
+             For track-thumb (toggle): shape is baked into the MASTER via
+             rootRadiusPath / thumbRadiusPath — instances inherit it. Skip
+             variable binding on instances (Figma doesn't allow overriding
+             layout variable bindings on instances). */
+          if (isRounded && radiusRoundedVar && BP.kind !== 'track-thumb') {
             try {
               await tryBindVar(instance, 'topLeftRadius',     radiusRoundedVar);
               await tryBindVar(instance, 'topRightRadius',    radiusRoundedVar);
@@ -5005,16 +5008,6 @@ async function generateComponentFromBlueprint(blueprint) {
               stats.bindings += 4;
             } catch (rre) {
               log('Rounded radius bind failed (' + familyName + '/' + typeName + '/' + stateName + '): ' + rre.message);
-            }
-            /* track-thumb: also make the Thumb child circular */
-            if (BP.kind === 'track-thumb') {
-              var _rtThumb = instance.findOne(function(n){ return n.name === 'Thumb'; });
-              if (_rtThumb) {
-                var _rtRadKeys = ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'];
-                for (var _rtk = 0; _rtk < _rtRadKeys.length; _rtk++) {
-                  try { if (await tryBindVar(_rtThumb, _rtRadKeys[_rtk], radiusRoundedVar)) stats.bindings++; } catch (e) {}
-                }
-              }
             }
           }
 
