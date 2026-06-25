@@ -1403,11 +1403,11 @@ var TOGGLE_BLUEPRINT = {
       stateOverrides: {
         /* ── NEUTRAL — grey off → success green on ─────────────────── */
         'Neutral': {
-          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
-          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
-          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
+          'Off':          { fill: 'default/content/subtle' },
+          'Off-Hover':    { fill: 'default/content/subtle' },
+          'Off-Focus':    { t3Mode: 'brand', fill: 'default/content/subtle',
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
-          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
+          'Off-Disabled': { fill: 'default/content/subtle', componentOpacity: 0.5 },
           'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
@@ -1417,11 +1417,11 @@ var TOGGLE_BLUEPRINT = {
         },
         /* ── BRAND — grey off → brand blue on ─────────────────────── */
         'Brand': {
-          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
-          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
-          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
+          'Off':          { fill: 'default/content/subtle' },
+          'Off-Hover':    { fill: 'default/content/subtle' },
+          'Off-Focus':    { t3Mode: 'brand', fill: 'default/content/subtle',
                             stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
-          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
+          'Off-Disabled': { fill: 'default/content/subtle', componentOpacity: 0.5 },
           'On':           { t3Mode: 'brand',   fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'brand',   fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'brand',   fill: { t3: 'component/bg-default' },

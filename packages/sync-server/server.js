@@ -135,7 +135,7 @@ const SURFACE_NAMES = [
 ];
 
 const SEMANTIC_ROLES = [
-  'brand', 'success', 'warning', 'danger', 'info'
+  'brand', 'success', 'warning', 'danger', 'info', 'neutral'
 ];
 
 // ── CSS parser ────────────────────────────────────────────────
