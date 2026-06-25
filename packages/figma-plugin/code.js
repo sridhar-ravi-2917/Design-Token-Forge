@@ -1414,20 +1414,20 @@ var TOGGLE_BLUEPRINT = {
 
   families: {
     /* ONE family — Neutral/Brand/Outlined are types (rows in the component set).
-       OFF track: neutral-component-bg-default=#6B7680 (4.64:1 vs white) ✅ WCAG 1.4.11.
+       OFF track: default/content/subtle (T2, #5E5E5E grey, 7:1 vs white) — no T3 needed.
        ON track: success green (Neutral/Outlined) or brand blue (Brand). */
     'Toggle': {
       types:  ['Neutral', 'Brand', 'Outlined'],
       states: ['Off', 'Off-Hover', 'Off-Focus', 'Off-Disabled',
                'On',  'On-Hover',  'On-Focus',  'On-Disabled'],
       stateOverrides: {
-        /* ── NEUTRAL — neutral grey off → success green on ─────────── */
+        /* ── NEUTRAL — grey off → success green on ─────────────────── */
         'Neutral': {
-          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
-          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
-          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
-          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
+          'Off':          { fill: 'default/content/subtle' },
+          'Off-Hover':    { fill: 'default/content/faint' },
+          'Off-Focus':    { fill: 'default/content/subtle',
+                            stroke: 'default/component/outline', strokeWeight: 2 },
+          'Off-Disabled': { fill: 'default/content/subtle', componentOpacity: 0.5 },
           'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'success', fill: { t3: 'component/bg-default' },
@@ -1435,13 +1435,13 @@ var TOGGLE_BLUEPRINT = {
           'On-Disabled':  { t3Mode: 'success', fill: { t3: 'component/bg-default' },
                             componentOpacity: 0.5, thumbXOverride: 'toggle/thumb-x-on' }
         },
-        /* ── BRAND — neutral grey off → brand blue on ──────────────── */
+        /* ── BRAND — grey off → brand blue on ──────────────────────── */
         'Brand': {
-          'Off':          { t3Mode: 'neutral', fill: { t3: 'component/bg-default' } },
-          'Off-Hover':    { t3Mode: 'neutral', fill: { t3: 'component/bg-hover' } },
-          'Off-Focus':    { t3Mode: 'neutral', fill: { t3: 'component/bg-default' },
-                            stroke: { t3: 'component/outline-default' }, strokeWeight: 2 },
-          'Off-Disabled': { t3Mode: 'neutral', fill: { t3: 'component/bg-default' }, componentOpacity: 0.5 },
+          'Off':          { fill: 'default/content/subtle' },
+          'Off-Hover':    { fill: 'default/content/faint' },
+          'Off-Focus':    { fill: 'default/content/subtle',
+                            stroke: 'default/component/outline', strokeWeight: 2 },
+          'Off-Disabled': { fill: 'default/content/subtle', componentOpacity: 0.5 },
           'On':           { t3Mode: 'brand',   fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'brand',   fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
           'On-Focus':     { t3Mode: 'brand',   fill: { t3: 'component/bg-default' },
@@ -1451,12 +1451,12 @@ var TOGGLE_BLUEPRINT = {
         },
         /* ── OUTLINED — transparent + border off → success green on ── */
         'Outlined': {
-          'Off':          { stroke: 'default/component/outline-default', strokeWeight: 2 },
+          'Off':          { stroke: 'default/component/outline', strokeWeight: 2 },
           'Off-Hover':    { fill: 'default/component/bg-hover',
                             stroke: 'default/component/outline-hover', strokeWeight: 2 },
           'Off-Focus':    { stroke: { t3: 'component/outline-default' }, strokeWeight: 2,
                             t3Mode: 'brand' },
-          'Off-Disabled': { stroke: 'default/component/outline-default', strokeWeight: 2,
+          'Off-Disabled': { stroke: 'default/component/outline', strokeWeight: 2,
                             componentOpacity: 0.5 },
           'On':           { t3Mode: 'success', fill: { t3: 'component/bg-default' }, thumbXOverride: 'toggle/thumb-x-on' },
           'On-Hover':     { t3Mode: 'success', fill: { t3: 'component/bg-hover' },  thumbXOverride: 'toggle/thumb-x-on' },
@@ -2978,85 +2978,6 @@ async function generateComponentFromBlueprint(blueprint) {
   }
   log('Presentation: T2 modes = ' + Object.keys(t2Modes).join(', '));
   log('Presentation: T3 modes = ' + Object.keys(t3Modes).join(', '));
-
-  /* ── Bootstrap / repair T3 neutral mode ───────────────────────────────────
-     Runs on EVERY blueprint build. Creates the mode if absent; always
-     re-writes the values so stale/wrong values from a previous partial run
-     are overwritten with correct ones.
-     Strategy: T1 VARIABLE_ALIAS (semantic/neutral/*) preferred;
-               literal hex fallback if T1 neutrals don't exist yet. */
-  if (t3Col) {
-    try {
-      var _nmId = t3Modes['neutral'];
-      if (!_nmId) {
-        _nmId = t3Col.addMode('neutral');
-        t3Modes['neutral'] = _nmId;
-        log('T3 neutral mode created id=' + _nmId);
-      } else {
-        log('T3 neutral mode exists id=' + _nmId + ' — refreshing values');
-      }
-
-      /* Build T1 name→variable map for alias creation */
-      var _t1ByName = {};
-      if (t1Col) {
-        var _t1Ids = t1Col.variableIds || [];
-        for (var _t1i = 0; _t1i < _t1Ids.length; _t1i++) {
-          var _t1v = await figma.variables.getVariableByIdAsync(_t1Ids[_t1i]);
-          if (_t1v) _t1ByName[_t1v.name] = _t1v;
-        }
-      }
-
-      /* Literal hex fallbacks (light-theme neutral grey + white on-comp).
-         Used when T1 semantic/neutral/* variables don't exist yet. */
-      var _nGrey  = { r: 0.420, g: 0.463, b: 0.502, a: 1 }; /* #6B7680 */
-      var _nHover = { r: 0.478, g: 0.522, b: 0.565, a: 1 }; /* ~#7A8590 */
-      var _nPress = { r: 0.376, g: 0.416, b: 0.455, a: 1 }; /* ~#606A74 */
-      var _nWhite = { r: 1, g: 1, b: 1, a: 1 };
-      var _nSep   = { r: 0.420, g: 0.463, b: 0.502, a: 1 };
-      var _nCtnBg = { r: 0.867, g: 0.890, b: 0.910, a: 1 };
-      var _nCtnTx = { r: 0.160, g: 0.184, b: 0.204, a: 1 };
-      var _neutralLiterals = {
-        'component/bg-default':        _nGrey,
-        'component/bg-hover':          _nHover,
-        'component/bg-pressed':        _nPress,
-        'component/outline-default':   _nSep,
-        'component/outline-hover':     _nSep,
-        'component/outline-pressed':   _nSep,
-        'component/separator':         _nSep,
-        'oncomponent-content/default': _nWhite,
-        'content/default':             _nWhite,
-        'content/strong':              _nWhite,
-        'content/subtle':              { r: 0.867, g: 0.890, b: 0.910, a: 1 },
-        'content/faint':               { r: 0.750, g: 0.780, b: 0.800, a: 1 },
-        'container/bg':                _nCtnBg,
-        'container/hover':             { r: 0.820, g: 0.850, b: 0.870, a: 1 },
-        'container/pressed':           { r: 0.780, g: 0.810, b: 0.840, a: 1 },
-        'container/outline':           _nSep,
-        'container/separator':         _nSep,
-        'oncontainer-content/default': _nCtnTx
-      };
-
-      /* Write every T3 variable's neutral-mode value */
-      var _t3ColVarIds = t3Col.variableIds || [];
-      for (var _t3vi = 0; _t3vi < _t3ColVarIds.length; _t3vi++) {
-        var _t3v = await figma.variables.getVariableByIdAsync(_t3ColVarIds[_t3vi]);
-        if (!_t3v) continue;
-        var _t1AliasName = 'semantic/neutral/' + _t3v.name.replace(/\//g, '-');
-        var _t1AliasVar  = _t1ByName[_t1AliasName];
-        try {
-          if (_t1AliasVar) {
-            _t3v.setValueForMode(_nmId, { type: 'VARIABLE_ALIAS', id: _t1AliasVar.id });
-          } else if (_neutralLiterals[_t3v.name]) {
-            _t3v.setValueForMode(_nmId, _neutralLiterals[_t3v.name]);
-          }
-        } catch (_t3vErr) {
-          log('T3 neutral write failed ' + _t3v.name + ': ' + _t3vErr.message);
-        }
-      }
-    } catch (_nmErr) {
-      log('T3 neutral bootstrap failed: ' + _nmErr.message);
-    }
-  }
 
   /* Resolve presentation colors from system tokens */
   var brightModeId  = t2Modes['surface-bright'] || t2Modes['surface-base'] || null;
