@@ -5477,7 +5477,12 @@ async function generateComponentFromBlueprint(blueprint) {
         var entry = components[gi];
         var typeIdx = famTypes.indexOf(entry.type);
         var stateIdx = famStates.indexOf(entry.state);
-        var roundedOffset = entry.rounded ? (blockHeight + roundedBlockGap) : 0;
+        /* When skipRounded:true, every master owns its OWN separate ComponentSet
+           (one set per master, not one set per family). All entries in this set
+           share the same shape, so there is no "Rounded block" to stack below.
+           Force roundedOffset to 0 so pill variants are not pushed below the
+           componentSet's bottom edge (which would make them invisible). */
+        var roundedOffset = (!BP.skipRounded && entry.rounded) ? (blockHeight + roundedBlockGap) : 0;
         entry.component.x = padX + stateIdx * colSpacing;
         entry.component.y = padY + typeIdx * rowSpacing + roundedOffset;
       }
