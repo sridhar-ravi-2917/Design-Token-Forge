@@ -1355,6 +1355,7 @@ var TOGGLE_BLUEPRINT = {
   labeledAxis:  true,       /* Labeled=True/False variant axis enabled  */
   singleFamily: true,       /* display name = master name only (no " / FamilyName") */
   radiusRoundedPath: 'toggle/radius', /* pill (9999) — bound on Rounded=True variants */
+  legacyOwners: ['Toggle'], /* old BP.name — ensures old Toggle/... sets are cleaned up */
   description: 'Binary on/off switch. Type: Neutral/Brand/Outlined. Rounded (pill) and Labeled (ON/OFF text) are boolean variant properties — one component set, all variants in the right panel.',
 
   /* ONE master — square by default. Rounded=True rebinds track+thumb to toggle/radius.
@@ -2577,7 +2578,14 @@ async function generateComponentFromBlueprint(blueprint) {
      hand-built "Button" component-set or a "Button Library" section). */
   function ownedByThisBP(node) {
     if (!node || !node.getPluginData) return false;
-    return node.getPluginData('dtf-owner') === BP.name;
+    var owner = node.getPluginData('dtf-owner');
+    if (owner === BP.name) return true;
+    /* Also match legacy owner names so renamed BPs clean up their old sets. */
+    var legacyOwners = BP.legacyOwners || [];
+    for (var _li = 0; _li < legacyOwners.length; _li++) {
+      if (owner === legacyOwners[_li]) return true;
+    }
+    return false;
   }
   function stampOwner(node) {
     if (node && node.setPluginData) {
