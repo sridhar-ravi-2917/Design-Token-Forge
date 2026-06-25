@@ -5365,6 +5365,32 @@ async function generateComponentFromBlueprint(blueprint) {
         }
       }
 
+      /* Schema-change guard for variant property renames.
+         If EVERY old variant is stale (no name matches the new spec), the
+         ComponentSet is about to be fully cleared in STEP 1. Removing the
+         last COMPONENT child causes Figma to auto-delete the empty
+         ComponentSet, making reuseTarget.id stale. Detect this up-front:
+         if 0 out of N old variants are reused, force combineAsVariants so we
+         never end up with an empty (and auto-deleted) ComponentSet. */
+      if (reuseTarget && !reuseTarget.removed) {
+        var _newNameSet = {};
+        for (var _nni = 0; _nni < allComps.length; _nni++) {
+          if (allComps[_nni].name) _newNameSet[allComps[_nni].name] = true;
+        }
+        var _oldKeys = Object.keys(_existingVarMap);
+        var _matchCount = 0;
+        for (var _oki = 0; _oki < _oldKeys.length; _oki++) {
+          if (_newNameSet[_oldKeys[_oki]]) _matchCount++;
+        }
+        if (_oldKeys.length > 0 && _matchCount === 0) {
+          /* 0% overlap — full schema change (e.g. Rounded→Square rename).
+             Remove the stale set entirely so combineAsVariants creates fresh. */
+          log('SAFE_REBUILD full-schema-change: 0/' + _oldKeys.length + ' variants match — forcing fresh set for "' + setDisplayName + '"');
+          try { reuseTarget.remove(); } catch (_rre) { /* ignore if already gone */ }
+          reuseTarget = null;
+        }
+      }
+
       if (reuseTarget && !reuseTarget.removed) {
         /* M4 + V2 — preserve set AND individual variant node IDs.
            Variants that were updated in-place (consumed from _existingVarMap)
@@ -5387,6 +5413,14 @@ async function generateComponentFromBlueprint(blueprint) {
             }
           }
 
+          /* Guard: after full stale-prune, confirm reuseTarget is still alive.
+             Figma auto-deletes an empty ComponentSet when its last child is
+             removed. If that happened, fall through to combineAsVariants. */
+          if (reuseTarget.removed) {
+            log('SAFE_REBUILD: reuseTarget auto-deleted after prune — falling back to combineAsVariants');
+            componentSet = figma.combineAsVariants(allComps, page);
+          } else {
+
           /* STEP 2: Append only variants that are NOT already in the set
              (i.e. newly created, not reused in-place). A reused variant
              is no longer in _existingVarMap (we deleted its entry). */
@@ -5404,6 +5438,7 @@ async function generateComponentFromBlueprint(blueprint) {
           componentSet = reuseTarget;
           reusedExistingSet = true;
           log('SAFE_REBUILD: reused set "' + setDisplayName + '" id=' + reuseTarget.id);
+          } /* end else (reuseTarget still alive after prune) */
         } catch (rue) {
           log('SAFE_REBUILD reuse failed, falling back to combineAsVariants: ' + rue.message);
           componentSet = figma.combineAsVariants(allComps, page);
