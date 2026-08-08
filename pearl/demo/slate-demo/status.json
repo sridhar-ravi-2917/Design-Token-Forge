@@ -1,0 +1,17 @@
+{
+  "connected": true,
+  "hash": "5ee41df89006",
+  "lastChanged": "2026-08-08T03:39:44.631Z",
+  "buildVersion": "",
+  "versionLabel": "",
+  "versionSavedAt": "",
+  "buildCommit": "9d9d947",
+  "pendingChanges": 0,
+  "totalVariables": 773,
+  "totalCollections": 7,
+  "lastSyncedHash": "",
+  "project": {
+    "id": "slate-demo",
+    "name": "Slate demo"
+  }
+}
